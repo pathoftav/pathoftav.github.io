@@ -77,19 +77,36 @@ try {{
 <script>
 var mq = matchMedia("(prefers-color-scheme: dark)");
 
-document.querySelector("button.theme").addEventListener("click", function () {{
-  var root = document.documentElement;
-  var os = mq.matches ? "dark" : "light";
-  var current = root.dataset.theme || os;
-  var next = current === "dark" ? "light" : "dark";
-  if (next === os) {{
-    /* choice matches the OS — drop the override and follow the OS again */
-    delete root.dataset.theme;
-    try {{ localStorage.removeItem("theme"); }} catch (e) {{}}
+/* run a mutation inside a view transition (cross-fade) when supported;
+   otherwise fade with a temporary transition class */
+function withTransition(fn) {{
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {{
+    fn();
+  }} else if (document.startViewTransition) {{
+    document.startViewTransition(fn);
   }} else {{
-    root.dataset.theme = next;
-    try {{ localStorage.setItem("theme", next); }} catch (e) {{}}
+    var root = document.documentElement;
+    root.classList.add("theme-fade");
+    fn();
+    setTimeout(function () {{ root.classList.remove("theme-fade"); }}, 400);
   }}
+}}
+
+document.querySelector("button.theme").addEventListener("click", function () {{
+  withTransition(function () {{
+    var root = document.documentElement;
+    var os = mq.matches ? "dark" : "light";
+    var current = root.dataset.theme || os;
+    var next = current === "dark" ? "light" : "dark";
+    if (next === os) {{
+      /* choice matches the OS — drop the override and follow the OS again */
+      delete root.dataset.theme;
+      try {{ localStorage.removeItem("theme"); }} catch (e) {{}}
+    }} else {{
+      root.dataset.theme = next;
+      try {{ localStorage.setItem("theme", next); }} catch (e) {{}}
+    }}
+  }});
 }});
 
 /* if the OS theme changes while the page is open and now agrees with the
@@ -137,7 +154,8 @@ def parse_post(path: Path):
         )
         guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
 
-    return {"title": title, "date": d, "slug": slug, "html": guide + rendered}
+    # return {"title": title, "date": d, "slug": slug, "html": guide + rendered}
+    return {"title": title, "date": d, "slug": slug, "html": rendered}
 
 
 def render(title: str, root: str, body: str) -> str:

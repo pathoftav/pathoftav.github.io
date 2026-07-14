@@ -15,7 +15,18 @@
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"]  { color-scheme: dark; }
 
-@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.30; }
+
+.theme-fade, .theme-fade *, .theme-fade *::before, .theme-fade *::after {
+  transition: background-color 0.30 ease, color 0.30 ease,
+              border-color 0.30 ease, box-shadow 0.30 ease !important;
+}
+
+/* scrollbar-gutter: stable */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -145,7 +156,7 @@ article h3 { color: var(--head); font-size: 1.25rem; font-weight: 600; margin: 1
 article ul, article ol { margin: 0 0 1.1em 1.4em; }
 article li { margin-bottom: 0.25em; }
 
-/* blockquotes as callout panels */
+/* blockquotes as tan callout panels, like the reference's exercise blocks */
 article blockquote {
   background: var(--panel);
   border-radius: 6px;

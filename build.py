@@ -44,6 +44,13 @@ PAGE = """\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<style>
+/* critical palette, inlined: paints the canvas correctly before style.css
+   arrives; must mirror the values in static/style.css */
+:root {{ color-scheme: light dark; background: light-dark(#f1ecdf, #17141f); }}
+:root[data-theme="light"] {{ color-scheme: light; }}
+:root[data-theme="dark"]  {{ color-scheme: dark; }}
+</style>
 {fonts}
 <link rel="stylesheet" href="{root}style.css">
 <script>
@@ -118,8 +125,19 @@ def parse_post(path: Path):
         d = datetime.fromtimestamp(path.stat().st_mtime).date()
         slug = path.stem
 
-    rendered = markdown.markdown(body, extensions=["fenced_code", "tables"])
-    return {"title": title, "date": d, "slug": slug, "html": rendered}
+    md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
+    rendered = md.convert(body)
+
+    toc_tokens = getattr(md, "toc_tokens", [])
+    sections = [t for t in toc_tokens if t["level"] == 2]
+    guide = ""
+    if len(sections) >= 3:
+        items = "\n".join(
+            f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in sections
+        )
+        guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
+
+    return {"title": title, "date": d, "slug": slug, "html": guide + rendered}
 
 
 def render(title: str, root: str, body: str) -> str:
@@ -138,7 +156,6 @@ def main():
         shutil.rmtree(DOCS)
     (DOCS / "posts").mkdir(parents=True)
 
-    # copy static assets (style.css and anything else) verbatim
     for f in STATIC.iterdir():
         if f.is_file():
             shutil.copy2(f, DOCS / f.name)
@@ -168,8 +185,10 @@ def main():
     for p in posts:
         body = (
             "<article>\n"
+            '<header class="post">\n'
             f"<h2>{html.escape(p['title'])}</h2>\n"
             f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time>\n'
+            "</header>\n"
             f"{p['html']}\n"
             "</article>\n"
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'

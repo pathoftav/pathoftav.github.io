@@ -1,21 +1,25 @@
-#!/usr/bin/env python3
-"""Build a tiny plaintext blog.
+"""Build a small plaintext blog.
 
 Usage:
-    python3 build.py
+    python build.py
 
 Layout:
-    posts/    plain .txt posts (YYYY-MM-DD-slug.txt; first line = title)
+    posts/    Markdown posts (YYYY-MM-DD-slug.md; date prefix optional)
     static/   files copied verbatim into the build (style.css lives here)
     docs/     generated output — deploy this directory anywhere static
 
-Post format: first line is the title; everything after the first blank
-line is the body. Paragraphs are separated by blank lines. No markup.
+Post format: if the first line is an H1 ("# Title") it becomes the
+post title; otherwise the first line is taken as the title verbatim.
+The rest is standard Markdown (fenced code blocks and tables enabled).
+
+Requires: pip install markdown
 """
 
 import html
 import re
 import shutil
+
+import markdown
 from datetime import date, datetime
 from pathlib import Path
 
@@ -24,8 +28,9 @@ POSTS = ROOT / "posts"
 STATIC = ROOT / "static"
 DOCS = ROOT / "docs"
 
-SITE_TITLE = "Sublunary Musings"  # change me
+SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
+DATE_FMT = "%B %-d, %Y"
 
 FONTS = """\
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,7 +106,8 @@ DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
 def parse_post(path: Path):
     text = path.read_text(encoding="utf-8").strip()
     lines = text.splitlines()
-    title = lines[0].strip()
+    first = lines[0].strip()
+    title = first.lstrip("#").strip() if first.startswith("#") else first
     body = "\n".join(lines[1:]).strip()
 
     m = DATE_RE.match(path.stem)
@@ -112,12 +118,8 @@ def parse_post(path: Path):
         d = datetime.fromtimestamp(path.stat().st_mtime).date()
         slug = path.stem
 
-    paragraphs = [
-        "<p>{}</p>".format(html.escape(p.strip()).replace("\n", "<br>"))
-        for p in re.split(r"\n\s*\n", body)
-        if p.strip()
-    ]
-    return {"title": title, "date": d, "slug": slug, "html": "\n".join(paragraphs)}
+    rendered = markdown.markdown(body, extensions=["fenced_code", "tables"])
+    return {"title": title, "date": d, "slug": slug, "html": rendered}
 
 
 def render(title: str, root: str, body: str) -> str:
@@ -142,7 +144,7 @@ def main():
             shutil.copy2(f, DOCS / f.name)
 
     posts = sorted(
-        (parse_post(p) for p in POSTS.glob("*.txt")),
+        (parse_post(p) for p in POSTS.glob("*.md")),
         key=lambda p: p["date"],
         reverse=True,
     )
@@ -154,7 +156,7 @@ def main():
             slug=p["slug"],
             title=html.escape(p["title"]),
             iso=p["date"].isoformat(),
-            nice=p["date"].strftime("%-d %B %Y"),
+            nice=p["date"].strftime(DATE_FMT),
         )
         for p in posts
     )
@@ -167,7 +169,7 @@ def main():
         body = (
             "<article>\n"
             f"<h2>{html.escape(p['title'])}</h2>\n"
-            f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime("%-d %B %Y")}</time>\n'
+            f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time>\n'
             f"{p['html']}\n"
             "</article>\n"
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'

@@ -35,7 +35,7 @@ body {
   font-family: 'EB Garamond', Georgia, serif;
   font-size: 1.25rem;
   line-height: 1.65;
-  max-width: 75ch;
+  max-width: 65ch;  /* ~80 chars of prose in EB Garamond */
   margin: 0 auto;
   padding: 4rem 1.25rem 6rem;
 }
@@ -110,6 +110,37 @@ nav.back { margin-top: 3.5rem; }
 nav.back a { color: var(--dim); }
 nav.back a:hover { color: var(--gold); }
 
+
+/* ---- markdown elements ---- */
+article h3 { font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 0.6rem; }
+article ul, article ol { margin: 0 0 1.1em 1.4em; }
+article li { margin-bottom: 0.25em; }
+article blockquote {
+  border-left: 2px solid var(--gold);
+  padding-left: 1rem;
+  margin: 0 0 1.1em;
+  color: var(--dim);
+  font-style: italic;
+}
+article code {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.82em;
+}
+article pre {
+  border: 1px solid var(--dim);
+  border-radius: 4px;
+  padding: 0.8rem 1rem;
+  margin: 0 0 1.1em;
+  overflow-x: auto;
+}
+article table { border-collapse: collapse; margin: 0 0 1.1em; }
+article th, article td { border: 1px solid var(--dim); padding: 0.3rem 0.7rem; }
+article hr { border: 0; border-top: 1px solid var(--dim); margin: 1.6rem auto; width: 4rem; }
+article img { max-width: 100%; }
+
+/* markdown h2 inside the body shouldn't collide with the post title h2 */
+article h2:not(:first-child) { font-size: 1.35rem; margin: 1.8rem 0 0.6rem; }
+
 /* ---- theme toggle ---- */
 button.theme {
   position: fixed;
@@ -129,8 +160,8 @@ button.theme:hover { color: var(--gold); border-color: var(--gold); }
 button.theme:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
 /* show the luminary you would switch to */
-button.theme::before { content: "\263D"; }                 /* ☽ in light mode  */
-:root[data-theme="dark"] button.theme::before { content: "\2609"; }  /* ☉ */
+button.theme::before { content: "\263D"; }							 /* ☽ in light mode  */
+:root[data-theme="dark"] button.theme::before { content: "\2609"; }  /* ☉ in dark mode   */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) button.theme::before { content: "\2609"; }
 }

@@ -1,0 +1,137 @@
+/* light: soft sage paper, near-black violet ink */
+:root {
+  --bg: #e6e3d5;
+  --ink: #2b2733;
+  --dim: #756f66;
+  --gold: #8a6d3b;
+  color-scheme: light;
+}
+
+/* dark: the hour before dawn, warm parchment ink */
+:root[data-theme="dark"] {
+  --bg: #26222f;
+  --ink: #d8d0c0;
+  --dim: #8f8a9c;
+  --gold: #b3985e;
+  color-scheme: dark;
+}
+
+/* follow the OS when no explicit choice has been made */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #26222f;
+    --ink: #d8d0c0;
+    --dim: #8f8a9c;
+    --gold: #b3985e;
+    color-scheme: dark;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.25rem;
+  line-height: 1.65;
+  max-width: 75ch;
+  margin: 0 auto;
+  padding: 4rem 1.25rem 6rem;
+}
+
+a { color: var(--gold); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+header.site { text-align: center; margin-bottom: 3.5rem; }
+header.site h1 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-variant: small-caps;
+}
+header.site h1 a { color: var(--ink); }
+header.site p {
+  color: var(--dim);
+  font-style: italic;
+  margin-top: 0.4rem;
+}
+header.site::after {
+  content: "";
+  display: block;
+  width: 4rem;
+  margin: 1.8rem auto 0;
+  border-bottom: 1px solid var(--gold);
+}
+
+/* ---- index: table of contents with dotted leaders ---- */
+ul.toc { list-style: none; }
+ul.toc li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+}
+ul.toc .leader {
+  flex: 1;
+  border-bottom: 1px dotted var(--dim);
+  transform: translateY(-0.3em);
+  min-width: 2rem;
+}
+ul.toc time {
+  color: var(--dim);
+  font-size: 0.95rem;
+  font-variant-numeric: oldstyle-nums;
+  white-space: nowrap;
+}
+
+/* ---- post ---- */
+article h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+article time {
+  display: block;
+  color: var(--dim);
+  font-style: italic;
+  margin-bottom: 2rem;
+}
+article p { margin-bottom: 1.1em; }
+article p:first-of-type::first-letter {
+  color: var(--gold);
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+nav.back { margin-top: 3.5rem; }
+nav.back a { color: var(--dim); }
+nav.back a:hover { color: var(--gold); }
+
+/* ---- theme toggle ---- */
+button.theme {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  width: 2.4rem;
+  height: 2.4rem;
+  font: inherit;
+  font-size: 1.25rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+button.theme:hover { color: var(--gold); border-color: var(--gold); }
+button.theme:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* show the luminary you would switch to */
+button.theme::before { content: "\263D"; }                 /* ☽ in light mode  */
+:root[data-theme="dark"] button.theme::before { content: "\2609"; }  /* ☉ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) button.theme::before { content: "\2609"; }
+}
+

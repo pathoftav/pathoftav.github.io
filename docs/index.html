@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sublunary Musings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="style.css">
+<script>
+/* restore saved choice before first paint to avoid a flash;
+   if the save now matches the OS, it's redundant — drop it and follow the OS */
+try {
+  var t = localStorage.getItem("theme");
+  var os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  if (t === os) {
+    localStorage.removeItem("theme");
+  } else if (t) {
+    document.documentElement.dataset.theme = t;
+  }
+} catch (e) {}
+</script>
+</head>
+<body>
+<button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
+<header class="site">
+  <h1><a href="index.html">Sublunary Musings</a></h1>
+  <p>philosophy, magic, and other errata</p>
+</header>
+<ul class="toc">
+  <li><a href="posts/on-silence.html">On Silence</a><span class="leader"></span><time datetime="2026-07-01">1 July 2026</time></li>
+  <li><a href="posts/the-map-is-a-territory.html">The Map Is a Territory</a><span class="leader"></span><time datetime="2026-06-14">14 June 2026</time></li>
+  <li><a href="posts/hello-world.html">Hello, World</a><span class="leader"></span><time datetime="2026-05-20">20 May 2026</time></li>
+</ul>
+<script>
+var mq = matchMedia("(prefers-color-scheme: dark)");
+
+document.querySelector("button.theme").addEventListener("click", function () {
+  var root = document.documentElement;
+  var os = mq.matches ? "dark" : "light";
+  var current = root.dataset.theme || os;
+  var next = current === "dark" ? "light" : "dark";
+  if (next === os) {
+    /* choice matches the OS — drop the override and follow the OS again */
+    delete root.dataset.theme;
+    try { localStorage.removeItem("theme"); } catch (e) {}
+  } else {
+    root.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  }
+});
+
+/* if the OS theme changes while the page is open and now agrees with the
+   saved override, the override is redundant — drop it so later OS changes
+   are followed */
+mq.addEventListener("change", function (e) {
+  var os = e.matches ? "dark" : "light";
+  if (document.documentElement.dataset.theme === os) {
+    delete document.documentElement.dataset.theme;
+    try { localStorage.removeItem("theme"); } catch (err) {}
+  }
+});
+</script>
+</body>
+</html>

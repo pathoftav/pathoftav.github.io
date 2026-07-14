@@ -179,7 +179,11 @@ def main():
             shutil.copy2(f, DOCS / f.name)
 
     posts = sorted(
-        (parse_post(p) for p in POSTS.glob("*.md")),
+        (
+            parse_post(p)
+            for p in POSTS.glob("*.md")
+            if not p.name.startswith("WIP-")
+        ),
         key=lambda p: p["date"],
         reverse=True,
     )

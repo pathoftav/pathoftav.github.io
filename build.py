@@ -6,14 +6,14 @@ Usage:
 Layout:
     posts/    Markdown posts (YYYY-MM-DD-slug.md; date prefix optional)
     static/   files copied verbatim into the build (style.css lives here)
-    docs/     generated output — deploy this directory anywhere static
+    site/     generated output — deploy this directory anywhere static
 
 Post format: if the first line is an H1 ("# Title") it becomes the
 post title; otherwise the first line is taken as the title verbatim.
 The rest is standard Markdown (fenced code blocks and tables enabled).
 If the LAST line consists only of hashtags ("#magic #geomancy"), they
 become the post's tags: rendered as links on the post page, indexed
-under docs/tags/<tag>.html, with an overview at docs/tags/index.html.
+under site/tags/<tag>.html, with an overview at site/tags/index.html.
 
 Requires: pip install markdown
 """
@@ -32,7 +32,7 @@ import markdown
 ROOT = Path(__file__).parent
 POSTS = ROOT / "posts"
 STATIC = ROOT / "static"
-DOCS = ROOT / "docs"
+SITE = ROOT / "site"
 
 SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
@@ -237,11 +237,11 @@ def group_by_tag(posts) -> dict[str, list]:
 
 
 # --------------------------------------------------------------------------
-# writers — each renders one part of docs/
+# writers — each renders one part of site/
 # --------------------------------------------------------------------------
 
 def write_index(posts) -> None:
-    (DOCS / "index.html").write_text(
+    (SITE / "index.html").write_text(
         render(
             SITE_TITLE,
             "",
@@ -264,7 +264,7 @@ def write_posts(posts) -> None:
             "</article>\n"
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'
         )
-        (DOCS / "posts" / f"{p['slug']}.html").write_text(
+        (SITE / "posts" / f"{p['slug']}.html").write_text(
             render(f"{p['title']} — {SITE_TITLE}", "../", body),
             encoding="utf-8",
         )
@@ -277,7 +277,7 @@ def write_tag_pages(by_tag) -> None:
             '<ul class="toc">\n' + post_list_items(tagged, "../posts/") + "\n</ul>\n"
             '<nav class="back"><a href="index.html">&larr; all tags</a></nav>'
         )
-        (DOCS / "tags" / f"{t}.html").write_text(
+        (SITE / "tags" / f"{t}.html").write_text(
             render(f"#{t} — {SITE_TITLE}", "../", body),
             encoding="utf-8",
         )
@@ -292,7 +292,7 @@ def write_tag_index(by_tag) -> None:
         )
         for t, ps in sorted(by_tag.items())
     )
-    (DOCS / "tags" / "index.html").write_text(
+    (SITE / "tags" / "index.html").write_text(
         render(
             f"Tags — {SITE_TITLE}",
             "../",
@@ -318,7 +318,7 @@ def write_404() -> None:
         '<a href="/tags/index.html">wander the tags</a>.</p>\n'
         '</article>'
     )
-    (DOCS / "404.html").write_text(
+    (SITE / "404.html").write_text(
         render(f"Not found — {SITE_TITLE}", "/", body),
         encoding="utf-8",
     )
@@ -329,13 +329,13 @@ def write_404() -> None:
 # --------------------------------------------------------------------------
 
 def prepare_output() -> None:
-    """Wipe docs/, recreate its subdirs, and copy static assets in."""
-    if DOCS.exists():
-        shutil.rmtree(DOCS)
-    (DOCS / "posts").mkdir(parents=True)
-    (DOCS / "tags").mkdir()
+    """Wipe site/, recreate its subdirs, and copy static assets in."""
+    if SITE.exists():
+        shutil.rmtree(SITE)
+    (SITE / "posts").mkdir(parents=True)
+    (SITE / "tags").mkdir()
     # copy static assets (style.css, fonts/, ...) verbatim, recursively
-    shutil.copytree(STATIC, DOCS, dirs_exist_ok=True)
+    shutil.copytree(STATIC, SITE, dirs_exist_ok=True)
 
 
 def load_posts() -> list[dict]:
@@ -362,7 +362,7 @@ def main() -> None:
     write_tag_index(by_tag)
     write_404()
 
-    print(f"built {len(posts)} post(s), {len(by_tag)} tag(s) → {DOCS}/")
+    print(f"built {len(posts)} post(s), {len(by_tag)} tag(s) → {SITE}/")
 
 
 if __name__ == "__main__":

@@ -8,5 +8,5 @@ build:
 	python build.py
 
 clean:
-	rm -rf ./docs
+	rm -rf ./site
 

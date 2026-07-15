@@ -410,7 +410,7 @@ def main() -> None:
     write_tag_index(by_tag)
     write_404()
 
-    print(f"built {len(posts)} post(s), {len(by_tag)} tag(s) → {SITE}/")
+    print(f'built {len(posts)} {"post" if len(posts) == 1 else "posts"}, {len(by_tag)} {"tag" if len(by_tag) == 1 else "tags"}: {SITE}/')
 
 
 if __name__ == "__main__":

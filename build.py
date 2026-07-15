@@ -47,13 +47,6 @@ PAGE = """\
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>{title}</title>
-<style>
-/* critical palette, inlined: paints the canvas correctly before
-   style.css arrives; must mirror the values in static/style.css */
-:root {{ color-scheme: light dark; background: light-dark(#f1ecdf, #17141f); }}
-:root[data-theme="light"] {{ color-scheme: light; }}
-:root[data-theme="dark"]  {{ color-scheme: dark; }}
-</style>
 <link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{root}static/style.css">
 <link rel="apple-touch-icon" sizes="180x180" href="{root}static/favicon/apple-touch-icon.png">

@@ -47,12 +47,7 @@ article em, article i, article blockquote { font-size: 1.02em; letter-spacing: 0
   @view-transition { navigation: auto; }
   @view-transition { navigation: auto; types: page; }  /* dupe: fallback if a browser drops the rule over the unknown `types` descriptor */
 }
-::view-transition { background-color: #f1ecdf; }
-@media (prefers-color-scheme: dark) {
-  ::view-transition { background-color: #17141f; }
-}
-:root[data-theme="light"]::view-transition { background-color: #f1ecdf; }
-:root[data-theme="dark"]::view-transition { background-color: #17141f; }
+::view-transition { background-color: var(--page); }
 
 ::view-transition-group(root),
 ::view-transition-old(root),

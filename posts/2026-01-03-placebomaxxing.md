@@ -26,7 +26,8 @@ but rather,
 
 _"people who **thought** they took the medicine"_
 
-### TODO: Study on pain, nausea
+
+## TODO: Study on pain, nausea
 
 ### TODO: Study on learning, confidence, flow state
 
@@ -36,4 +37,6 @@ _"people who **thought** they took the medicine"_
 
 
 #placebo
+
+<!-- [OPTIONS]: { "toc": false, "draft": true, "series_order": 1 } -->
 

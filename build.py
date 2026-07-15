@@ -55,6 +55,10 @@ PAGE = """\
 </style>
 <link rel="preload" href="{root}fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{root}style.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{root}favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{root}favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{root}favicon/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
 <script>
 /* restore saved choice before first paint to avoid a flash;
    if the save now matches the OS, it's redundant — drop it and follow the OS */

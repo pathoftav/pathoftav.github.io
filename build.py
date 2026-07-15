@@ -53,11 +53,11 @@ PAGE = """\
 :root[data-theme="light"] {{ color-scheme: light; }}
 :root[data-theme="dark"]  {{ color-scheme: dark; }}
 </style>
-<link rel="preload" href="{root}fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{root}style.css">
-<link rel="apple-touch-icon" sizes="180x180" href="{root}favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="{root}favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="{root}favicon/favicon-16x16.png">
+<link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{root}static/style.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{root}static/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{root}static/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{root}static/favicon/favicon-16x16.png">
 <link rel="manifest" href="/site.webmanifest">
 <script>
 /* restore saved choice before first paint to avoid a flash;
@@ -349,7 +349,7 @@ def prepare_output() -> None:
     (SITE / "posts").mkdir(parents=True)
     (SITE / "tags").mkdir()
     # copy static assets (style.css, fonts/, ...) verbatim, recursively
-    shutil.copytree(STATIC, SITE, dirs_exist_ok=True)
+    shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
 
 
 def load_posts() -> list[dict]:

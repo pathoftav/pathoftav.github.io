@@ -169,7 +169,13 @@ def parse_post(path: Path) -> dict:
 def extract_options(body_lines: list[str]) -> dict:
     """Peel a trailing OPTIONS line off body_lines (in place) and return the
     list of options as a dictionary. Done BEFORE tags or markdown.
-    e.g. <!-- [OPTIONS]: {"toc": true, "Foo": "bar"} -->
+
+    The options line must be in a specific format at the very bottom of the file:
+    <!-- [OPTIONS]: {"toc": true, "Foo": "bar"} -->
+
+    List of valid options
+        "toc":   bool   enable table of contents
+        "draft": bool   draft posts are hidden in production
     """
     options = {}
     if body_lines:
@@ -288,10 +294,17 @@ def write_index(posts) -> None:
 
 def write_posts(posts) -> None:
     for p in posts:
+        badges = []
+
+        if p["options"].get("draft", False):
+            badges.append('<span class="draft-badge">DRAFT</span>')
+
+        badge_wrapper = f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>' if badges else ""
+
         body = (
             "<article>\n"
             '<header class="post">\n'
-            f"<h2>{html.escape(p['title'])}</h2>\n"
+            f"<h2>{html.escape(p['title'])}{badge_wrapper}</h2>\n"
             f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time>\n'
             "</header>\n"
             f"{p['html']}\n"
@@ -369,21 +382,21 @@ def prepare_output() -> None:
         shutil.rmtree(SITE)
     (SITE / "posts").mkdir(parents=True)
     (SITE / "tags").mkdir()
-    # copy static assets (style.css, fonts/, ...) verbatim, recursively
     shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
 
 
 def load_posts() -> list[dict]:
     """Parse every post, newest first."""
-    return sorted(
-        (
-            parse_post(p)
-            for p in POSTS.glob("*.md")
-            if not p.name.endswith("WIP.md") or os.getenv("ENVIRONMENT") == "LOCAL"
-        ),
-        key=lambda p: p["date"],
-        reverse=True,
-    )
+    is_local = os.getenv("ENVIRONMENT") == "LOCAL"
+    valid_posts = []
+
+    for p in POSTS.glob("*.md"):
+        post = parse_post(p)
+        if not is_local and post["options"].get("draft", False):
+            continue
+        valid_posts.append(post)
+
+    return sorted(valid_posts, key=lambda p: p["date"], reverse=True)
 
 
 def main() -> None:

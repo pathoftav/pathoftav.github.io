@@ -170,6 +170,27 @@ nav.guide a { color: var(--head); text-decoration-color: var(--rule); }
 nav.guide a:hover { color: var(--gold); text-decoration-color: var(--gold); }
 
 /* ---- post ---- */
+header.post h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.draft-badge {
+  font-family: system-ui, sans-serif;
+  font-size: 1.00rem;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  color: #e63946;
+  border: 1px solid #e63946;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
 article h2 {
   color: var(--head);
   font-size: 1.7rem;

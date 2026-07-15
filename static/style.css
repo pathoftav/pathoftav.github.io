@@ -275,10 +275,10 @@ button.theme:hover { color: var(--gold); border-color: var(--gold); }
 button.theme:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
 /* show the luminary you would switch to */
-button.theme::before { content: "\263D"; }                           /* ☽ in light mode  */
-:root[data-theme="dark"] button.theme::before { content: "\2609"; }  /* ☉ in dark mode   */
+button.theme::before { content: "\2609"; }                           /* ☉ in light mode  */
+:root[data-theme="dark"] button.theme::before { content: "\263D"; }  /* ☽ in dark mode   */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) button.theme::before { content: "\2609"; }
+  :root:not([data-theme]) button.theme::before { content: "\263D"; }
 }
 
 /* narrow screens: let the column breathe less */

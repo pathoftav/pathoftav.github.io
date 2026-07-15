@@ -19,12 +19,15 @@ Requires: pip install markdown
 """
 
 import html
+import os
 import re
 import shutil
 
-import markdown
 from datetime import date, datetime
 from pathlib import Path
+
+from dotenv import load_dotenv
+import markdown
 
 ROOT = Path(__file__).parent
 POSTS = ROOT / "posts"
@@ -124,51 +127,72 @@ mq.addEventListener("change", function (e) {{
 """
 
 DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
-TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consisting only of hashtags: "#placebo  #tree-of-life #philosophy"
+TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consisting only of hashtags: "#placebo #tree-of-life #philosophy"
 
 
-def parse_post(path: Path):
+# --------------------------------------------------------------------------
+# parsing
+# --------------------------------------------------------------------------
+
+def parse_post(path: Path) -> dict:
+    """Read one .md file into a post dict: title, date, slug, tags, html."""
     text = path.read_text(encoding="utf-8").strip()
     lines = text.splitlines()
     first = lines[0].strip()
     title = first.lstrip("#").strip() if first.startswith("#") else first
     body_lines = lines[1:]
 
-    # peel a trailing hashtag line off BEFORE markdown sees it (python-markdown
-    # would happily read "#magic" as an <h1>)
-    tags: list[str] = []
+    tags = extract_tags(body_lines)   # mutates body_lines: pops the tag line
+    body = "\n".join(body_lines).strip()
+    d, slug = date_and_slug(path)
+    rendered = render_markdown(body)
+
+    return {"title": title, "date": d, "slug": slug, "tags": tags, "html": rendered}
+
+
+def extract_tags(body_lines: list[str]) -> list[str]:
+    """Peel a trailing hashtag line off body_lines (in place) and return its
+    tags. Done BEFORE markdown sees the text — python-markdown would read
+    "#magic" as an <h1>."""
     while body_lines and not body_lines[-1].strip():
         body_lines.pop()
     if body_lines and TAG_LINE_RE.match(body_lines[-1]):
-        tags = sorted({t.lstrip("#").lower() for t in body_lines.pop().split()})
+        return sorted({t.lstrip("#").lower() for t in body_lines.pop().split()})
+    return []
 
-    body = "\n".join(body_lines).strip()
 
+def date_and_slug(path: Path) -> tuple[date, str]:
+    """Derive (date, slug) from the filename: a YYYY-MM-DD- prefix wins,
+    otherwise fall back to the file's mtime."""
     m = DATE_RE.match(path.stem)
     if m:
-        d = date.fromisoformat(m.group(1))
-        slug = path.stem[len(m.group(0)):]
-    else:
-        d = datetime.fromtimestamp(path.stat().st_mtime).date()
-        slug = path.stem
+        return date.fromisoformat(m.group(1)), path.stem[len(m.group(0)):]
+    return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
+
+def render_markdown(body: str) -> str:
+    """Convert post body to HTML, prepending a Contents panel when the post
+    has at least three top-level (##) sections."""
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
     rendered = md.convert(body)
 
     toc_tokens = getattr(md, "toc_tokens", [])
     sections = [t for t in toc_tokens if t["level"] == 2]
-    guide = ""
     if len(sections) >= 3:
         items = "\n".join(
             f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in sections
         )
         guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
+        # return guide + rendered   # TODO: Add some kind of OPTIONS={"TOC"} line to posts that is parsed and enables this
+    return rendered
 
-    # return {"title": title, "date": d, "slug": slug, "tags": tags, "html": guide + rendered}
-    return {"title": title, "date": d, "slug": slug, "tags": tags, "html": rendered}
 
+# --------------------------------------------------------------------------
+# html fragments
+# --------------------------------------------------------------------------
 
 def render(title: str, root: str, body: str) -> str:
+    """Wrap a body fragment in the full page shell."""
     return PAGE.format(
         title=title,
         root=root,
@@ -203,26 +227,20 @@ def tag_footer(tags: list[str]) -> str:
     return f'<footer class="tags">{links}</footer>\n'
 
 
-def main():
-    if DOCS.exists():
-        shutil.rmtree(DOCS)
-    (DOCS / "posts").mkdir(parents=True)
-    (DOCS / "tags").mkdir()
+def group_by_tag(posts) -> dict[str, list]:
+    """Map each tag to the (date-sorted) posts carrying it."""
+    by_tag: dict[str, list] = {}
+    for p in posts:
+        for t in p["tags"]:
+            by_tag.setdefault(t, []).append(p)   # posts already date-sorted
+    return by_tag
 
-    # copy static assets (style.css, fonts/, ...) verbatim, recursively
-    shutil.copytree(STATIC, DOCS, dirs_exist_ok=True)
 
-    posts = sorted(
-        (
-            parse_post(p)
-            for p in POSTS.glob("*.md")
-            # if not p.name.endswith("WIP.md")
-        ),
-        key=lambda p: p["date"],
-        reverse=True,
-    )
+# --------------------------------------------------------------------------
+# writers — each renders one part of docs/
+# --------------------------------------------------------------------------
 
-    # ---- index ----
+def write_index(posts) -> None:
     (DOCS / "index.html").write_text(
         render(
             SITE_TITLE,
@@ -232,7 +250,8 @@ def main():
         encoding="utf-8",
     )
 
-    # ---- posts ----
+
+def write_posts(posts) -> None:
     for p in posts:
         body = (
             "<article>\n"
@@ -250,12 +269,8 @@ def main():
             encoding="utf-8",
         )
 
-    # ---- tag pages ----
-    by_tag: dict[str, list] = {}
-    for p in posts:
-        for t in p["tags"]:
-            by_tag.setdefault(t, []).append(p)  # posts already date-sorted
 
+def write_tag_pages(by_tag) -> None:
     for t, tagged in by_tag.items():
         body = (
             f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
@@ -267,7 +282,8 @@ def main():
             encoding="utf-8",
         )
 
-    # ---- tag directory ----
+
+def write_tag_index(by_tag) -> None:
     tag_items = "\n".join(
         '  <li><a href="{t}.html">#{t}</a>'
         '<span class="leader"></span>'
@@ -286,9 +302,48 @@ def main():
         encoding="utf-8",
     )
 
+
+# --------------------------------------------------------------------------
+# orchestration
+# --------------------------------------------------------------------------
+
+def prepare_output() -> None:
+    """Wipe docs/, recreate its subdirs, and copy static assets in."""
+    if DOCS.exists():
+        shutil.rmtree(DOCS)
+    (DOCS / "posts").mkdir(parents=True)
+    (DOCS / "tags").mkdir()
+    # copy static assets (style.css, fonts/, ...) verbatim, recursively
+    shutil.copytree(STATIC, DOCS, dirs_exist_ok=True)
+
+
+def load_posts() -> list[dict]:
+    """Parse every post, newest first."""
+    return sorted(
+        (
+            parse_post(p)
+            for p in POSTS.glob("*.md")
+            if not p.name.endswith("WIP.md") or os.getenv("ENVIRONMENT") == "LOCAL"
+        ),
+        key=lambda p: p["date"],
+        reverse=True,
+    )
+
+
+def main() -> None:
+    prepare_output()
+    posts = load_posts()
+    by_tag = group_by_tag(posts)
+
+    write_index(posts)
+    write_posts(posts)
+    write_tag_pages(by_tag)
+    write_tag_index(by_tag)
+
     print(f"built {len(posts)} post(s), {len(by_tag)} tag(s) → {DOCS}/")
 
 
 if __name__ == "__main__":
+    load_dotenv()
     main()
 

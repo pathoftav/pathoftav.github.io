@@ -1,14 +1,14 @@
-/* self-hosted EB Garamond (variable, subset to latin/greek/hebrew) */
+/* fonts */
 @font-face {
-  font-family: 'EB Garamond';
-  src: url('fonts/EBGaramond.woff2') format('woff2');
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond.woff2") format("woff2");
   font-weight: 400 800;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'EB Garamond';
-  src: url('fonts/EBGaramond-Italic.woff2') format('woff2');
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
   font-weight: 400 800;
   font-style: italic;
   font-display: swap;
@@ -16,19 +16,21 @@
 /* fallback with metrics adjusted toward EB Garamond (upm 1000, asc 1007,
    desc 298, x-height 400) so a late swap barely moves the layout */
 @font-face {
-  font-family: 'EB Garamond Fallback';
-  src: local('Georgia'), local('Times New Roman');
+  font-family: "EB Garamond Fallback";
+  src: local("Georgia"), local("Times New Roman");
   size-adjust: 89%;
   ascent-override: 113%;
   descent-override: 33%;
   line-gap-override: 0%;
 }
 
+article em, article i, article blockquote { font-size: 1.02em; letter-spacing: 0.01em; }	/* spread out italics a bit */
+
 :root {
   color-scheme: light dark;
   --page:     light-dark(#f1ecdf, #17141f);
   --card:     light-dark(#ffffff, #26222f);
-  --panel:    light-dark(#f4efe2, #2e2a3b);
+  --panel:    light-dark(#f4eee1, #2e2a3b);
   --hero:     light-dark(#2f2750, #221d33);
   --hero-ink: light-dark(#f5f2ea, #e6dfd0);
   --ink:      light-dark(#3b3540, #d8d0c0);
@@ -40,6 +42,7 @@
 
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"]  { color-scheme: dark; }
+
 
 @media (prefers-reduced-motion: no-preference) {
   @view-transition { navigation: auto; }
@@ -62,7 +65,7 @@ html {
 body {
   background: var(--card);
   color: var(--ink);
-  font-family: 'EB Garamond', 'EB Garamond Fallback', Georgia, serif;
+  font-family: "EB Garamond", "EB Garamond Fallback", Georgia, serif;
   font-size: 1.25rem;
   line-height: 1.65;
   max-width: 48rem;           /* the white column */
@@ -194,7 +197,7 @@ article blockquote p:first-of-type::first-letter {
 }
 
 article code {
-  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
   font-size: 0.82em;
 }
 article pre {

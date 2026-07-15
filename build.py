@@ -46,7 +46,17 @@ PAGE = """\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1ecdf">
+<meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#17141f">
 <title>{title}</title>
+<style>
+/* OS Preference */
+:root {{ color-scheme: light dark; background: #f1ecdf; }}
+@media (prefers-color-scheme: dark) {{ :root {{ background: #17141f; }} }}
+/* User Preference */
+:root[data-theme="light"] {{ color-scheme: light; background: #f1ecdf; }}
+:root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
+</style>
 <link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{root}static/style.css">
 <link rel="apple-touch-icon" sizes="180x180" href="{root}static/favicon/apple-touch-icon.png">
@@ -54,11 +64,20 @@ PAGE = """\
 <link rel="icon" type="image/png" sizes="16x16" href="{root}static/favicon/favicon-16x16.png">
 <link rel="manifest" href="{root}static/site.webmanifest">
 <script>
-/* restore saved choice before first paint to avoid a flash;
-   if the save now matches the OS, it's redundant — drop it and follow the OS */
+/* Apply theme before first paint to prevent flashes.
+   Syncs with OS preference or localStorage override. */
 try {{
   var t = localStorage.getItem("theme");
   var os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  var activeTheme = t || os;
+
+  // Sync browser UI with active theme
+  var metaTheme = document.createElement("meta");
+  metaTheme.name = "theme-color";
+  metaTheme.content = activeTheme === "dark" ? "#17141f" : "#f1ecdf";
+  document.head.appendChild(metaTheme);
+
+  // Apply data-theme if user override exists; clean up redundant storage
   if (t === os) {{
     localStorage.removeItem("theme");
   }} else if (t) {{
@@ -294,6 +313,9 @@ def write_404() -> None:
     unmatched URL, so it uses ABSOLUTE asset paths (root="/") — relative
     ones would break for deep URLs like /posts/x that don't exist."""
     body = (
+        '<style>\n'
+        '@view-transition { navigation: none; }\n'
+        '</style>\n'
         '<article>\n'
         '<header class="post">\n'
         '<h2>Lost in the sublunary</h2>\n'
@@ -307,7 +329,7 @@ def write_404() -> None:
         '    var link = e.target.closest("a");\n'
         '    if (link && link.host === window.location.host) {\n'
         '      e.preventDefault();\n'
-        '      document.body.style.transition = "opacity 0.5s ease";\n'
+        '      document.body.style.transition = "opacity 0.2s ease";\n'
         '      document.body.style.opacity = "0";\n'
         '      setTimeout(() => window.location.href = link.href, 200);\n'
         '    }\n'

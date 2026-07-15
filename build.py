@@ -121,6 +121,16 @@ mq.addEventListener("change", function (e) {{
     try {{ localStorage.removeItem("theme"); }} catch (err) {{}}
   }}
 }});
+
+/* a link back to the page you're already on: nothing to animate, so a
+   cross-fade of the page into itself only produces shimmer — skip it */
+window.addEventListener("pageswap", function (e) {{
+  if (e.viewTransition && e.activation &&
+      e.activation.from && e.activation.entry &&
+      e.activation.from.url === e.activation.entry.url) {{
+    e.viewTransition.skipTransition();
+  }}
+}});
 </script>
 </body>
 </html>

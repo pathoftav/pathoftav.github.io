@@ -19,6 +19,7 @@ Requires: pip install markdown
 """
 
 import html
+import json
 import os
 import re
 import shutil
@@ -149,19 +150,37 @@ TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consist
 # --------------------------------------------------------------------------
 
 def parse_post(path: Path) -> dict:
-    """Read one .md file into a post dict: title, date, slug, tags, html."""
+    """Read one .md file into a post dict: title, date, slug, tags, html, options."""
     text = path.read_text(encoding="utf-8").strip()
     lines = text.splitlines()
     first = lines[0].strip()
     title = first.lstrip("#").strip() if first.startswith("#") else first
     body_lines = lines[1:]
 
-    tags = extract_tags(body_lines)   # mutates body_lines: pops the tag line
+    options = extract_options(body_lines)   # NOTE: mutates body_lines: pops the OPTIONS line
+    tags = extract_tags(body_lines)         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
-    rendered = render_markdown(body)
+    rendered = render_markdown(body, options.get("toc", False))
 
-    return {"title": title, "date": d, "slug": slug, "tags": tags, "html": rendered}
+    return {"title": title, "date": d, "slug": slug, "tags": tags, "html": rendered, "options": options}
+
+
+def extract_options(body_lines: list[str]) -> dict:
+    """Peel a trailing OPTIONS line off body_lines (in place) and return the
+    list of options as a dictionary. Done BEFORE tags or markdown.
+    e.g. <!-- [OPTIONS]: {"toc": true, "Foo": "bar"} -->
+    """
+    options = {}
+    if body_lines:
+        while body_lines and not body_lines[-1].strip():
+            body_lines.pop()
+        last_line = body_lines[-1].removeprefix("<!--").removesuffix("-->").strip()
+        if last_line.startswith("[OPTIONS]"):
+            json_string = last_line.split("[OPTIONS]:", 1)[1]
+            options = json.loads(json_string)
+            body_lines.pop(-1)
+    return options
 
 
 def extract_tags(body_lines: list[str]) -> list[str]:
@@ -184,20 +203,20 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
 
-def render_markdown(body: str) -> str:
+def render_markdown(body: str, toc: bool) -> str:
     """Convert post body to HTML, prepending a Contents panel when the post
     has at least three top-level (##) sections."""
     md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
     rendered = md.convert(body)
-
-    toc_tokens = getattr(md, "toc_tokens", [])
-    sections = [t for t in toc_tokens if t["level"] == 2]
-    if len(sections) >= 3:
-        items = "\n".join(
-            f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in sections
-        )
-        guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
-        # return guide + rendered   # TODO: Add some kind of OPTIONS={"TOC"} line to posts that is parsed and enables this
+    if toc:
+        toc_tokens = getattr(md, "toc_tokens", [])
+        sections = [t for t in toc_tokens if t["level"] == 2]
+        if len(sections) >= 3:
+            items = "\n".join(
+                f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in sections
+            )
+            guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
+            return guide + rendered
     return rendered
 
 

@@ -392,7 +392,7 @@ def load_posts() -> list[dict]:
 
     for p in POSTS.glob("*.md"):
         post = parse_post(p)
-        if not is_local and post["options"].get("draft", False):
+        if post["options"].get("draft", False) and not is_local:
             continue
         valid_posts.append(post)
 

@@ -38,5 +38,5 @@ _"people who **thought** they took the medicine"_
 
 #placebo
 
-<!-- [OPTIONS]: { "toc": false, "draft": true, "series_order": 1 } -->
+<!-- [OPTIONS]: { "toc": false, "draft": true } -->
 

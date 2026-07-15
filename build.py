@@ -46,11 +46,17 @@ PAGE = """\
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1ecdf">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17141f">
 <title>{title}</title>
 <style>
-:root {{ color-scheme: light dark; background: light-dark(#f1ecdf, #17141f); }} /* must mirror the values in style.css */
-:root[data-theme="light"] {{ color-scheme: light; }}
-:root[data-theme="dark"]  {{ color-scheme: dark; }}
+/* Bulletproof inline backgrounds to bypass light-dark() parsing delays */
+:root {{ color-scheme: light dark; background: #f1ecdf; }}
+@media (prefers-color-scheme: dark) {{
+  :root {{ background: #17141f; }}
+}}
+:root[data-theme="light"] {{ color-scheme: light !important; background: #f1ecdf !important; }}
+:root[data-theme="dark"]  {{ color-scheme: dark !important; background: #17141f !important; }}
 </style>
 <link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{root}static/style.css">
@@ -64,6 +70,14 @@ PAGE = """\
 try {{
   var t = localStorage.getItem("theme");
   var os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+
+  // Force the browser canvas to match the active theme during hard navigations
+  var activeTheme = t || os;
+  var metaTheme = document.createElement("meta");
+  metaTheme.name = "theme-color";
+  metaTheme.content = activeTheme === "dark" ? "#17141f" : "#f1ecdf";
+  document.head.appendChild(metaTheme);
+
   if (t === os) {{
     localStorage.removeItem("theme");
   }} else if (t) {{
@@ -299,15 +313,28 @@ def write_404() -> None:
     unmatched URL, so it uses ABSOLUTE asset paths (root="/") — relative
     ones would break for deep URLs like /posts/x that don't exist."""
     body = (
+        '<style>\n'
+        '@view-transition { navigation: none; }\n'
+        '</style>\n'
         '<article>\n'
         '<header class="post">\n'
         '<h2>Lost in the sublunary</h2>\n'
         '</header>\n'
-        '<p>There is no page at this address. The path you followed may be '
-        'broken, or the writing may have been unmade.</p>\n'
-        '<p><a href="/index.html">Return to the index</a>, or '
-        '<a href="/tags/index.html">wander the tags</a>.</p>\n'
-        '</article>'
+        '<p>There is no page at this address. The path you followed may be broken, or the writing may have been unmade.</p>\n'
+        '<p><a href="/index.html">Return to the index</a>, or <a href="/tags/index.html">wander the tags</a>.</p>\n'
+        '</article>\n'
+        '<script>\n'
+        '  // Fake a view transition out of the 404 page\n'
+        '  document.addEventListener("click", function(e) {\n'
+        '    var link = e.target.closest("a");\n'
+        '    if (link && link.host === window.location.host) {\n'
+        '      e.preventDefault();\n'
+        '      document.body.style.transition = "opacity 0.2s ease";\n'
+        '      document.body.style.opacity = "0";\n'
+        '      setTimeout(() => window.location.href = link.href, 200);\n'
+        '    }\n'
+        '  });\n'
+        '</script>\n'
     )
     (SITE / "404.html").write_text(
         render(f"Not found — {SITE_TITLE}", "/", body),

@@ -187,11 +187,13 @@ def extract_tags(body_lines: list[str]) -> list[str]:
     """Peel a trailing hashtag line off body_lines (in place) and return its
     tags. Done BEFORE markdown sees the text — python-markdown would read
     "#magic" as an <h1>."""
+    tags = []
     while body_lines and not body_lines[-1].strip():
         body_lines.pop()
     if body_lines and TAG_LINE_RE.match(body_lines[-1]):
-        return sorted({t.lstrip("#").lower() for t in body_lines.pop().split()})
-    return []
+        tag_line = body_lines.pop()
+        tags = [t.lstrip("#").lower() for t in tag_line.split()]
+    return tags
 
 
 def date_and_slug(path: Path) -> tuple[date, str]:

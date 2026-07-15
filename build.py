@@ -303,6 +303,27 @@ def write_tag_index(by_tag) -> None:
     )
 
 
+def write_404() -> None:
+    """A site-wide 404. Served from the site root by GitHub Pages for any
+    unmatched URL, so it uses ABSOLUTE asset paths (root="/") — relative
+    ones would break for deep URLs like /posts/x that don't exist."""
+    body = (
+        '<article>\n'
+        '<header class="post">\n'
+        '<h2>Lost in the sublunary</h2>\n'
+        '</header>\n'
+        '<p>There is no page at this address. The path you followed may be '
+        'broken, or the writing may have been unmade.</p>\n'
+        '<p><a href="/index.html">Return to the index</a>, or '
+        '<a href="/tags/index.html">wander the tags</a>.</p>\n'
+        '</article>'
+    )
+    (DOCS / "404.html").write_text(
+        render(f"Not found — {SITE_TITLE}", "/", body),
+        encoding="utf-8",
+    )
+
+
 # --------------------------------------------------------------------------
 # orchestration
 # --------------------------------------------------------------------------
@@ -339,6 +360,7 @@ def main() -> None:
     write_posts(posts)
     write_tag_pages(by_tag)
     write_tag_index(by_tag)
+    write_404()
 
     print(f"built {len(posts)} post(s), {len(by_tag)} tag(s) → {DOCS}/")
 

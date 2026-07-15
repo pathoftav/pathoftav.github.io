@@ -3,7 +3,7 @@
 
 ## The Elixir
 
-Imagine that you're spending the week at my house when you come down with a bad case of food poisoning because you undercooked our dinner last night. While I managed to escape unscathed, you lay on the couch groaning from excruciating stomach pain, terrible nausea that makes your head spin, and a deep fear that I won't ever let you cook for me again.
+Imagine that you're spending the week at my house when you come down with a bad case of food poisoning because you undercooked our dinner last night. While I managed to escape unscathed, you lay on the couch groaning from excruciating stomach pain, terrible nausea that makes your head spin, and a deep fear that I won't ever trust your cooking again.
 
 You see me approach, steaming cup in hand, and tell you to sit up for a moment. In a hushed tone I gently say to you —
 
@@ -31,6 +31,8 @@ _"people who **thought** they took the medicine"_
 ### TODO: Study on learning, confidence, flow state
 
 ### TODO: Knowing that you're placeboing yourself doesn't stop the placebo
+
+### TODO: Prayer, rituals, potions, planetary hours, etc.
 
 
 #placebo

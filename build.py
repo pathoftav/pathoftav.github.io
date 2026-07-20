@@ -63,6 +63,7 @@ PAGE = """\
 <link rel="icon" type="image/png" sizes="32x32" href="{root}static/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="{root}static/favicon/favicon-16x16.png">
 <link rel="manifest" href="{root}static/favicon/site.webmanifest">
+{head_extras}
 <script>
 /* Apply theme before first paint to prevent flashes.
    Syncs with OS preference or localStorage override. */
@@ -130,9 +131,10 @@ def extract_options(body_lines: list[str]) -> dict:
     The options line must be in a specific format at the very bottom of the file:
     <!-- [OPTIONS]: {"toc": true, "Foo": "bar"} -->
 
-    List of valid options
+    List of options
         "toc":   bool   enable table of contents
-        "draft": bool   draft posts are hidden in production
+        "math":  bool   enable LaTeX rendering
+        "draft": bool   mark post as a draft; hidden in production
     """
     options = {}
     if body_lines:
@@ -171,7 +173,10 @@ def date_and_slug(path: Path) -> tuple[date, str]:
 def render_markdown(body: str, toc: bool) -> str:
     """Convert post body to HTML, prepending a Contents panel when the post
     has at least three top-level (##) sections."""
-    md = markdown.Markdown(extensions=["fenced_code", "tables", "toc"])
+    md = markdown.Markdown(
+        extensions=["md_in_html", "fenced_code", "tables", "toc", "pymdownx.arithmatex"],
+        extension_configs={"pymdownx.arithmatex": {"generic": True}},
+    )
     rendered = md.convert(body)
     if toc:
         toc_tokens = getattr(md, "toc_tokens", [])
@@ -189,13 +194,15 @@ def render_markdown(body: str, toc: bool) -> str:
 # html fragments
 # --------------------------------------------------------------------------
 
-def render(title: str, root: str, body: str) -> str:
+def render(title: str, root: str, body: str, head_extras: list[str] | None = None) -> str:
     """Wrap a body fragment in the full page shell."""
+    extras = "\n".join(h.format(root=root) for h in (head_extras or ["<!-- no extras -->"]))
     return PAGE.format(
         title=title,
         root=root,
         site_title=SITE_TITLE,
         subtitle=SITE_SUBTITLE,
+        head_extras=extras,
         body=body,
     )
 
@@ -251,26 +258,33 @@ def write_index(posts) -> None:
 
 def write_posts(posts) -> None:
     for p in posts:
-        badges = []
+        head_extras = []
+        if p["options"].get("math", False):
+            head_extras.append(
+                '<link rel="stylesheet" href="{root}static/katex/katex.min.css">\n'
+                '<script defer src="{root}static/katex/katex.min.js"></script>\n'
+                '<script defer src="{root}static/katex/contrib/auto-render.min.js"></script>\n'
+                '<script defer src="{root}static/math.js"></script>'
+            )
 
+        badges = []
         if p["options"].get("draft", False):
             badges.append('<span class="draft-badge">DRAFT</span>')
-
         badge_wrapper = f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>' if badges else ""
 
         body = (
-            "<article>\n"
+            '<article>\n'
             '<header class="post">\n'
-            f"<h2>{html.escape(p['title'])}{badge_wrapper}</h2>\n"
+            f'<h2>{html.escape(p["title"])}{badge_wrapper}</h2>\n'
             f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time>\n'
-            "</header>\n"
-            f"{p['html']}\n"
-            f"{tag_footer(p['tags'])}"
-            "</article>\n"
+            '</header>\n'
+            f'{p["html"]}\n'
+            f'{tag_footer(p["tags"])}'
+            '</article>\n'
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'
         )
         (SITE / "posts" / f"{p['slug']}.html").write_text(
-            render(f"{p['title']} — {SITE_TITLE}", "../", body),
+            render(f"{p['title']} — {SITE_TITLE}", "../", body, head_extras=head_extras),
             encoding="utf-8",
         )
 

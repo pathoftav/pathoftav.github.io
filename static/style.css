@@ -308,3 +308,11 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
   header.site { margin: -1rem -1.25rem 2.5rem; padding: 2.4rem 1.2rem 2rem; }
 }
 
+
+/* ---- head extras ---- */
+
+/* latex math */
+.eq-left .katex-display > .katex {
+  text-align: left;
+}
+

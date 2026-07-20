@@ -31,7 +31,7 @@ article em, article i, article blockquote { font-size: 1.02em; letter-spacing: 0
   --page:     light-dark(#f1ecdf, #17141f);
   --card:     light-dark(#ffffff, #26222f);
   --panel:    light-dark(#f4eee1, #2e2a3b);
-  --hero:     light-dark(#2f2750, #221d33);
+  --hero:     light-dark(#311e4d, #311e4d);
   --hero-ink: light-dark(#f5f2ea, #e6dfd0);
   --ink:      light-dark(#3b3540, #d8d0c0);
   --head:     light-dark(#332a5c, #c9bfe8);

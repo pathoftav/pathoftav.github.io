@@ -1,6 +1,6 @@
 {
-  "name": "Sublunary Musings",
-  "short_name": "Sublunary",
+	"name": "Sublunary Musings",
+	"short_name": "Sublunary",
 	"icons": [
 		{
 			"src":"/static/favicon/android-chrome-192x192.png",
@@ -13,8 +13,8 @@
 			"type": "image/png"
 		}
 	],
-  "theme_color": "#17141f",
-  "background_color": "#17141f",
-  "display": "standalone"
+	"theme_color": "#17141f",
+	"background_color": "#17141f",
+	"display": "standalone"
 }
 

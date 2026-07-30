@@ -267,9 +267,9 @@ def write_posts(posts) -> None:
         head_extras = []
         if p["options"].get("math", False):
             head_extras.append(
-                '<link rel="stylesheet" href="{root}static/katex/katex.min.css">\n'
-                '<script defer src="{root}static/katex/katex.min.js"></script>\n'
-                '<script defer src="{root}static/katex/contrib/auto-render.min.js"></script>\n'
+                '<link rel="stylesheet" href="{root}static/vendor/katex/katex.min.css">\n'
+                '<script defer src="{root}static/vendor/katex/katex.min.js"></script>\n'
+                '<script defer src="{root}static/vendor/katex/contrib/auto-render.min.js"></script>\n'
                 '<script defer src="{root}static/math.js"></script>'
             )
 

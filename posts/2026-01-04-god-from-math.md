@@ -28,5 +28,8 @@ $$
 E = mc^4
 $$
 
+## TODO
+LLMs are a matrix of vectors that you shoot your own vector into (input prompt), which is then transformed and a new vector is returned (output response)
+
 <!-- [OPTIONS]: { "draft": true, "math": true } -->
 

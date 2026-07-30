@@ -30,6 +30,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 import markdown
 
+
+load_dotenv()
+IS_LOCAL = os.getenv("ENVIRONMENT") == "LOCAL"
+
 ROOT = Path(__file__).parent
 POSTS = ROOT / "posts"
 STATIC = ROOT / "static"
@@ -57,12 +61,12 @@ PAGE = """\
 :root[data-theme="light"] {{ color-scheme: light; background: #f1ecdf; }}
 :root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
 </style>
-<link rel="preload" href="/static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/style.css">
-<link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
-<link rel="manifest" href="/static/favicon/site.webmanifest">
+<link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{root}static/style.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{root}static/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{root}static/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{root}static/favicon/favicon-16x16.png">
+<link rel="manifest" href="{root}static/favicon/site.webmanifest">
 {head_extras}
 <script>
 /* Apply theme before first paint to prevent flashes.
@@ -196,6 +200,8 @@ def render_markdown(body: str, toc: bool) -> str:
 
 def render(title: str, root: str, body: str, head_extras: list[str] | None = None) -> str:
     """Wrap a body fragment in the full page shell."""
+    if not IS_LOCAL:
+        root = "/"
     extras = "\n".join(h.format(root=root) for h in (head_extras or ["<!-- no extras -->"]))
     return PAGE.format(
         title=title,
@@ -371,12 +377,11 @@ def prepare_output() -> None:
 
 def load_posts() -> list[dict]:
     """Parse every post, newest first."""
-    is_local = os.getenv("ENVIRONMENT") == "LOCAL"
     valid_posts = []
 
     for p in POSTS.glob("*.md"):
         post = parse_post(p)
-        if post["options"].get("draft", False) and not is_local:
+        if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         valid_posts.append(post)
 
@@ -398,6 +403,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    load_dotenv()
     main()
 

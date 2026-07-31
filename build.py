@@ -136,10 +136,11 @@ def extract_options(body_lines: list[str]) -> dict:
     <!-- [OPTIONS]: { "draft": true, "math": true } -->
 
     List of options
-        "draft": bool   mark post as a draft; hidden in production
-        "pin":   int    pin post to top of listings; larger numbers rank higher
-        "toc":   bool   enable table of contents
-        "math":  bool   enable LaTeX rendering
+        "pin":      int    pin post to top of listings; larger numbers rank higher
+        "draft":    bool   mark post as a draft; not rendered in production
+        "unlisted": bool   omit from index and tags; page still reachable by link
+        "toc":      bool   enable table of contents
+        "math":     bool   enable LaTeX rendering
     """
     options = {}
     if body_lines:
@@ -281,6 +282,8 @@ def write_posts(posts) -> None:
             badges.append('<span class="draft-badge">DRAFT</span>')
         if p["options"].get("pin", 0) > 0:
             badges.append('<span class="pin-badge">PINNED</span>')
+        if p["options"].get("unlisted", False):
+            badges.append('<span class="unlisted-badge">UNLISTED</span>')
         badge_wrapper = f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>' if badges else ""
 
         body = (
@@ -404,9 +407,11 @@ def load_posts() -> list[dict]:
 def main() -> None:
     prepare_output()
     posts = load_posts()
-    by_tag = group_by_tag(posts)
 
-    write_index(posts)
+    listed = [p for p in posts if not p["options"].get("unlisted", False)]
+    by_tag = group_by_tag(listed)
+
+    write_index(listed)
     write_posts(posts)
     write_tag_pages(by_tag)
     write_tag_index(by_tag)

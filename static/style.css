@@ -206,6 +206,21 @@ header.post h2 {
   margin-left: 1rem;
 }
 
+.unlisted-badge {
+  font-family: system-ui, sans-serif;
+  font-size: 1.00rem;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  color: #1fbdd2;
+  border: 1px solid #1fbdd2;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
 article h2 {
   color: var(--head);
   font-size: 1.7rem;

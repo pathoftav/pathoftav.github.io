@@ -137,6 +137,7 @@ def extract_options(body_lines: list[str]) -> dict:
 
     List of options
         "draft": bool   mark post as a draft; hidden in production
+        "pin":   int    pin post to top of listings; larger numbers rank higher
         "toc":   bool   enable table of contents
         "math":  bool   enable LaTeX rendering
     """
@@ -216,14 +217,16 @@ def render(title: str, root: str, body: str, head_extras: list[str] | None = Non
 def post_list_items(posts, slug_prefix: str) -> str:
     """The dotted-leader <li> rows used by the index and by tag pages."""
     return "\n".join(
-        '  <li><a href="{prefix}{slug}.html">{title}</a>'
+        '<li><a href="{prefix}{slug}.html">{title}</a>'
         '<span class="leader"></span>'
+        '{badge}'
         '<time datetime="{iso}">{nice}</time></li>'.format(
             prefix=slug_prefix,
             slug=p["slug"],
             title=html.escape(p["title"]),
             iso=p["date"].isoformat(),
             nice=p["date"].strftime(DATE_FMT),
+            badge='<span class="pin-badge">PINNED</span>&nbsp;' if p["options"].get("pin") else "",
         )
         for p in posts
     )
@@ -276,6 +279,8 @@ def write_posts(posts) -> None:
         badges = []
         if p["options"].get("draft", False):
             badges.append('<span class="draft-badge">DRAFT</span>')
+        if p["options"].get("pin", 0) > 0:
+            badges.append('<span class="pin-badge">PINNED</span>')
         badge_wrapper = f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>' if badges else ""
 
         body = (
@@ -389,7 +394,11 @@ def load_posts() -> list[dict]:
             continue
         valid_posts.append(post)
 
-    return sorted(valid_posts, key=lambda p: p["date"], reverse=True)
+    return sorted(
+        valid_posts,
+        key=lambda p: (p["options"].get("pin", 0), p["date"]),
+        reverse=True
+    )
 
 
 def main() -> None:

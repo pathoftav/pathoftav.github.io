@@ -197,65 +197,24 @@ header.post h2 {
   gap: 0.5rem;
 }
 
-.old-badge {
+.badge {
   font-family: system-ui, sans-serif;
   font-size: 1.00rem;
   font-weight: bold;
   letter-spacing: 0.12em;
-  color: #8a6d52;
-  border: 1px solid #8a6d52;
   padding: 2px 6px;
+  padding-right: calc(6px - 0.12em);
+  border: 1px solid currentColor;
   border-radius: 3px;
   line-height: 1;
   user-select: none;
   flex-shrink: 0;
   margin-left: 1rem;
 }
-
-.draft-badge {
-  font-family: system-ui, sans-serif;
-  font-size: 1.00rem;
-  font-weight: bold;
-  letter-spacing: 0.12em;
-  color: #e63946;
-  border: 1px solid #e63946;
-  padding: 2px 6px;
-  border-radius: 3px;
-  line-height: 1;
-  user-select: none;
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
-
-.pin-badge {
-  font-family: system-ui, sans-serif;
-  font-size: 1.00rem;
-  font-weight: bold;
-  letter-spacing: 0.12em;
-  color: #e6e946;
-  border: 1px solid #e6e946;
-  padding: 2px 6px;
-  border-radius: 3px;
-  line-height: 1;
-  user-select: none;
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
-
-.unlisted-badge {
-  font-family: system-ui, sans-serif;
-  font-size: 1.00rem;
-  font-weight: bold;
-  letter-spacing: 0.12em;
-  color: #1fbdd2;
-  border: 1px solid #1fbdd2;
-  padding: 2px 6px;
-  border-radius: 3px;
-  line-height: 1;
-  user-select: none;
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
+.badge-old      { color: #8a6d52; }
+.badge-draft    { color: #e63946; }
+.badge-pin      { color: #e6e946; }
+.badge-unlisted { color: #1fbdd2; }
 
 article h2 {
   color: var(--head);

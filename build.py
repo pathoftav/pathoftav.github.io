@@ -264,7 +264,7 @@ def post_list_items(posts, slug_prefix: str) -> str:
             title=html.escape(p["title"]),
             iso=p["date"].isoformat(),
             nice=p["date"].strftime(DATE_FMT),
-            badge='<span class="pin-badge">PINNED</span>&nbsp;' if p["options"].get("pin") else "",
+            badge='<span class="badge badge-pin">PINNED</span>&nbsp;' if p["options"].get("pin") else "",
         )
         for p in posts
     )
@@ -327,10 +327,10 @@ def post_head_extras(post: dict) -> list[str]:
 def post_badges(post: dict) -> list[str]:
     """Badges displayed on posts"""
     badges = []
-    if post["options"].get("old", False)      : badges.append('<span class="old-badge">OLD</span>')
-    if post["options"].get("draft", False)    : badges.append('<span class="draft-badge">DRAFT</span>')
-    if post["options"].get("pin", 0) > 0      : badges.append('<span class="pin-badge">PINNED</span>')
-    if post["options"].get("unlisted", False) : badges.append('<span class="unlisted-badge">UNLISTED</span>')
+    if post["options"].get("old", False)      : badges.append('<span class="badge badge-old">OLD</span>')
+    if post["options"].get("draft", False)    : badges.append('<span class="badge badge-draft">DRAFT</span>')
+    if post["options"].get("unlisted", False) : badges.append('<span class="badge badge-unlisted">UNLISTED</span>')
+    if post["options"].get("pin", 0) > 0      : badges.append('<span class="badge badge-pin">PINNED</span>')
     return badges
 
 
@@ -395,7 +395,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
                     f'<a href="../../{slug}.html">&larr; current version</a>'
                     f'</nav>')
 
-        old_badge = (f'<div class="post-badges"><span class="old-badge">OLD</span></div>')
+        old_badge = (f'<div class="post-badges"><span class="badge badge-old">OLD</span></div>')
         body = (
             f'<article><header class="post"><h2>{html.escape(canonical_title)}{old_badge}</h2></header></article>\n'
             '<ul class="toc">\n' + items + "\n</ul>\n"

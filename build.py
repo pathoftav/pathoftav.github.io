@@ -139,6 +139,7 @@ def extract_options(body_lines: list[str]) -> dict:
         "pin":      int    pin post to top of listings; larger numbers rank higher
         "draft":    bool   mark post as a draft; not rendered in production
         "unlisted": bool   omit from index and tags; page still reachable by link
+        "noindex":  bool   ask search engines not to index the post
         "toc":      bool   enable table of contents
         "math":     bool   enable LaTeX rendering
     """
@@ -269,6 +270,8 @@ def write_index(posts) -> None:
 def write_posts(posts) -> None:
     for p in posts:
         extras = []
+        if p["options"].get("noindex", False):
+            extras.append(EXTRA_NOINDEX)
         if p["options"].get("math", False):
             extras.append(
                 '<link rel="stylesheet" href="{root}static/vendor/katex/katex.min.css">\n'

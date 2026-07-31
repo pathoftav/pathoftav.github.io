@@ -92,8 +92,8 @@ try {{
 </script>
 </head>
 <body>
-<button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
 <header class="site">
+  <button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
   <h1><a href="{root}index.html">{site_title}</a></h1>
   <p>{subtitle}</p>
 </header>

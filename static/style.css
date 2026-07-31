@@ -99,6 +99,7 @@ a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 header.site {
   background: var(--hero);
   text-align: center;
+  position: relative;
   /* bleed to the column edges past the body padding (1.5rem 3rem) */
   margin: -1.5rem -3rem 3rem;
   padding: 3.2rem 2rem 2.8rem;
@@ -322,6 +323,7 @@ button.theme {
   color: var(--dim);
   cursor: pointer;
 }
+
 button.theme:hover { color: var(--gold); border-color: var(--gold); }
 button.theme:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
@@ -332,10 +334,16 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
   :root:not([data-theme]) button.theme::before { content: "\263D"; }
 }
 
-/* narrow screens: let the column breathe less */
+/* narrow screens: let the column breathe less, and drop the toggle into the hero */
 @media (max-width: 40rem) {
   body { padding: 1rem 1.25rem 4rem; }
   header.site { margin: -1rem -1.25rem 2.5rem; padding: 2.4rem 1.2rem 2rem; }
+  button.theme {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--hero-ink);
+  }
 }
 
 

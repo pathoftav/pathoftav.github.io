@@ -41,6 +41,8 @@ SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
 DATE_FMT = "%B %-d, %Y"
 
+EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
+
 PAGE = """\
 <!doctype html>
 <html lang="en">
@@ -262,9 +264,9 @@ def write_index(posts) -> None:
 
 def write_posts(posts) -> None:
     for p in posts:
-        head_extras = []
+        extras = []
         if p["options"].get("math", False):
-            head_extras.append(
+            extras.append(
                 '<link rel="stylesheet" href="{root}static/vendor/katex/katex.min.css">\n'
                 '<script defer src="{root}static/vendor/katex/katex.min.js"></script>\n'
                 '<script defer src="{root}static/vendor/katex/contrib/auto-render.min.js"></script>\n'
@@ -288,12 +290,13 @@ def write_posts(posts) -> None:
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'
         )
         (SITE / "posts" / f"{p['slug']}.html").write_text(
-            render(f"{p['title']} — {SITE_TITLE}", "../", body, head_extras=head_extras),
+            render(f"{p['title']} — {SITE_TITLE}", "../", body, head_extras=extras),
             encoding="utf-8",
         )
 
 
 def write_tag_pages(by_tag) -> None:
+    extras = [EXTRA_NOINDEX]
     for t, tagged in by_tag.items():
         body = (
             f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
@@ -301,12 +304,13 @@ def write_tag_pages(by_tag) -> None:
             '<nav class="back"><a href="index.html">&larr; all tags</a></nav>'
         )
         (SITE / "tags" / f"{t}.html").write_text(
-            render(f"#{t} — {SITE_TITLE}", "../", body),
+            render(f"#{t} — {SITE_TITLE}", "../", body, head_extras=extras),
             encoding="utf-8",
         )
 
 
 def write_tag_index(by_tag) -> None:
+    extras = [EXTRA_NOINDEX]
     tag_items = "\n".join(
         '  <li><a href="{t}.html">#{t}</a>'
         '<span class="leader"></span>'
@@ -321,6 +325,7 @@ def write_tag_index(by_tag) -> None:
             "../",
             f'<ul class="toc">\n{tag_items}\n</ul>\n'
             '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>',
+            head_extras=extras,
         ),
         encoding="utf-8",
     )
@@ -330,6 +335,7 @@ def write_404() -> None:
     """A site-wide 404. Served from the site root by GitHub Pages for any
     unmatched URL, so it uses ABSOLUTE asset paths (root="/") — relative
     ones would break for deep URLs like /posts/x that don't exist."""
+    extras = [EXTRA_NOINDEX]
     body = (
         '<style>\n'
         '@view-transition { navigation: none; }\n'
@@ -355,7 +361,7 @@ def write_404() -> None:
         '</script>\n'
     )
     (SITE / "404.html").write_text(
-        render(f"Not found — {SITE_TITLE}", "/", body),
+        render(f"Not found — {SITE_TITLE}", "/", body, head_extras=extras),
         encoding="utf-8",
     )
 

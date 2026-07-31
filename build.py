@@ -123,7 +123,7 @@ def parse_post(path: Path) -> dict:
     tags = extract_tags(body_lines)         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
-    rendered = render_markdown(body, options.get("toc", False))
+    rendered = render_markdown(body, options)
 
     return {"title": title, "date": d, "slug": slug, "tags": tags, "html": rendered, "options": options}
 
@@ -177,15 +177,22 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
 
-def render_markdown(body: str, toc: bool) -> str:
+def render_markdown(body: str, options: dict) -> str:
     """Convert post body to HTML, prepending a Contents panel when the post
     has at least three top-level (##) sections."""
     md = markdown.Markdown(
-        extensions=["md_in_html", "fenced_code", "tables", "toc", "pymdownx.arithmatex"],
+        extensions=[
+            "md_in_html",
+            "footnotes",
+            "fenced_code",
+            "tables",
+            "toc",
+            "pymdownx.arithmatex"
+        ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )
     rendered = md.convert(body)
-    if toc:
+    if options.get("toc", False):
         toc_tokens = getattr(md, "toc_tokens", [])
         sections = [t for t in toc_tokens if t["level"] == 2]
         if len(sections) >= 3:

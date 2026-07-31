@@ -247,6 +247,43 @@ nav.back { margin-top: 3.5rem; }
 nav.back a { color: var(--dim); }
 nav.back a:hover { color: var(--gold); }
 
+
+/* ---- footnotes ---- */
+.footnote p:first-of-type::first-letter {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.footnote {
+  margin-top: 3rem;
+  padding: 1.2rem 1.6rem;
+  background: var(--panel);
+  border-top: 3px solid var(--dim);
+  border-radius: 0 0 6px 6px;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+.footnote hr { display: none; }
+.footnote ol { margin: 0 0 0 1.2rem; }
+.footnote li { margin-bottom: 0.2em; }
+.footnote li:last-child { margin-bottom: 0; }
+.footnote li::marker { color: var(--gold); font-variant-numeric: oldstyle-nums; }
+.footnote a { color: var(--head); }
+.footnote a:hover { color: var(--gold); }
+
+.footnote-backref {
+  text-decoration: none;
+  margin-left: 0.3rem;
+}
+
+.footnote p:first-of-type::first-letter {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+
 /* ---- markdown elements ---- */
 article h3 { color: var(--head); font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 0.6rem; }
 article ul, article ol { margin: 0 0 1.1em 1.4em; }

@@ -10,7 +10,7 @@ Layout:
 
 Post format: if the first line is an H1 ("# Title") it becomes the
 post title; otherwise the first line is taken as the title verbatim.
-The rest is standard Markdown (fenced code blocks and tables enabled).
+The rest is standard Markdown (with extensions enabled).
 If the LAST line consists only of hashtags ("#magic #geomancy"), they
 become the post's tags: rendered as links on the post page, indexed
 under site/tags/<tag>.html, with an overview at site/tags/index.html.
@@ -34,6 +34,7 @@ IS_LOCAL = os.getenv("ENVIRONMENT") == "LOCAL"
 
 ROOT = Path(__file__).parent
 POSTS = ROOT / "posts"
+OLD = POSTS / "old"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
 
@@ -42,6 +43,12 @@ SITE_SUBTITLE = "philosophy, magic, and other errata"
 DATE_FMT = "%B %-d, %Y"
 
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
+EXTRA_MATH = (
+    '<link rel="stylesheet" href="{site_root}static/vendor/katex/katex.min.css">\n'
+    '<script defer src="{site_root}static/vendor/katex/katex.min.js"></script>\n'
+    '<script defer src="{site_root}static/vendor/katex/contrib/auto-render.min.js"></script>\n'
+    '<script defer src="{site_root}static/math.js"></script>'
+)
 
 PAGE = """\
 <!doctype html>
@@ -52,7 +59,7 @@ PAGE = """\
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f1ecdf">
 <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#17141f">
-<title>{title}</title>
+<title>{post_title}</title>
 <style>
 /* OS Preference */
 :root {{ color-scheme: light dark; background: #f1ecdf; }}
@@ -61,12 +68,12 @@ PAGE = """\
 :root[data-theme="light"] {{ color-scheme: light; background: #f1ecdf; }}
 :root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
 </style>
-<link rel="preload" href="{root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{root}static/style.css">
-<link rel="apple-touch-icon" sizes="180x180" href="{root}static/favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="{root}static/favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="{root}static/favicon/favicon-16x16.png">
-<link rel="manifest" href="{root}static/favicon/site.webmanifest">
+<link rel="preload" href="{site_root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{site_root}static/style.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{site_root}static/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{site_root}static/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{site_root}static/favicon/favicon-16x16.png">
+<link rel="manifest" href="{site_root}static/favicon/site.webmanifest">
 {head_extras}
 <script>
 /* Apply theme before first paint to prevent flashes.
@@ -94,11 +101,11 @@ try {{
 <body>
 <header class="site">
   <button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
-  <h1><a href="{root}index.html">{site_title}</a></h1>
-  <p>{subtitle}</p>
+  <h1><a href="{site_root}index.html">{site_title}</a></h1>
+  <p>{site_subtitle}</p>
 </header>
-{body}
-<script src="{root}static/theme.js"></script>
+{post_body}
+<script src="{site_root}static/theme.js"></script>
 </body>
 </html>
 """
@@ -114,6 +121,8 @@ TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consist
 def parse_post(path: Path) -> dict:
     """Read one .md file into a post dict: title, date, slug, tags, html, options."""
     text = path.read_text(encoding="utf-8").strip()
+    if "{site_root}" in text:
+        raise ValueError(f"{path.name}: contains literal '{{site_root}}' — rename or escape it")
     lines = text.splitlines()
     first = lines[0].strip()
     title = first.lstrip("#").strip() if first.startswith("#") else first
@@ -208,18 +217,39 @@ def render_markdown(body: str, options: dict) -> str:
 # html fragments
 # --------------------------------------------------------------------------
 
-def render(title: str, root: str, body: str, head_extras: list[str] | None = None) -> str:
+def render(title: str, root: str, body: str, extras: list[str] | None = None) -> str:
     """Wrap a body fragment in the full page shell."""
     if not IS_LOCAL:
         root = "/"
-    extras = "\n".join(h.format(root=root) for h in (head_extras or ["<!-- no extras -->"]))
+    ext = "\n".join(h.format(site_root=root) for h in (extras or ["<!-- no extras -->"]))
+    body = body.replace("{site_root}", root)
     return PAGE.format(
-        title=title,
-        root=root,
+        site_root=root,
         site_title=SITE_TITLE,
-        subtitle=SITE_SUBTITLE,
-        head_extras=extras,
-        body=body,
+        site_subtitle=SITE_SUBTITLE,
+        post_title=title,
+        post_body=body,
+        head_extras=ext,
+    )
+
+
+def render_article(post: dict, *, footer: str = "") -> str:
+    """The <article> block shared by post pages and archive version pages:
+    header (title + badges), date, rendered HTML, tag footer, then a caller
+    -supplied footer nav appended after </article>."""
+    badges = post_badges(post)
+    badge_wrapper = (f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>'
+                     if badges else "")
+    return (
+        '<article>\n'
+        '<header class="post">\n'
+        f'<h2>{html.escape(post["title"])}{badge_wrapper}</h2>\n'
+        f'<time datetime="{post["date"].isoformat()}">{post["date"].strftime(DATE_FMT)}</time>\n'
+        '</header>\n'
+        f'{post["html"]}\n'
+        f'{tag_footer(post["tags"])}'
+        '</article>\n'
+        f'{footer}'
     )
 
 
@@ -245,7 +275,8 @@ def tag_footer(tags: list[str]) -> str:
     if not tags:
         return ""
     links = " ".join(
-        f'<a href="../tags/{t}.html" rel="tag">#{html.escape(t)}</a>' for t in tags
+        f'<a href="{{site_root}}tags/{t}.html" rel="tag">#{html.escape(t)}</a>'
+        for t in tags
     )
     return f'<footer class="tags">{links}</footer>\n'
 
@@ -263,72 +294,138 @@ def group_by_tag(posts) -> dict[str, list]:
 # writers — each renders one part of site/
 # --------------------------------------------------------------------------
 
+def write_page(dest: Path, title: str, body: str, extras=None) -> None:
+    """Render body into the page shell and write it to dest (under SITE).
+    root is derived from dest's depth locally, and is "/" in production."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if IS_LOCAL:
+        depth = len(dest.relative_to(SITE).parts) - 1
+        root = "../" * depth
+    else:
+        root = "/"
+    dest.write_text(render(title, root, body, extras), encoding="utf-8")
+
+
 def write_index(posts) -> None:
-    (SITE / "index.html").write_text(
-        render(
-            SITE_TITLE,
-            "",
-            '<ul class="toc">\n' + post_list_items(posts, "posts/") + "\n</ul>",
-        ),
-        encoding="utf-8",
+    body = '<ul class="toc">\n' + post_list_items(posts, "posts/") + "\n</ul>"
+    write_page(
+        SITE / "index.html",
+        SITE_TITLE,
+        body
     )
+
+
+def post_head_extras(post: dict) -> list[str]:
+    """Head-extras common to any post-like page"""
+    extras = []
+    if post["options"].get("noindex", False):
+        extras.append(EXTRA_NOINDEX)
+    if post["options"].get("math", False):
+        extras.append(EXTRA_MATH)
+    return extras
+
+
+def post_badges(post: dict) -> list[str]:
+    """Badges displayed on posts"""
+    badges = []
+    if post["options"].get("archived", False)   : badges.append('<span class="archive-badge">ARCHIVED</span>')
+    if post["options"].get("draft", False)   : badges.append('<span class="draft-badge">DRAFT</span>')
+    if post["options"].get("pin", 0) > 0     : badges.append('<span class="pin-badge">PINNED</span>')
+    if post["options"].get("unlisted", False): badges.append('<span class="unlisted-badge">UNLISTED</span>')
+    return badges
 
 
 def write_posts(posts) -> None:
     for p in posts:
-        extras = []
-        if p["options"].get("noindex", False):
-            extras.append(EXTRA_NOINDEX)
-        if p["options"].get("math", False):
-            extras.append(
-                '<link rel="stylesheet" href="{root}static/vendor/katex/katex.min.css">\n'
-                '<script defer src="{root}static/vendor/katex/katex.min.js"></script>\n'
-                '<script defer src="{root}static/vendor/katex/contrib/auto-render.min.js"></script>\n'
-                '<script defer src="{root}static/math.js"></script>'
+        back = '<a href="../index.html">&larr; all posts</a>'
+        hist = ""
+        if p["history"]:
+            n = len(p["history"])
+            hist = (f'<a href="{{site_root}}posts/old/{p["slug"]}/index.html">'
+                    f'{n} earlier version{"" if n == 1 else "s"} &rarr;</a>')
+        footer = f'<nav class="post-foot">{back}{hist}</nav>'
+
+        body = render_article(p, footer=footer)
+        write_page(
+            SITE / "posts" / f"{p['slug']}.html",
+            f"{p['title']} — {SITE_TITLE}",
+            body,
+            extras=post_head_extras(p)
+        )
+
+
+def write_archives(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
+    """For each slug with archived versions, render every old version and an
+    index linking to them by date. Version pages mirror regular post pages
+    (via render_article) but carry an ARCHIVED badge, are always noindexed,
+    and link back to the version list instead of the post index."""
+    live = {p["slug"]: p for p in posts}
+    for slug, versions in old_posts.items():
+        arch_dir = SITE / "posts" / "old" / slug
+        arch_dir.mkdir(parents=True, exist_ok=True)
+
+        # prefer the live post's current title; fall back to the newest archive
+        canonical_title = live[slug]["title"] if slug in live else versions[0]["title"]
+
+        # each old version as its own page
+        for v in versions:
+            stamp = v["date"].isoformat()
+            footer = '<nav class="back"><a href="index.html">&larr; all versions</a></nav>'
+            body = render_article(v, footer=footer)
+
+            extras = post_head_extras(v)
+            if EXTRA_NOINDEX not in extras:
+                extras.append(EXTRA_NOINDEX)
+
+            write_page(
+                arch_dir / f"{stamp}.html",
+                f'{v["title"]} ({stamp}) — {SITE_TITLE}',
+                body,
+                extras=extras
             )
 
-        badges = []
-        if p["options"].get("draft", False):
-            badges.append('<span class="draft-badge">DRAFT</span>')
-        if p["options"].get("pin", 0) > 0:
-            badges.append('<span class="pin-badge">PINNED</span>')
-        if p["options"].get("unlisted", False):
-            badges.append('<span class="unlisted-badge">UNLISTED</span>')
-        badge_wrapper = f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>' if badges else ""
-
-        body = (
-            '<article>\n'
-            '<header class="post">\n'
-            f'<h2>{html.escape(p["title"])}{badge_wrapper}</h2>\n'
-            f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time>\n'
-            '</header>\n'
-            f'{p["html"]}\n'
-            f'{tag_footer(p["tags"])}'
-            '</article>\n'
-            '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>'
+        # index of versions for this slug
+        items = "\n".join(
+            '  <li><a href="{stamp}.html">{nice}</a></li>'.format(
+                stamp=v["date"].isoformat(), nice=v["date"].strftime(DATE_FMT)
+            )
+            for v in versions
         )
-        (SITE / "posts" / f"{p['slug']}.html").write_text(
-            render(f"{p['title']} — {SITE_TITLE}", "../", body, head_extras=extras),
-            encoding="utf-8",
+        foot = ""
+        if slug in live:
+            foot = (f'<nav class="post-foot">'
+                    f'<a href="../../{slug}.html">&larr; current version</a>'
+                    f'</nav>')
+        body = (
+            f'<h2 class="tag-title">{html.escape(canonical_title)}: history</h2>\n'
+            '<ul class="toc">\n' + items + "\n</ul>\n"
+            f'{foot}'
+        )
+
+        write_page(
+            arch_dir / "index.html",
+            f'{canonical_title}: history — {SITE_TITLE}',
+            body,
+            extras=[EXTRA_NOINDEX]
         )
 
 
 def write_tag_pages(by_tag) -> None:
-    extras = [EXTRA_NOINDEX]
     for t, tagged in by_tag.items():
         body = (
             f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
             '<ul class="toc">\n' + post_list_items(tagged, "../posts/") + "\n</ul>\n"
             '<nav class="back"><a href="index.html">&larr; all tags</a></nav>'
         )
-        (SITE / "tags" / f"{t}.html").write_text(
-            render(f"#{t} — {SITE_TITLE}", "../", body, head_extras=extras),
-            encoding="utf-8",
+        write_page(
+            SITE / "tags" / f"{t}.html",
+            f"#{t} — {SITE_TITLE}",
+            body,
+            extras=[EXTRA_NOINDEX]
         )
 
 
 def write_tag_index(by_tag) -> None:
-    extras = [EXTRA_NOINDEX]
     tag_items = "\n".join(
         '  <li><a href="{t}.html">#{t}</a>'
         '<span class="leader"></span>'
@@ -337,23 +434,20 @@ def write_tag_index(by_tag) -> None:
         )
         for t, ps in sorted(by_tag.items())
     )
-    (SITE / "tags" / "index.html").write_text(
-        render(
-            f"Tags — {SITE_TITLE}",
-            "../",
-            f'<ul class="toc">\n{tag_items}\n</ul>\n'
-            '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>',
-            head_extras=extras,
-        ),
-        encoding="utf-8",
+    body = (f'<ul class="toc">\n{tag_items}\n</ul>\n'
+        '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>')
+    write_page(
+        SITE / "tags" / "index.html",
+        f"Tags — {SITE_TITLE}",
+        body,
+        extras=[EXTRA_NOINDEX]
     )
 
 
 def write_404() -> None:
     """A site-wide 404. Served from the site root by GitHub Pages for any
-    unmatched URL, so it uses ABSOLUTE asset paths (root="/") — relative
+    unmatched URL, so it uses ABSOLUTE asset paths (site_root="/") — relative
     ones would break for deep URLs like /posts/x that don't exist."""
-    extras = [EXTRA_NOINDEX]
     body = (
         '<style>\n'
         '@view-transition { navigation: none; }\n'
@@ -379,7 +473,12 @@ def write_404() -> None:
         '</script>\n'
     )
     (SITE / "404.html").write_text(
-        render(f"Not found — {SITE_TITLE}", "/", body, head_extras=extras),
+        render(
+            f"Not found — {SITE_TITLE}",
+            "/",
+            body,
+            extras=[EXTRA_NOINDEX]
+        ),
         encoding="utf-8",
     )
 
@@ -414,15 +513,36 @@ def load_posts() -> list[dict]:
     )
 
 
+def load_old_versions() -> dict[str, list[dict]]:
+    """Map slug -> its archived versions in posts/old/, newest first.
+    A slug appears here only if at least one old version exists."""
+    by_slug: dict[str, list[dict]] = {}
+    if not OLD.exists():
+        return by_slug
+    for p in OLD.glob("*.md"):
+        post = parse_post(p)
+        if post["options"].get("draft", False) and not IS_LOCAL:
+            continue
+        post["options"]["archived"] = True
+        by_slug.setdefault(post["slug"], []).append(post)
+    for versions in by_slug.values():
+        versions.sort(key=lambda v: v["date"], reverse=True)
+    return by_slug
+
+
 def main() -> None:
     prepare_output()
     posts = load_posts()
+    old_posts = load_old_versions()
+    for p in posts:
+        p["history"] = old_posts.get(p["slug"], [])
 
     listed = [p for p in posts if not p["options"].get("unlisted", False)]
     by_tag = group_by_tag(listed)
 
     write_index(listed)
     write_posts(posts)
+    write_archives(posts, old_posts)
     write_tag_pages(by_tag)
     write_tag_index(by_tag)
     write_404()

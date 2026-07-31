@@ -91,6 +91,21 @@ body {
   box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.07);
 }
 
+.post-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 3.5rem;
+}
+.post-foot a {
+  color: var(--dim);
+  text-decoration: none;
+}
+.post-foot a:hover {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
 a { color: var(--head); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 a:hover { color: var(--gold); text-decoration-thickness: 2px; }
 a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
@@ -175,6 +190,21 @@ header.post h2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.archive-badge {
+  font-family: system-ui, sans-serif;
+  font-size: 1.00rem;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  color: #8a6d52;
+  border: 1px solid #8a6d52;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+  margin-left: 1rem;
 }
 
 .draft-badge {

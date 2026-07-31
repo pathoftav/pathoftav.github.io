@@ -14,8 +14,6 @@ The rest is standard Markdown (fenced code blocks and tables enabled).
 If the LAST line consists only of hashtags ("#magic #geomancy"), they
 become the post's tags: rendered as links on the post page, indexed
 under site/tags/<tag>.html, with an overview at site/tags/index.html.
-
-Requires: pip install markdown
 """
 
 import html
@@ -133,12 +131,12 @@ def extract_options(body_lines: list[str]) -> dict:
     list of options as a dictionary. Done BEFORE tags or markdown.
 
     The options line must be in a specific format at the very bottom of the file:
-    <!-- [OPTIONS]: {"toc": true, "Foo": "bar"} -->
+    <!-- [OPTIONS]: { "draft": true, "math": true } -->
 
     List of options
+        "draft": bool   mark post as a draft; hidden in production
         "toc":   bool   enable table of contents
         "math":  bool   enable LaTeX rendering
-        "draft": bool   mark post as a draft; hidden in production
     """
     options = {}
     if body_lines:

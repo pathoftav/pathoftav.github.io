@@ -36,7 +36,8 @@ _"people who **thought** they took the medicine"_
 ### TODO: Prayer, rituals, potions, planetary hours, etc.
 
 
-#placebo
+#placebo #shhh #not-here-anymore
 
-<!-- [OPTIONS]: { "toc": false, "draft": false, "unlisted": true } -->
+
+<!-- [OPTIONS]: { "toc": true, "draft": false } -->
 

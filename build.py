@@ -234,7 +234,7 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
 
 
 def render_article(post: dict, *, footer: str = "") -> str:
-    """The <article> block shared by post pages and archive version pages:
+    """The <article> block shared by post pages and old version pages:
     header (title + badges), date, rendered HTML, tag footer, then a caller
     -supplied footer nav appended after </article>."""
     badges = post_badges(post)
@@ -327,7 +327,7 @@ def post_head_extras(post: dict) -> list[str]:
 def post_badges(post: dict) -> list[str]:
     """Badges displayed on posts"""
     badges = []
-    if post["options"].get("archived", False) : badges.append('<span class="archive-badge">ARCHIVED</span>')
+    if post["options"].get("old", False)      : badges.append('<span class="old-badge">OLD</span>')
     if post["options"].get("draft", False)    : badges.append('<span class="draft-badge">DRAFT</span>')
     if post["options"].get("pin", 0) > 0      : badges.append('<span class="pin-badge">PINNED</span>')
     if post["options"].get("unlisted", False) : badges.append('<span class="unlisted-badge">UNLISTED</span>')
@@ -353,17 +353,16 @@ def write_posts(posts) -> None:
         )
 
 
-def write_archives(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
-    """For each slug with archived versions, render every old version and an
+def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
+    """For each slug with old versions, render every old version and an
     index linking to them by date. Version pages mirror regular post pages
-    (via render_article) but carry an ARCHIVED badge, are always noindexed,
+    (via render_article) but carry an OLD badge, are always noindexed,
     and link back to the version list instead of the post index."""
     live = {p["slug"]: p for p in posts}
     for slug, versions in old_posts.items():
-        arch_dir = SITE / "posts" / "old" / slug
-        arch_dir.mkdir(parents=True, exist_ok=True)
+        old_dir = SITE / "posts" / "old" / slug
 
-        # prefer the live post's current title; fall back to the newest archive
+        # prefer the live post's current title; fall back to the latest old post
         canonical_title = live[slug]["title"] if slug in live else versions[0]["title"]
 
         # each old version as its own page
@@ -377,7 +376,7 @@ def write_archives(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
                 extras.append(EXTRA_NOINDEX)
 
             write_page(
-                arch_dir / f"{stamp}.html",
+                old_dir / f"{stamp}.html",
                 f'{v["title"]} ({stamp}) — {SITE_TITLE}',
                 body,
                 extras=extras
@@ -396,15 +395,15 @@ def write_archives(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
                     f'<a href="../../{slug}.html">&larr; current version</a>'
                     f'</nav>')
 
-        archive_badge = (f'<div class="post-badges"><span class="archive-badge">ARCHIVED</span></div>')
+        old_badge = (f'<div class="post-badges"><span class="old-badge">OLD</span></div>')
         body = (
-            f'<article><header class="post"><h2>{html.escape(canonical_title)}{archive_badge}</h2></header></article>\n'
+            f'<article><header class="post"><h2>{html.escape(canonical_title)}{old_badge}</h2></header></article>\n'
             '<ul class="toc">\n' + items + "\n</ul>\n"
             f'{foot}'
         )
 
         write_page(
-            arch_dir / "index.html",
+            old_dir / "index.html",
             f'{canonical_title}: history — {SITE_TITLE}',
             body,
             extras=[EXTRA_NOINDEX]
@@ -489,11 +488,9 @@ def write_404() -> None:
 # --------------------------------------------------------------------------
 
 def prepare_output() -> None:
-    """Wipe site/, recreate its subdirs, and copy static assets in."""
+    """Wipe site/ and copy static assets in."""
     if SITE.exists():
         shutil.rmtree(SITE)
-    (SITE / "posts").mkdir(parents=True)
-    (SITE / "tags").mkdir()
     shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
 
 
@@ -515,7 +512,7 @@ def load_posts() -> list[dict]:
 
 
 def load_old_versions() -> dict[str, list[dict]]:
-    """Map slug -> its archived versions in posts/old/, newest first.
+    """Map slug -> its old versions in posts/old/, newest first.
     A slug appears here only if at least one old version exists."""
     by_slug: dict[str, list[dict]] = {}
     if not OLD.exists():
@@ -524,7 +521,7 @@ def load_old_versions() -> dict[str, list[dict]]:
         post = parse_post(p)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
-        post["options"]["archived"] = True
+        post["options"]["old"] = True
         by_slug.setdefault(post["slug"], []).append(post)
     for versions in by_slug.values():
         versions.sort(key=lambda v: v["date"], reverse=True)
@@ -543,12 +540,19 @@ def main() -> None:
 
     write_index(listed)
     write_posts(posts)
-    write_archives(posts, old_posts)
+    write_old_posts(posts, old_posts)
     write_tag_pages(by_tag)
     write_tag_index(by_tag)
     write_404()
 
-    print(f'built {len(posts)} {"post" if len(posts) == 1 else "posts"}, {len(by_tag)} {"tag" if len(by_tag) == 1 else "tags"}: {SITE}/')
+    old = sum(len(v) for v in old_posts.values())
+    slugs_with_history = len(old_posts)
+    print(
+        f'built {len(posts)} {"post" if len(posts) == 1 else "posts"}, '
+        f'{old} old {"version" if old == 1 else "versions"} '
+        f'across {slugs_with_history} {"slug" if slugs_with_history == 1 else "slugs"}, '
+        f'{len(by_tag)} {"tag" if len(by_tag) == 1 else "tags"}: {SITE}/'
+    )
 
 
 if __name__ == "__main__":

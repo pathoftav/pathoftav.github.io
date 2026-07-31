@@ -238,8 +238,7 @@ def render_article(post: dict, *, footer: str = "") -> str:
     header (title + badges), date, rendered HTML, tag footer, then a caller
     -supplied footer nav appended after </article>."""
     badges = post_badges(post)
-    badge_wrapper = (f'<div style="display: flex; gap: 0.5rem;">{"".join(badges)}</div>'
-                     if badges else "")
+    badge_wrapper = (f'<div class="post-badges">{"".join(badges)}</div>' if badges else "")
     return (
         '<article>\n'
         '<header class="post">\n'
@@ -328,10 +327,10 @@ def post_head_extras(post: dict) -> list[str]:
 def post_badges(post: dict) -> list[str]:
     """Badges displayed on posts"""
     badges = []
-    if post["options"].get("archived", False)   : badges.append('<span class="archive-badge">ARCHIVED</span>')
-    if post["options"].get("draft", False)   : badges.append('<span class="draft-badge">DRAFT</span>')
-    if post["options"].get("pin", 0) > 0     : badges.append('<span class="pin-badge">PINNED</span>')
-    if post["options"].get("unlisted", False): badges.append('<span class="unlisted-badge">UNLISTED</span>')
+    if post["options"].get("archived", False) : badges.append('<span class="archive-badge">ARCHIVED</span>')
+    if post["options"].get("draft", False)    : badges.append('<span class="draft-badge">DRAFT</span>')
+    if post["options"].get("pin", 0) > 0      : badges.append('<span class="pin-badge">PINNED</span>')
+    if post["options"].get("unlisted", False) : badges.append('<span class="unlisted-badge">UNLISTED</span>')
     return badges
 
 
@@ -396,8 +395,10 @@ def write_archives(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
             foot = (f'<nav class="post-foot">'
                     f'<a href="../../{slug}.html">&larr; current version</a>'
                     f'</nav>')
+
+        archive_badge = (f'<div class="post-badges"><span class="archive-badge">ARCHIVED</span></div>')
         body = (
-            f'<h2 class="tag-title">{html.escape(canonical_title)}: history</h2>\n'
+            f'<article><header class="post"><h2>{html.escape(canonical_title)}{archive_badge}</h2></header></article>\n'
             '<ul class="toc">\n' + items + "\n</ul>\n"
             f'{foot}'
         )

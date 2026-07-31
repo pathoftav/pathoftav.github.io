@@ -201,6 +201,7 @@ def render_markdown(body: str, options: dict) -> str:
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )
     rendered = md.convert(body)
+
     if options.get("toc", False):
         toc_tokens = getattr(md, "toc_tokens", [])
         sections = [t for t in toc_tokens if t["level"] == 2]
@@ -209,7 +210,8 @@ def render_markdown(body: str, options: dict) -> str:
                 f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in sections
             )
             guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
-            return guide + rendered
+            rendered = guide + rendered
+
     return rendered
 
 

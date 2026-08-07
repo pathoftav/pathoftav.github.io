@@ -149,6 +149,7 @@ def extract_options(body_lines: list[str]) -> dict:
         "draft":    bool   mark post as a draft; not rendered in production
         "unlisted": bool   omit from index and tags; page still reachable by link
         "noindex":  bool   ask search engines not to index the post
+        "dropcap":  bool   set false to suppress the drop cap (default true)
         "toc":      bool   enable table of contents
         "math":     bool   enable LaTeX rendering
     """
@@ -198,7 +199,7 @@ def render_markdown(body: str, options: dict) -> str:
             # Document-Level Navigation & Linking
             "toc",
             "footnotes",
-            # Inline Text Formatting 
+            # Inline Text Formatting
             "nl2br",
             # Third-Party
             "pymdownx.arithmatex"
@@ -240,25 +241,6 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
     )
 
 
-def render_article(post: dict, *, footer: str = "") -> str:
-    """The <article> block shared by post pages and old version pages:
-    header (title + badges), date, rendered HTML, tag footer, then a caller
-    -supplied footer nav appended after </article>."""
-    badges = post_badges(post)
-    badge_wrapper = (f'<div class="post-badges">{"".join(badges)}</div>' if badges else "")
-    return (
-        '<article>\n'
-        '<header class="post">\n'
-        f'<h2>{html.escape(post["title"])}{badge_wrapper}</h2>\n'
-        f'<time datetime="{post["date"].isoformat()}">{post["date"].strftime(DATE_FMT)}</time>\n'
-        '</header>\n'
-        f'{post["html"]}\n'
-        f'{tag_footer(post["tags"])}'
-        '</article>\n'
-        f'{footer}'
-    )
-
-
 def post_list_items(posts, slug_prefix: str) -> str:
     """The dotted-leader <li> rows used by the index and by tag pages."""
     return "\n".join(
@@ -275,6 +257,7 @@ def post_list_items(posts, slug_prefix: str) -> str:
         )
         for p in posts
     )
+
 
 
 def tag_footer(tags: list[str]) -> str:
@@ -294,6 +277,57 @@ def group_by_tag(posts) -> dict[str, list]:
         for t in p["tags"]:
             by_tag.setdefault(t, []).append(p)   # posts already date-sorted
     return by_tag
+
+
+
+def post_head_extras(post: dict) -> list[str]:
+    """Head-extras common to any post-like page"""
+    extras = []
+    if post["options"].get("noindex", False):
+        extras.append(EXTRA_NOINDEX)
+    if post["options"].get("math", False):
+        extras.append(EXTRA_MATH)
+    return extras
+
+
+def post_article_classes(post: dict) -> list[str]:
+    """CSS classes for the <article> wrapper"""
+    classes = []
+    if not post["options"].get("dropcap", True) : classes.append("no-dropcap")
+    return classes
+
+
+def post_badges(post: dict) -> list[str]:
+    """Badges displayed on posts"""
+    badges = []
+    if post["options"].get("old", False)      : badges.append('<span class="badge badge-old">OLD</span>')
+    if post["options"].get("draft", False)    : badges.append('<span class="badge badge-draft">DRAFT</span>')
+    if post["options"].get("unlisted", False) : badges.append('<span class="badge badge-unlisted">UNLISTED</span>')
+    if post["options"].get("pin", 0) > 0      : badges.append('<span class="badge badge-pin">PINNED</span>')
+    return badges
+
+
+def render_article(post: dict, *, footer: str = "") -> str:
+    """The <article> block shared by post pages and old version pages:
+    header (title + badges), date, rendered HTML, tag footer, then a caller
+    -supplied footer nav appended after </article>."""
+    classes = post_article_classes(post)
+    class_attr = f' class="{" ".join(classes)}"' if classes else ""
+
+    badges = post_badges(post)
+    badge_wrapper = (f'<div class="post-badges">{"".join(badges)}</div>' if badges else "")
+
+    return (
+        f'<article{class_attr}>\n'
+        '<header class="post">\n'
+        f'<h2>{html.escape(post["title"])}{badge_wrapper}</h2>\n'
+        f'<time datetime="{post["date"].isoformat()}">{post["date"].strftime(DATE_FMT)}</time>\n'
+        '</header>\n'
+        f'{post["html"]}\n'
+        f'{tag_footer(post["tags"])}'
+        '</article>\n'
+        f'{footer}'
+    )
 
 
 # --------------------------------------------------------------------------
@@ -319,26 +353,6 @@ def write_index(posts) -> None:
         SITE_TITLE,
         body
     )
-
-
-def post_head_extras(post: dict) -> list[str]:
-    """Head-extras common to any post-like page"""
-    extras = []
-    if post["options"].get("noindex", False):
-        extras.append(EXTRA_NOINDEX)
-    if post["options"].get("math", False):
-        extras.append(EXTRA_MATH)
-    return extras
-
-
-def post_badges(post: dict) -> list[str]:
-    """Badges displayed on posts"""
-    badges = []
-    if post["options"].get("old", False)      : badges.append('<span class="badge badge-old">OLD</span>')
-    if post["options"].get("draft", False)    : badges.append('<span class="badge badge-draft">DRAFT</span>')
-    if post["options"].get("unlisted", False) : badges.append('<span class="badge badge-unlisted">UNLISTED</span>')
-    if post["options"].get("pin", 0) > 0      : badges.append('<span class="badge badge-pin">PINNED</span>')
-    return badges
 
 
 def write_posts(posts) -> None:

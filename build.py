@@ -191,11 +191,16 @@ def render_markdown(body: str, options: dict) -> str:
     has at least three top-level (##) sections."""
     md = markdown.Markdown(
         extensions=[
-            "md_in_html",
-            "footnotes",
-            "fenced_code",
+            # Structural Block Parsers
             "tables",
+            "fenced_code",
+            "md_in_html",
+            # Document-Level Navigation & Linking
             "toc",
+            "footnotes",
+            # Inline Text Formatting 
+            "nl2br",
+            # Third-Party
             "pymdownx.arithmatex"
         ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},

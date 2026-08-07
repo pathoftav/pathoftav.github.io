@@ -44,10 +44,10 @@ DATE_FMT = "%B %-d, %Y"
 
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
 EXTRA_MATH = (
-    '<link rel="stylesheet" href="{site_root}static/vendor/katex/katex.min.css">\n'
-    '<script defer src="{site_root}static/vendor/katex/katex.min.js"></script>\n'
-    '<script defer src="{site_root}static/vendor/katex/contrib/auto-render.min.js"></script>\n'
-    '<script defer src="{site_root}static/math.js"></script>'
+    '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
+    '<script defer src="{site_root}/static/vendor/katex/katex.min.js"></script>\n'
+    '<script defer src="{site_root}/static/vendor/katex/contrib/auto-render.min.js"></script>\n'
+    '<script defer src="{site_root}/static/math.js"></script>'
 )
 
 PAGE = """\
@@ -68,12 +68,12 @@ PAGE = """\
 :root[data-theme="light"] {{ color-scheme: light; background: #f1ecdf; }}
 :root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
 </style>
-<link rel="preload" href="{site_root}static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{site_root}static/style.css">
-<link rel="apple-touch-icon" sizes="180x180" href="{site_root}static/favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="{site_root}static/favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="{site_root}static/favicon/favicon-16x16.png">
-<link rel="manifest" href="{site_root}static/favicon/site.webmanifest">
+<link rel="preload" href="{site_root}/static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{site_root}/static/style.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{site_root}/static/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{site_root}/static/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{site_root}/static/favicon/favicon-16x16.png">
+<link rel="manifest" href="{site_root}/static/favicon/site.webmanifest">
 {head_extras}
 <script>
 /* Apply theme before first paint to prevent flashes.
@@ -101,11 +101,11 @@ try {{
 <body>
 <header class="site">
   <button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
-  <h1><a href="{site_root}index.html">{site_title}</a></h1>
+  <h1><a href="{site_root}/index.html">{site_title}</a></h1>
   <p>{site_subtitle}</p>
 </header>
 {post_body}
-<script src="{site_root}static/theme.js"></script>
+<script src="{site_root}/static/theme.js"></script>
 </body>
 </html>
 """
@@ -225,8 +225,7 @@ def render_markdown(body: str, options: dict) -> str:
 
 def render(title: str, root: str, body: str, extras: list[str] | None = None) -> str:
     """Wrap a body fragment in the full page shell."""
-    if not IS_LOCAL:
-        root = "/"
+    root = root.rstrip("/")
     ext = "\n".join(h.format(site_root=root) for h in (extras or ["<!-- no extras -->"]))
     body = body.replace("{site_root}", root)
     return PAGE.format(
@@ -262,7 +261,7 @@ def tag_footer(tags: list[str]) -> str:
     if not tags:
         return ""
     links = " ".join(
-        f'<a href="{{site_root}}tags/{t}.html" rel="tag">#{html.escape(t)}</a>'
+        f'<a href="{{site_root}}/tags/{t}.html" rel="tag">#{html.escape(t)}</a>'
         for t in tags
     )
     return f'<footer class="tags">{links}</footer>\n'
@@ -338,7 +337,7 @@ def write_page(dest: Path, title: str, body: str, extras=None) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     if IS_LOCAL:
         depth = len(dest.relative_to(SITE).parts) - 1
-        root = "../" * depth
+        root = "../" * depth if depth else "."
     else:
         root = "/"
     dest.write_text(render(title, root, body, extras), encoding="utf-8")
@@ -359,7 +358,7 @@ def write_posts(posts) -> None:
         hist = ""
         if p["history"]:
             n = len(p["history"])
-            hist = (f'<a href="{{site_root}}posts/old/{p["slug"]}/index.html">'
+            hist = (f'<a href="{{site_root}}/posts/old/{p["slug"]}/index.html">'
                     f'{n} earlier version{"" if n == 1 else "s"} &rarr;</a>')
         footer = f'<nav class="post-foot">{back}{hist}</nav>'
 

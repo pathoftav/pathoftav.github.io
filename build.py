@@ -47,7 +47,7 @@ EXTRA_MATH = (
     '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
     '<script defer src="{site_root}/static/vendor/katex/katex.min.js"></script>\n'
     '<script defer src="{site_root}/static/vendor/katex/contrib/auto-render.min.js"></script>\n'
-    '<script defer src="{site_root}/static/math.js"></script>'
+    '<script defer src="{site_root}/static/scripts/math.js"></script>'
 )
 
 PAGE = """\
@@ -105,7 +105,7 @@ try {{
   <p>{site_subtitle}</p>
 </header>
 {post_body}
-<script src="{site_root}/static/theme.js"></script>
+<script src="{site_root}/static/scripts/theme.js"></script>
 </body>
 </html>
 """

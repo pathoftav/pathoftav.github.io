@@ -378,6 +378,16 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
 }
 
 
+/* ---- images ---- */
+
+img[src$='#left-inline']  { float: left;  max-width: 45%; margin-right: 1rem; }
+img[src$='#right-inline'] { float: right; max-width: 45%; margin-left:  1rem; }
+
+img[src$='#center'] { display: block; margin-inline: auto; }
+img[src$='#left']   { display: block; margin-right:  auto; clear: both; }
+img[src$='#right']  { display: block; margin-left:   auto; clear: both; }
+
+
 /* ---- head extras ---- */
 
 /* latex math */

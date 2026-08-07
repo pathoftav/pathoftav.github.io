@@ -28,6 +28,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import markdown
 
+from video_ext import VideoExtension
+
 
 load_dotenv()
 IS_LOCAL = os.getenv("ENVIRONMENT") == "LOCAL"
@@ -106,6 +108,7 @@ try {{
 </header>
 {post_body}
 <script src="{site_root}/static/scripts/theme.js"></script>
+<script src="{site_root}/static/scripts/motion.js"></script>
 </body>
 </html>
 """
@@ -200,7 +203,9 @@ def render_markdown(body: str, options: dict) -> str:
             # Inline Text Formatting
             "nl2br",
             # Third-Party
-            "pymdownx.arithmatex"
+            "pymdownx.arithmatex",
+            # Custom
+            VideoExtension(),
         ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )

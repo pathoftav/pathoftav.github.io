@@ -310,7 +310,18 @@ article table { border-collapse: collapse; margin: 0 0 1.1em; }
 article th, article td { border: 1px solid var(--rule); padding: 0.3rem 0.7rem; }
 article th { color: var(--head); }
 article hr { border: 0; border-top: 1px solid var(--gold); margin: 1.6rem auto; width: 4rem; }
-article img { max-width: 100%; }
+
+/* embedded images and videos */
+article img, article video { max-width: 100%; }
+
+article img[src$='#center'], article video.center { display: block; margin-inline: auto; }
+article img[src$='#left'],   article video.left   { display: block; margin-right:  auto; clear: both; }
+article img[src$='#right'],  article video.right  { display: block; margin-left:   auto; clear: both; }
+
+article img[src$='#left-inline'],  article video.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; margin-bottom: 1rem; }
+article img[src$='#right-inline'], article video.right-inline { float: right; max-width: 45%; margin-left:  1rem; margin-bottom: 1rem; }
+article .clear, footer.tags, nav.post-foot, nav.back { clear: both; }
+/* NOTE: use '<div class="clear"></div>' in a post to resume full-width below an inlined image or video */
 
 /* markdown h2 inside the body shouldn't collide with the post title h2 */
 article h2:not(:first-child) {
@@ -376,16 +387,6 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
     color: var(--hero-ink);
   }
 }
-
-
-/* ---- images ---- */
-
-img[src$='#left-inline']  { float: left;  max-width: 45%; margin-right: 1rem; }
-img[src$='#right-inline'] { float: right; max-width: 45%; margin-left:  1rem; }
-
-img[src$='#center'] { display: block; margin-inline: auto; }
-img[src$='#left']   { display: block; margin-right:  auto; clear: both; }
-img[src$='#right']  { display: block; margin-left:   auto; clear: both; }
 
 
 /* ---- head extras ---- */

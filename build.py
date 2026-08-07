@@ -28,7 +28,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import markdown
 
-from video_ext import VideoExtension
+from media_ext import MediaExtension
 
 
 load_dotenv()
@@ -205,7 +205,7 @@ def render_markdown(body: str, options: dict) -> str:
             # Third-Party
             "pymdownx.arithmatex",
             # Custom
-            VideoExtension(),
+            MediaExtension(),
         ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )

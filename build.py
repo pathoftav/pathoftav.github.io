@@ -53,7 +53,11 @@ UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
-EXTRA_LOCK = '<script defer src="{site_root}/static/scripts/lock.js"></script>'
+EXTRA_LOCK = (
+    '<style>html.lock-pending [data-unlock] {{ visibility: hidden; }}</style>\n'
+    '<script>document.documentElement.classList.add("lock-pending");</script>\n'
+    '<script defer src="{site_root}/static/scripts/lock.js"></script>'
+)
 EXTRA_MATH = (
     '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
     '<script defer src="{site_root}/static/vendor/katex/katex.min.js"></script>\n'

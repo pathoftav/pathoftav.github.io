@@ -284,12 +284,15 @@ def group_by_tag(posts) -> dict[str, list]:
 
 def post_head_extras(post: dict) -> list[str]:
     """Head-extras common to any post-like page"""
+    opts = post["options"]
     extras = []
-    if post["options"].get("noindex", False):
+    if opts.get("noindex", False):
         extras.append(EXTRA_NOINDEX)
-    if post["options"].get("math", False):
+    if opts.get("old", False):
+        extras.append(EXTRA_NOINDEX)
+    if opts.get("math", False):
         extras.append(EXTRA_MATH)
-    return extras
+    return list(dict.fromkeys(extras))
 
 
 def post_article_classes(post: dict) -> list[str]:

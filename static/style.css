@@ -215,6 +215,7 @@ header.post h2 {
 .badge-draft    { color: #e63946; }
 .badge-pin      { color: #e6e946; }
 .badge-unlisted { color: #1fbdd2; }
+.badge-locked   { color: #9b7fd4; }
 
 article h2 {
   color: var(--head);
@@ -461,5 +462,28 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
 /* latex math */
 .eq-left .katex-display > .katex {
   text-align: left;
+}
+
+
+/* ---- sealed posts ---- */
+
+/* a sealed post: title, badge, and when it opens. The body sits in a
+   <template>, which never renders, so there is nothing to hide here. */
+article .lock-notice {
+  color: var(--dim);
+  font-style: italic;
+  text-align: center;
+  padding: 2.4rem 1.6rem;
+  margin: 1.6rem 0 0;
+  background: var(--panel);
+  border-radius: 6px;
+}
+article .lock-notice time { display: inline; color: var(--gold); font-style: normal; }
+
+/* the drop cap would otherwise land on the notice */
+article.locked > p:first-of-type::first-letter {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 

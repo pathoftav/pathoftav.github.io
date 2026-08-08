@@ -38,5 +38,5 @@ _"people who **thought** they took the medicine"_
 
 #placebo
 
-<!-- [OPTIONS]: { "toc": false, "draft": false, "unlisted": true } -->
+<!-- [OPTIONS]: { "toc": false, "draft": false, "unlisted": true, "locked": "2026-08-08 14:32" } -->
 

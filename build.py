@@ -243,6 +243,11 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
     )
 
 
+def badge(kind: str, label: str | None = None) -> str:
+    """One badge span; the label defaults to the kind, uppercased."""
+    return f'<span class="badge badge-{kind}">{label or kind.upper()}</span>'
+
+
 def post_list_items(posts, slug_prefix: str) -> str:
     """The dotted-leader <li> rows used by the index and by tag pages."""
     return "\n".join(
@@ -255,7 +260,7 @@ def post_list_items(posts, slug_prefix: str) -> str:
             title=html.escape(p["title"]),
             iso=p["date"].isoformat(),
             nice=p["date"].strftime(DATE_FMT),
-            badge='<span class="badge badge-pin">PINNED</span>&nbsp;' if p["options"].get("pin") else "",
+            badge=(badge("pin", "PINNED") + "&nbsp;") if p["options"].get("pin") else "",
         )
         for p in posts
     )
@@ -304,11 +309,12 @@ def post_article_classes(post: dict) -> list[str]:
 
 def post_badges(post: dict) -> list[str]:
     """Badges displayed on posts"""
+    opts = post["options"]
     badges = []
-    if post["options"].get("old", False)      : badges.append('<span class="badge badge-old">OLD</span>')
-    if post["options"].get("draft", False)    : badges.append('<span class="badge badge-draft">DRAFT</span>')
-    if post["options"].get("unlisted", False) : badges.append('<span class="badge badge-unlisted">UNLISTED</span>')
-    if post["options"].get("pin", 0) > 0      : badges.append('<span class="badge badge-pin">PINNED</span>')
+    if opts.get("old", False)       : badges.append(badge("old"))
+    if opts.get("draft", False)     : badges.append(badge("draft"))
+    if opts.get("unlisted", False)  : badges.append(badge("unlisted"))
+    if opts.get("pin", 0) > 0       : badges.append(badge("pin", "PINNED"))
     return badges
 
 
@@ -421,7 +427,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
                     f'<a href="../../{slug}.html">&larr; current version</a>'
                     f'</nav>')
 
-        old_badge = (f'<div class="post-badges"><span class="badge badge-old">OLD</span></div>')
+        old_badge = f'<div class="post-badges">{badge("old")}</div>'
         body = (
             f'<article><header class="post"><h2>{html.escape(canonical_title)}{old_badge}</h2></header></article>\n'
             '<ul class="toc">\n' + items + "\n</ul>\n"

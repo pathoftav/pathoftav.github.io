@@ -56,6 +56,7 @@ BUILD_TIME = datetime.now(timezone.utc)
 
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
 EXTRA_LOCK = (
+    '<link rel="stylesheet" href="{site_root}/static/styles/locked.css">\n'
     '<style>html.lock-pending [data-unlock] {{ visibility: hidden; }}</style>\n'
     '<script>document.documentElement.classList.add("lock-pending");</script>\n'
     '<script defer src="{site_root}/static/scripts/lock.js"></script>'

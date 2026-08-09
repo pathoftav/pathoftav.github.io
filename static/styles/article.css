@@ -57,6 +57,17 @@ article:not(.no-dropcap) > p:first-of-type::first-letter {
   line-height: inherit;
 }
 
+sup a.footnote-ref::before { content: "["; }
+sup a.footnote-ref::after  { content: "]"; }
+
+sup a.footnote-ref { text-decoration: none; }
+sup a.footnote-ref:hover { text-decoration: underline; }
+
+.footnote-backref {
+  position: relative;
+  top: 0.15em;
+}
+
 
 /* ---- markdown elements ---- */
 article h3 { color: var(--head); font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 0.6rem; }

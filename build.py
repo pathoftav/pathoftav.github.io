@@ -43,6 +43,7 @@ POSTS = ROOT / "posts"
 OLD = POSTS / "old"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
+EXT = ".html" if IS_LOCAL else ""
 
 SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
@@ -342,7 +343,7 @@ def post_list_items(posts, slug_prefix: str) -> str:
         if locked:
             badges += badge("locked") + "&nbsp;"
         return (
-            f'<li{unlock}><a href="{slug_prefix}{p["slug"]}.html">{html.escape(p["title"])}</a>'
+            f'<li{unlock}><a href="{slug_prefix}{p["slug"]}{EXT}">{html.escape(p["title"])}</a>'
             '<span class="leader"></span>'
             f'{badges}'
             f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time></li>'
@@ -355,7 +356,7 @@ def tag_footer(tags: list[str]) -> str:
     if not tags:
         return ""
     links = " ".join(
-        f'<a href="{{site_root}}/tags/{t}.html" rel="tag">#{html.escape(t)}</a>'
+        f'<a href="{{site_root}}/tags/{t}{EXT}" rel="tag">#{html.escape(t)}</a>'
         for t in tags
     )
     return f'<footer class="tags">{links}</footer>\n'
@@ -538,7 +539,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
 
         # index of versions for this slug
         items = "\n".join(
-            '  <li><a href="{stamp}.html">{nice}</a></li>'.format(
+            f'  <li><a href="{{stamp}}{EXT}">{{nice}}</a></li>'.format(
                 stamp=v["date"].isoformat(), nice=v["date"].strftime(DATE_FMT)
             )
             for v in versions
@@ -546,7 +547,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
         foot = ""
         if slug in live:
             foot = (f'<nav class="post-foot">'
-                    f'<a href="../../{slug}.html">&larr; current version</a>'
+                    f'<a href="../../{slug}{EXT}">&larr; current version</a>'
                     f'</nav>')
 
         old_badge = f'<div class="post-badges">{badge("old")}</div>'
@@ -581,7 +582,7 @@ def write_tag_pages(by_tag) -> None:
 
 def write_tag_index(by_tag) -> None:
     tag_items = "\n".join(
-        '  <li><a href="{t}.html">#{t}</a>'
+        f'  <li><a href="{{t}}{EXT}">#{{t}}</a>'
         '<span class="leader"></span>'
         '<span class="count">{n} post{s}</span></li>'.format(
             t=html.escape(t), n=len(ps), s="" if len(ps) == 1 else "s"

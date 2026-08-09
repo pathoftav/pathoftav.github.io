@@ -43,6 +43,7 @@ POSTS = ROOT / "posts"
 OLD = POSTS / "old"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
+INDEX = "index.html" if IS_LOCAL else ""
 EXT = ".html" if IS_LOCAL else ""
 
 SITE_TITLE = "Sublunary Musings"
@@ -117,7 +118,7 @@ try {{
 <body>
 <header class="site">
   <button class="theme" aria-label="Toggle light/dark mode" title="Toggle light/dark mode"></button>
-  <h1><a href="{site_root}/index.html">{site_title}</a></h1>
+  <h1><a href="{site_root}/{index_file}">{site_title}</a></h1>
   <p>{site_subtitle}</p>
 </header>
 {post_body}
@@ -315,6 +316,7 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
     ext = "\n".join(h.format(site_root=root) for h in (extras or ["<!-- no extras -->"]))
     body = body.replace("{site_root}", root)
     return PAGE.format(
+        index_file=INDEX,
         site_root=root,
         site_title=SITE_TITLE,
         site_subtitle=SITE_SUBTITLE,
@@ -492,11 +494,11 @@ def write_index(posts) -> None:
 
 def write_posts(posts) -> None:
     for p in posts:
-        back = '<a href="../index.html">&larr; all posts</a>'
+        back = f'<a href="../{INDEX}">&larr; all posts</a>'
         hist = ""
         if p["history"]:
             n = len(p["history"])
-            hist = (f'<a href="{{site_root}}/posts/old/{p["slug"]}/index.html">'
+            hist = (f'<a href="{{site_root}}/posts/old/{p["slug"]}/{INDEX}">'
                     f'{n} earlier version{"" if n == 1 else "s"} &rarr;</a>')
         footer = f'<nav class="post-foot">{back}{hist}</nav>'
 
@@ -526,7 +528,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
         # each old version as its own page
         for v in versions:
             stamp = v["date"].isoformat()
-            footer = '<nav class="back"><a href="index.html">&larr; all versions</a></nav>'
+            footer = f'<nav class="back"><a href="./{INDEX}">&larr; all versions</a></nav>'
             dest = old_dir / f"{stamp}.html"
             body = render_article(v, footer=footer, root=root_for(dest))
 
@@ -570,7 +572,7 @@ def write_tag_pages(by_tag) -> None:
         body = (
             f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
             '<ul class="toc">\n' + post_list_items(tagged, "../posts/") + "\n</ul>\n"
-            '<nav class="back"><a href="index.html">&larr; all tags</a></nav>'
+            f'<nav class="back"><a href="./{INDEX}">&larr; all tags</a></nav>'
         )
         write_page(
             SITE / "tags" / f"{t}.html",
@@ -590,7 +592,7 @@ def write_tag_index(by_tag) -> None:
         for t, ps in sorted(by_tag.items())
     )
     body = (f'<ul class="toc">\n{tag_items}\n</ul>\n'
-        '<nav class="back"><a href="../index.html">&larr; all posts</a></nav>')
+        f'<nav class="back"><a href="../{INDEX}">&larr; all posts</a></nav>')
     write_page(
         SITE / "tags" / "index.html",
         f"Tags — {SITE_TITLE}",
@@ -612,7 +614,7 @@ def write_404() -> None:
         '<h2>Lost in the sublunary</h2>\n'
         '</header>\n'
         '<p>There is no page at this address. The path you followed may be broken, or the writing may have been unmade.</p>\n'
-        '<p><a href="/index.html">Return to the index</a>, or <a href="/tags/index.html">wander the tags</a>.</p>\n'
+        f'<p><a href="/{INDEX}">Return to the index</a>, or <a href="/tags/{INDEX}">wander the tags</a>.</p>\n'
         '</article>\n'
         '<script>\n'
         '  // Fake a view transition out of the 404 page\n'

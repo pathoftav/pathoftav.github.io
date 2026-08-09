@@ -1,0 +1,81 @@
+/* ---- embedded images and videos ---- */
+/* three selector families: img[src$=] for images the extension left alone,
+   video.x for bare videos, .media.x for caption boxes and <a> wrappers */
+article img[src$='#left-inline'],  video.left-inline,  .media.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; }
+article img[src$='#right-inline'], video.right-inline, .media.right-inline { float: right; max-width: 45%; margin-left:  1rem; }
+
+article img[src$='#center'], video.center, .media.center { display: block; margin-inline: auto; }
+article img[src$='#left'],   video.left,   .media.left   { display: block; margin-right:  auto; clear: both; }
+article img[src$='#right'],  video.right,  .media.right  { display: block; margin-left:   auto; clear: both; }
+
+article img   { max-width: 100%; border-radius: 6px; }
+article video { max-width: 100%; border-radius: 6px; }
+
+
+/* ---- theme-aware images (?dark=) ---- */
+/* content: url() replaces a replaced element's source — implemented in
+   Firefox since 63, and in Chrome/Safari. The extension puts the alternate
+   in a --dark custom property on the <img> itself. A <picture> with a
+   prefers-color-scheme media query could only ever see the OS setting;
+   this follows the site's own toggle. Light mode needs no rule, because
+   the element's src is already the light variant. */
+:root[data-theme="dark"] .theme-aware { content: var(--dark); }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-aware { content: var(--dark); }
+}
+
+
+/* ---- captions ---- */
+/* media alone in a paragraph gets a <figure>; media mid-sentence gets a
+   <span role="figure">, because <figure> would close the surrounding <p> */
+article figure { margin: 0 0 1.1em; }
+article .media-inline { display: inline-block; vertical-align: bottom; }
+
+article figcaption, article .figcaption {
+  display: block;
+  color: var(--dim);
+  font-size: 0.9rem;
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+/* A figure/span has no intrinsic size of its own, so it needs an explicit
+   width to size to anything. fit-content shrinks it to the media rather
+   than the column, keeping the caption tucked under the image; ?w= then
+   overrides it outright and ?mw= lowers the 45% cap. */
+article figure.media.left-inline,  article span.media.left-inline,
+article figure.media.right-inline, article span.media.right-inline {
+  width: fit-content;
+  max-width: 45%;
+}
+
+/* the caption box owns the width and alignment — make the inner element
+   simply fill it.
+   NOTE: article .media > img and article img[src$='#…'] have identical
+         specificity (0,1,2), so this block MUST stay after the alignment
+         rules above. Reordering silently floats images inside their own
+         caption box. */
+article .media > img,
+article .media > video,
+article .media > a,
+article .media > a > img,
+article .media > a > video {
+  display: block;
+  float: none;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* linked media shouldn't pick up the body link underline */
+a.media, article .media > a { text-decoration: none; border: 0; }
+
+
+/* ---- clear floats ---- */
+footer.tags, nav.post-foot, nav.back { clear: both; }   /* structural */
+.clear { clear: both; }                                 /* authorial, opt-in */
+														/* NOTE: use '<div class="clear"></div>' in a post to resume */
+														/*       full-width below an inlined image or video.         */
+

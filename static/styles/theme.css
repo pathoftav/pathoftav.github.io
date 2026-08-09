@@ -1,0 +1,80 @@
+/* fonts */
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/EBGaramond-Italic.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: italic;
+  font-display: swap;
+}
+/* fallback with metrics adjusted toward EB Garamond (upm 1000, asc 1007,
+   desc 298, x-height 400) so a late swap barely moves the layout */
+@font-face {
+  font-family: "EB Garamond Fallback";
+  src: local("Georgia"), local("Times New Roman");
+  size-adjust: 89%;
+  ascent-override: 113%;
+  descent-override: 33%;
+  line-gap-override: 0%;
+}
+
+:root {
+  color-scheme: light dark;
+  --page:     light-dark(#f1ecdf, #17141f);
+  --card:     light-dark(#ffffff, #26222f);
+  --panel:    light-dark(#f4eee1, #2e2a3b);
+  --hero:     light-dark(#311e4d, #311e4d);
+  --hero-ink: light-dark(#f5f2ea, #e6dfd0);
+  --ink:      light-dark(#3b3540, #d8d0c0);
+  --head:     light-dark(#332a5c, #c9bfe8);
+  --dim:      light-dark(#7d7668, #8f8a9c);
+  --gold:     light-dark(#8f6d2f, #b3985e);
+  --rule:     light-dark(#e6dfcf, #3a3548);
+}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
+
+/* ---- theme toggle ---- */
+button.theme {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  width: 2.4rem;
+  height: 2.4rem;
+  font: inherit;
+  font-size: 1.25rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+button.theme:hover { color: var(--gold); border-color: var(--gold); }
+button.theme:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* show the luminary you would switch to */
+button.theme::before { content: "\2609"; }                           /* ☉ in light mode  */
+:root[data-theme="dark"] button.theme::before { content: "\263D"; }  /* ☽ in dark mode   */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) button.theme::before { content: "\263D"; }
+}
+
+/* narrow screens: drop the toggle into the hero */
+@media (max-width: 40rem) {
+  button.theme {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--hero-ink);
+  }
+}
+

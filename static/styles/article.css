@@ -1,0 +1,109 @@
+article em, article i, article blockquote { font-size: 1.02em; letter-spacing: 0.01em; }	/* spread out italics a bit */
+
+article h2 {
+  color: var(--head);
+  font-size: 1.7rem;
+  font-weight: 600;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.6rem;
+}
+article time {
+  display: block;
+  color: var(--dim);
+  font-style: italic;
+  margin-bottom: 2rem;
+}
+article p { margin-bottom: 1.1em; }
+article:not(.no-dropcap) > p:first-of-type::first-letter {
+  color: var(--gold);
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+
+/* ---- footnotes ---- */
+.footnote p:first-of-type::first-letter {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.footnote {
+  margin-top: 3rem;
+  padding: 1.2rem 1.6rem;
+  background: var(--panel);
+  border-top: 3px solid var(--dim);
+  border-radius: 0 0 6px 6px;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+.footnote hr { display: none; }
+.footnote ol { margin: 0 0 0 1.2rem; }
+.footnote li { margin-bottom: 0.2em; }
+.footnote li:last-child { margin-bottom: 0; }
+.footnote li::marker { color: var(--gold); font-variant-numeric: oldstyle-nums; }
+.footnote a { color: var(--head); }
+.footnote a:hover { color: var(--gold); }
+
+.footnote-backref {
+  text-decoration: none;
+  margin-left: 0.3rem;
+}
+
+.footnote p:first-of-type::first-letter {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+
+/* ---- markdown elements ---- */
+article h3 { color: var(--head); font-size: 1.25rem; font-weight: 600; margin: 1.6rem 0 0.6rem; }
+article ul, article ol { margin: 0 0 1.1em 1.4em; }
+article li { margin-bottom: 0.25em; }
+
+/* blockquotes as tan callout panels, like the reference's exercise blocks */
+article blockquote {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 1.4rem 1.7rem;
+  margin: 1.6rem 0;
+}
+article blockquote p:last-child { margin-bottom: 0; }
+article blockquote p:first-of-type::first-letter {
+  color: inherit; font-size: inherit; line-height: inherit;
+}
+
+article code {
+  font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  font-size: 0.82em;
+}
+article pre {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 1.1em;
+  overflow-x: auto;
+}
+article table { border-collapse: collapse; margin: 0 0 1.1em; }
+article th, article td { border: 1px solid var(--rule); padding: 0.3rem 0.7rem; }
+article th { color: var(--head); }
+article hr { border: 0; border-top: 1px solid var(--gold); margin: 1.6rem auto; width: 4rem; }
+
+/* markdown h2 inside the body shouldn't collide with the post title h2 */
+article h2:not(:first-child) {
+  font-size: 1.35rem;
+  margin: 1.8rem 0 0.6rem;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+
+/* ---- head extras ---- */
+
+/* latex math */
+.eq-left .katex-display > .katex {
+  text-align: left;
+}
+

@@ -5,7 +5,7 @@ Usage:
 
 Layout:
     posts/    Markdown posts (YYYY-MM-DD-slug.md; date prefix optional)
-    static/   files copied verbatim into the build (style.css lives here)
+    static/   files copied verbatim into the build
     site/     generated output — deploy this directory anywhere static
 
 Post format: if the first line is an H1 ("# Title") it becomes the
@@ -87,7 +87,11 @@ PAGE = """\
 :root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
 </style>
 <link rel="preload" href="{site_root}/static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{site_root}/static/style.css">
+<link rel="stylesheet" href="{site_root}/static/styles/theme.css">
+<link rel="stylesheet" href="{site_root}/static/styles/base.css">
+<link rel="stylesheet" href="{site_root}/static/styles/ui.css">
+<link rel="stylesheet" href="{site_root}/static/styles/article.css">
+<link rel="stylesheet" href="{site_root}/static/styles/media.css">
 <link rel="apple-touch-icon" sizes="180x180" href="{site_root}/static/favicon/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="{site_root}/static/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="{site_root}/static/favicon/favicon-16x16.png">

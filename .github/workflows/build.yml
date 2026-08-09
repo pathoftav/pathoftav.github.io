@@ -1,9 +1,12 @@
 name: Build and deploy site
 
 on:
+  workflow_dispatch:        # allow manual runs from the Actions tab
   push:
     branches: [master]
-  workflow_dispatch:        # allow manual runs from the Actions tab
+  schedule:
+    - cron: "0 1 * * *"
+      timezone: "US/Eastern"
 
 # least-privilege token: read the repo, write to Pages via OIDC
 permissions:

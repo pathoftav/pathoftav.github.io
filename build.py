@@ -31,6 +31,8 @@ from zoneinfo import ZoneInfo
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from dotenv import load_dotenv
 import markdown
+import rcssmin
+import rjsmin
 
 from media_ext import MediaExtension
 
@@ -654,6 +656,25 @@ def prepare_output() -> None:
     if SITE.exists():
         shutil.rmtree(SITE)
     shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
+
+    if not IS_LOCAL:
+        styles_dir = SITE / STATIC.name / "styles"
+        if styles_dir.exists():
+            for css_file in styles_dir.glob("*.css"):
+                raw_css = css_file.read_text(encoding="utf-8")
+                minified_css = rcssmin.cssmin(raw_css)
+                css_file.write_text(minified_css, encoding="utf-8")
+
+        scripts_dir = SITE / STATIC.name / "scripts"
+        if scripts_dir.exists():
+            for js_file in scripts_dir.glob("*.js"):
+                raw_js = js_file.read_text(encoding="utf-8")
+                minified_js = rjsmin.jsmin(raw_js)
+                if isinstance(minified_js, bytes):
+                    minified_js = minified_js.decode("utf-8")
+                else:
+                    minified_js = str(minified_js)
+                js_file.write_text(minified_js, encoding="utf-8")
 
 
 def load_posts() -> list[dict]:

@@ -7,8 +7,8 @@
 
   var serverNow = null;
 
-  function hostClock() {
-    if (serverNow) return serverNow;
+  function hostClock(forceRefresh) {
+    if (serverNow && !forceRefresh) return serverNow;
 
     serverNow = fetch(location.href, {
       method: "HEAD",
@@ -25,16 +25,12 @@
     return serverNow;
   }
 
-  async function unseal(el) {
+  async function unseal(el, animate) {
     var payload = el.querySelector("script.lock-payload");
 
     if (payload) {
-      var material = new TextEncoder().encode(
-        el.dataset.slug + "|" + el.dataset.unlock
-      );
-
+      var material = new TextEncoder().encode(el.dataset.slug + "|" + el.dataset.unlock);
       var raw = await crypto.subtle.digest("SHA-256", material);
-
       var key = await crypto.subtle.importKey(
         "raw",
         raw,
@@ -59,57 +55,76 @@
       var holder = document.createElement("div");
       holder.innerHTML = new TextDecoder().decode(plain);
 
-      while (holder.firstChild) {
-        el.insertBefore(holder.firstChild, payload);
+      function applyDOMUpdates() {
+        while (holder.firstChild) {
+          el.insertBefore(holder.firstChild, payload);
+        }
+
+        payload.remove();
+
+        el.querySelectorAll(".badge-locked").forEach(function (b) {
+          b.remove();
+        });
+
+        var notice = el.querySelector(".lock-notice");
+        if (notice) notice.remove();
+
+        el.classList.remove("locked");
+        el.removeAttribute("data-unlock");
+
+        if (animate) {
+          el.classList.add("just-unlocked");
+        }
       }
 
-      payload.remove();
+      if (animate && document.startViewTransition) {
+        el.style.viewTransitionName = "unseal-" + el.dataset.slug;
+        var transition = document.startViewTransition(applyDOMUpdates);
+
+        transition.finished.finally(function() {
+          el.style.viewTransitionName = "";
+        });
+      } else {
+        applyDOMUpdates();
+      }
     }
-
-    el.querySelectorAll(".badge-locked").forEach(function (b) {
-      b.remove();
-    });
-
-    var notice = el.querySelector(".lock-notice");
-    if (notice) notice.remove();
-
-    el.classList.remove("locked");
-    el.removeAttribute("data-unlock");
   }
 
-  async function consider(el) {
+  async function consider(el, isWait) {
     var at = Date.parse(el.dataset.unlock);
     if (isNaN(at)) return;
 
     var remaining = at - Date.now();
-
     if (remaining > 0) {
       if (remaining < 86400000) {
         setTimeout(function () {
-          consider(el);
+          consider(el, true);
         }, remaining);
       }
-
       return;
     }
 
-    var host = await hostClock();
-
+    var host = await hostClock(isWait);
     if (host === null || host < at) {
+      setTimeout(function() {
+        consider(el, true);
+      }, 1000);
       return;
     }
 
-    await unseal(el);
+    await unseal(el, isWait);
   }
 
   Promise.all(
-    Array.from(sealed).map(function (el) {
-      return consider(el).catch(function (err) {
+    Array.from(sealed).map(async function (el) {
+      try {
+        return await consider(el);
+      } catch (err) {
         console.error("unseal failed", err);
-      });
+      }
     })
   ).finally(function () {
-    document.documentElement.classList.remove("lock-pending");
-  });
+      document.documentElement.classList.remove("lock-pending");
+    });
 })();
 

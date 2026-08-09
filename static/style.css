@@ -487,3 +487,27 @@ article.locked > p:first-of-type::first-letter {
   line-height: inherit;
 }
 
+
+/* ---- unlock post animation ---- */
+.just-unlocked {
+  animation: magical-reveal 1.5s ease-out forwards;
+}
+
+@keyframes magical-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.98);
+  }
+  30% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1.01);
+    text-shadow: 0 0 8px currentColor;
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0px transparent;
+  }
+}
+

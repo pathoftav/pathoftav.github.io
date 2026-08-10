@@ -300,7 +300,7 @@ class MediaTreeprocessor(Treeprocessor):
         figcaption = ET.SubElement(box, "figcaption" if alone else "span")
         if not alone:
             figcaption.set("class", "figcaption")
-        figcaption.text = caption
+        figcaption.text = caption.replace("\\n", "\n")
         box.tail = tail
         return box
 

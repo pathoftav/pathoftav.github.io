@@ -41,6 +41,10 @@ article figcaption, article .figcaption {
   margin-top: 0.5rem;
 }
 
+figcaption {
+  white-space: pre-line;
+}
+
 /* A figure/span has no intrinsic size of its own, so it needs an explicit
    width to size to anything. fit-content shrinks it to the media rather
    than the column, keeping the caption tucked under the image; ?w= then

@@ -253,6 +253,20 @@ def render_markdown(body: str, options: dict) -> str:
             guide = f'<nav class="guide"><h3>Contents</h3><ul>\n{items}\n</ul></nav>\n'
             rendered = guide + rendered
 
+    # If footnotes exist, modify any links so they open in a new tab
+    footnote_split = rendered.split('<div class="footnote">')
+    if len(footnote_split) > 1:
+        main_content = footnote_split[0]
+        footnote_content = '<div class="footnote">' + footnote_split[1]
+        # Regex to find hrefs in the footnote block, ignoring the backref arrows
+        # It adds target="_blank" and rel="noopener noreferrer" to external links
+        footnote_content = re.sub(
+            r'(<a href="[^"]+")(?! class="footnote-backref")',
+            r'\1 target="_blank" rel="noopener noreferrer"',
+            footnote_content
+        )
+        rendered = main_content + footnote_content
+
     return rendered
 
 

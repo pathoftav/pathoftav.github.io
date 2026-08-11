@@ -487,7 +487,7 @@ def root_for(dest: Path) -> str:
     depth locally, and "/" in production."""
     if not IS_LOCAL:
         return "/"
-    depth = len(dest.relative_to(SITE).parts)
+    depth = len(dest.relative_to(SITE).parent.parts)
     return "../" * depth if depth else "."
 
 

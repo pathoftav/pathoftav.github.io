@@ -1,16 +1,27 @@
 /* ---- embedded images and videos ---- */
 /* three selector families: img[src$=] for images the extension left alone,
    video.x for bare videos, .media.x for caption boxes and <a> wrappers */
-article img[src$='#left-inline'],  video.left-inline,  .media.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; }
-article img[src$='#right-inline'], video.right-inline, .media.right-inline { float: right; max-width: 45%; margin-left:  1rem; }
+article img[src$='#left-inline'],  video.left-inline,  .media.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; margin-left: 0; }
+article img[src$='#right-inline'], video.right-inline, .media.right-inline { float: right; max-width: 45%; margin-left:  1rem; margin-right: 0; }
 
-article img[src$='#center'], video.center, .media.center { display: block; margin-inline: auto; }
-article img[src$='#left'],   video.left,   .media.left   { display: block; margin-right:  auto; clear: both; }
-article img[src$='#right'],  video.right,  .media.right  { display: block; margin-left:   auto; clear: both; }
+article img[src$='#left'],   video.left,   .media.left   { margin-left:  0; margin-right: auto; clear: both; }
+article img[src$='#right'],  video.right,  .media.right  { margin-right: 0; margin-left:  auto; clear: both; }
+/* article img[src$='#center'], video.center, .media.center { display: block; margin-inline: auto; } */
 
 article img   { max-width: 100%; border-radius: 6px; }
 article video { max-width: 100%; border-radius: 6px; }
 
+article .media {
+    display: block;
+    margin-inline: auto;
+}
+
+article img, article video {
+    display: block;
+    margin-inline: auto;
+    max-width: 100%;
+    border-radius: 6px;
+}
 
 /* ---- theme-aware images (?dark=) ---- */
 /* content: url() replaces a replaced element's source — implemented in

@@ -1,9 +1,8 @@
 @media (prefers-reduced-motion: no-preference) {
-  @view-transition { navigation: auto; }
-  @view-transition { navigation: auto; types: page; }  /* dupe: fallback if a browser drops the rule over the unknown `types` descriptor */
+	@view-transition { navigation: auto; }
+	@view-transition { navigation: auto; types: page; }  /* dupe: fallback if a browser drops the rule over the unknown `types` descriptor */
 }
 ::view-transition { background-color: var(--page); }
-
 ::view-transition-group(root),
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: 0.30s; }
@@ -23,27 +22,27 @@ button.theme { view-transition-name: theme-toggle; }
 :root:active-view-transition-type(page)::view-transition-image-pair(theme-toggle),
 :root:active-view-transition-type(page)::view-transition-old(theme-toggle),
 :root:active-view-transition-type(page)::view-transition-new(theme-toggle) {
-  animation: none;
+	animation: none;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html {
-  background: var(--page);
+	background: var(--page);
 	scrollbar-gutter: stable;
 }
 
 body {
-  background: var(--card);
-  color: var(--ink);
-  font-family: "EB Garamond", "EB Garamond Fallback", Georgia, serif;
-  font-size: 1.25rem;
-  line-height: 1.65;
-  max-width: 48rem;           /* the white column */
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 1.5rem 3rem 6rem;
-  box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.07);
+	background: var(--card);
+	color: var(--ink);
+	font-family: "EB Garamond", "EB Garamond Fallback", Georgia, serif;
+	font-size: 1.25rem;
+	line-height: 1.65;
+	max-width: 48rem;           /* the white column */
+	min-height: 100vh;
+	margin: 0 auto;
+	padding: 1.5rem 3rem 6rem;
+	box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.07);
 }
 
 a { color: var(--head); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -52,6 +51,6 @@ a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 
 /* narrow screens: let the column breathe less */
 @media (max-width: 40rem) {
-  body { padding: 1rem 1.25rem 4rem; }
+	body { padding: 1rem 1.25rem 4rem; }
 }
 

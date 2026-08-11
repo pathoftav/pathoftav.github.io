@@ -3,44 +3,44 @@
 /* a sealed post: title, badge, and when it opens. The body sits in a
    <template>, which never renders, so there is nothing to hide here. */
 article .lock-notice {
-  color: var(--dim);
-  font-style: italic;
-  text-align: center;
-  padding: 2.4rem 1.6rem;
-  margin: 1.6rem 0 0;
-  background: var(--panel);
-  border-radius: 6px;
+	color: var(--dim);
+	font-style: italic;
+	text-align: center;
+	padding: 2.4rem 1.6rem;
+	margin: 1.6rem 0 0;
+	background: var(--panel);
+	border-radius: 6px;
 }
 article .lock-notice time { display: inline; color: var(--gold); font-style: normal; }
 
 /* the drop cap would otherwise land on the notice */
 article.locked > p:first-of-type::first-letter {
-  color: inherit;
-  font-size: inherit;
-  line-height: inherit;
+	color: inherit;
+	font-size: inherit;
+	line-height: inherit;
 }
 
 
 /* ---- unlock post animation ---- */
 .just-unlocked {
-  animation: magical-reveal 1.5s ease-out forwards;
+	animation: magical-reveal 1.5s ease-out forwards;
 }
 
 @keyframes magical-reveal {
-  0% {
-    opacity: 0;
-    filter: blur(10px);
-    transform: scale(0.98);
-  }
-  30% {
-    opacity: 1;
-    filter: blur(0px);
-    transform: scale(1.01);
-    text-shadow: 0 0 8px currentColor;
-  }
-  100% {
-    transform: scale(1);
-    text-shadow: 0 0 0px transparent;
-  }
+	0% {
+		opacity: 0;
+		filter: blur(10px);
+		transform: scale(0.98);
+	}
+	30% {
+		opacity: 1;
+		filter: blur(0px);
+		transform: scale(1.01);
+		text-shadow: 0 0 8px currentColor;
+	}
+	100% {
+		transform: scale(1);
+		text-shadow: 0 0 0px transparent;
+	}
 }
 

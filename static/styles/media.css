@@ -22,7 +22,7 @@ article video { max-width: 100%; border-radius: 6px; }
 :root[data-theme="dark"] .theme-aware { content: var(--dark); }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .theme-aware { content: var(--dark); }
+	:root:not([data-theme]) .theme-aware { content: var(--dark); }
 }
 
 
@@ -33,16 +33,16 @@ article figure { margin: 0 0 1.1em; }
 article .media-inline { display: inline-block; vertical-align: bottom; }
 
 article figcaption, article .figcaption {
-  display: block;
-  color: var(--dim);
-  font-size: 0.9rem;
-  font-style: italic;
-  text-align: center;
-  margin-top: 0.5rem;
+	display: block;
+	color: var(--dim);
+	font-size: 0.9rem;
+	font-style: italic;
+	text-align: center;
+	margin-top: 0.5rem;
 }
 
 figcaption {
-  white-space: pre-line;
+	white-space: pre-line;
 }
 
 /* A figure/span has no intrinsic size of its own, so it needs an explicit
@@ -51,8 +51,8 @@ figcaption {
    overrides it outright and ?mw= lowers the 45% cap. */
 article figure.media.left-inline,  article span.media.left-inline,
 article figure.media.right-inline, article span.media.right-inline {
-  width: fit-content;
-  max-width: 45%;
+	width: fit-content;
+	max-width: 45%;
 }
 
 /* the caption box owns the width and alignment — make the inner element
@@ -66,11 +66,11 @@ article .media > video,
 article .media > a,
 article .media > a > img,
 article .media > a > video {
-  display: block;
-  float: none;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
+	display: block;
+	float: none;
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
 }
 
 /* linked media shouldn't pick up the body link underline */
@@ -80,6 +80,6 @@ a.media, article .media > a { text-decoration: none; border: 0; }
 /* ---- clear floats ---- */
 footer.tags, nav.post-foot, nav.back { clear: both; }   /* structural */
 .clear { clear: both; }                                 /* authorial, opt-in */
-														/* NOTE: use '<div class="clear"></div>' in a post to resume */
-														/*       full-width below an inlined image or video.         */
+                                                        /* NOTE: use '<div class="clear"></div>' in a post to resume */
+                                                        /*       full-width below an inlined image or video.         */
 

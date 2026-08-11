@@ -130,7 +130,7 @@ try {{
 </header>
 {post_body}
 <script src="{site_root}/static/scripts/theme.js"></script>
-<script src="{site_root}/static/scripts/motion.js"></script>
+<script src="{site_root}/static/scripts/media.js"></script>
 </body>
 </html>
 """

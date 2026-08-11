@@ -23,15 +23,9 @@ article:not(.no-dropcap) > p:first-of-type::first-letter {
 
 
 /* ---- footnotes ---- */
-.footnote p:first-of-type::first-letter {
-  color: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-
 .footnote {
   margin-top: 3rem;
-  padding: 1.2rem 1.6rem;
+  padding: 0.8rem 1.6rem 0.2rem;
   background: var(--panel);
   border-top: 3px solid var(--dim);
   border-radius: 0 0 6px 6px;
@@ -48,14 +42,10 @@ article:not(.no-dropcap) > p:first-of-type::first-letter {
 .footnote a:hover { color: var(--gold); }
 
 .footnote-backref {
-  text-decoration: none;
-  margin-left: 0.3rem;
-}
-
-.footnote p:first-of-type::first-letter {
-  color: inherit;
-  font-size: inherit;
-  line-height: inherit;
+	position: relative;
+  top: 0.25rem;
+  margin-left: 0.2rem;
+	text-decoration: none;
 }
 
 sup a.footnote-ref::before { content: "["; }
@@ -63,11 +53,6 @@ sup a.footnote-ref::after  { content: "]"; }
 
 sup a.footnote-ref { text-decoration: none; }
 sup a.footnote-ref:hover { text-decoration: underline; }
-
-.footnote-backref {
-  position: relative;
-  top: 0.15em;
-}
 
 
 /* ---- markdown elements ---- */

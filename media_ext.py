@@ -34,6 +34,7 @@ alignment, so the caption tracks the media rather than the full column.
 
 import re
 
+from posixpath import relpath
 from xml.etree import ElementTree as ET
 
 from markdown import Markdown
@@ -78,6 +79,25 @@ def sibling(path: str, name: str) -> str:
     return f"{base}/{name}" if base else name
 
 
+def css_dark_path(path: str, name: str) -> str:
+    """Resolve a dark-image path and express it relative to
+    static/styles/media.css."""
+    name = clean(name)
+
+    # Normalize the main image path to site-relative.
+    site_path = path.removeprefix("{site_root}/")
+
+    # Resolve bare filenames alongside the main image.
+    if "/" not in name:
+        media_dir = site_path.rsplit("/", 1)[0]
+        dark_path = f"{media_dir}/{name}"
+    else:
+        # Normalize explicit {site_root}/ paths too.
+        dark_path = name.removeprefix("{site_root}/")
+
+    return relpath(dark_path, "static/styles")
+
+
 class MediaTreeprocessor(Treeprocessor):
     def run(self, root: ET.Element) -> ET.Element:
         for parent in root.iter():
@@ -116,7 +136,7 @@ class MediaTreeprocessor(Treeprocessor):
 
                 dark = params.get("dark")
                 if dark and not is_video:
-                    self.add_dark_variant(media, sibling(path, dark))
+                    self.add_dark_variant(media, css_dark_path(path, dark))
 
                 # the only remaining wrapper is the anchor
                 node = media

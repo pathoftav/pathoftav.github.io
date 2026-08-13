@@ -52,7 +52,7 @@ SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
 DATE_FMT = "%B %-d, %Y"
 
-SITE_TZ = ZoneInfo("US/Eastern")
+SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 

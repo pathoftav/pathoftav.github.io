@@ -146,6 +146,8 @@ TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consist
 def parse_post(path: Path) -> dict:
     """Read one .md file into a post dict: title, date, slug, tags, html, options."""
     text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        raise ValueError(f"{path}: post is empty")
     lines = text.splitlines()
     first = lines[0].strip()
     title = first.lstrip("#").strip() if first.startswith("#") else first

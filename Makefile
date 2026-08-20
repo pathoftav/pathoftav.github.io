@@ -1,11 +1,14 @@
-.PHONY: all build clean
+.PHONY: all build run clean
 
 
-all: build
+all: run
 
 
 build:
 	python build.py
+
+run:
+	python build.py --serve
 
 clean:
 	rm -rf ./site

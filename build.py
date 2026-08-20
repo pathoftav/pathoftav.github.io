@@ -16,15 +16,21 @@ become the post's tags: rendered as links on the post page, indexed
 under site/tags/<tag>.html, with an overview at site/tags/index.html.
 """
 
+import argparse
 import base64
 import hashlib
 import html
 import json
 import os
 import re
+import threading
+import time
+import traceback
 import shutil
 
 from datetime import date, datetime, timezone
+from functools import partial
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -55,6 +61,23 @@ DATE_FMT = "%B %-d, %Y"
 SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
+
+SERVE = False               # True when running under --serve
+BUILD_ID = "0"              # bumped each rebuild; the reload poller watches this
+LIVE_RELOAD = """<script>
+(function () {
+  var seen = null;
+  setInterval(function () {
+    fetch("/__build", { cache: "no-store" })
+      .then(function (r) { return r.text(); })
+      .then(function (v) {
+        if (seen === null) { seen = v; }
+        else if (v !== seen) { location.reload(); }
+      })
+      .catch(function () {});
+  }, 700);
+})();
+</script>"""
 
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
 EXTRA_LOCK = (
@@ -338,7 +361,7 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
     root = root.rstrip("/")
     ext = "\n".join(h.format(site_root=root) for h in (extras or ["<!-- no extras -->"]))
     body = body.replace("{site_root}", root)
-    return PAGE.format(
+    page = PAGE.format(
         index_file=INDEX,
         site_root=root,
         site_title=SITE_TITLE,
@@ -347,6 +370,9 @@ def render(title: str, root: str, body: str, extras: list[str] | None = None) ->
         post_body=body,
         head_extras=ext,
     )
+    if SERVE:
+        page = page.replace("</body>", LIVE_RELOAD + "\n</body>")
+    return page
 
 
 def badge(kind: str, label: str | None = None) -> str:
@@ -667,10 +693,23 @@ def write_404() -> None:
 # orchestration
 # --------------------------------------------------------------------------
 
+def clear_dir(path: Path) -> None:
+    """Empty a directory without removing the directory itself.
+
+    rmtree()-ing site/ pulls the rug out from under any process whose cwd is
+    inside it — a dev server started with `cd site` loses its working directory
+    and fails every later request. Reusing the inode keeps that valid."""
+    path.mkdir(parents=True, exist_ok=True)
+    for child in path.iterdir():
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+
 def prepare_output() -> None:
     """Wipe site/ and copy static assets in."""
-    if SITE.exists():
-        shutil.rmtree(SITE)
+    clear_dir(SITE)
     shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
 
     if not IS_LOCAL:
@@ -728,6 +767,8 @@ def load_old_versions() -> dict[str, list[dict]]:
 
 
 def main() -> None:
+    BUILD_TIME = datetime.now(timezone.utc)
+    BUILD_ID = str(time.time_ns())
     prepare_output()
     posts = load_posts()
     old_posts = load_old_versions()
@@ -756,6 +797,97 @@ def main() -> None:
     )
 
 
-if __name__ == "__main__":
+# --------------------------------------------------------------------------
+# dev server
+# --------------------------------------------------------------------------
+class DevHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.split("?")[0] == "/__build":
+            body = BUILD_ID.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+    def log_message(self, format: str, *args: object) -> None:
+        if args and str(args[1]).startswith(("4", "5")):
+            super().log_message(format, *args)
+
+    def translate_path(self, path):
+        fs = super().translate_path(path)
+        if not os.path.exists(fs) and not fs.endswith(os.sep):
+            candidate = fs + ".html"
+            if os.path.isfile(candidate):
+                return candidate
+        return fs
+
+    def send_error(self, code, message=None, explain=None):
+        if code == 404:
+            page = Path(self.directory) / "404.html"
+            if page.is_file():
+                body = page.read_bytes()
+                self.send_response(404, message)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(body)
+                return
+        super().send_error(code, message, explain)
+
+
+def watched_files():
+    yield ROOT / "build.py"
+    yield ROOT / "media_ext.py"
+    for base in (POSTS, STATIC):
+        if base.exists():
+            yield from (p for p in base.rglob("*") if p.is_file())
+
+
+def snapshot() -> dict:
+    return {str(p): p.stat().st_mtime_ns for p in watched_files() if p.exists()}
+
+
+def serve(port: int) -> None:
+    SERVE = True
     main()
+
+    # directory= is an absolute path resolved per request, so this process
+    # never cds into site/ and never cares that it gets emptied
+    handler = partial(DevHandler, directory=str(SITE))
+    httpd = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    print(f"serving http://127.0.0.1:{port}  (ctrl-c to stop)")
+
+    prev = snapshot()
+    try:
+        while True:
+            time.sleep(0.4)
+            cur = snapshot()
+            if cur == prev:
+                continue
+            prev = cur
+            print(f"\n[{datetime.now().strftime('%H:%M:%S')}] rebuilding...")
+            try:
+                main()
+            except Exception:
+                traceback.print_exc()   # keep serving; fix the post and save again
+    except KeyboardInterrupt:
+        httpd.shutdown()
+
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--serve", action="store_true", help="serve site/ and rebuild on change")
+    ap.add_argument("--port", type=int, default=8000)
+    args = ap.parse_args()
+    serve(args.port) if args.serve else main()
 

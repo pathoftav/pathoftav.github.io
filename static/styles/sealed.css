@@ -1,0 +1,589 @@
+/* ---- phrase-sealed posts ---- */
+
+/* Where the body would be, a field of runes and nothing else — no prompt,
+	 no input, no instruction. The post itself sits in an inert <script> as
+	 ciphertext until sealed.js is handed the phrase. */
+
+article .seal-notice {
+	color: var(--dim);
+	font-style: italic;
+	text-align: center;
+	padding: 2.4rem 1.6rem;
+	margin: 1.6rem 0 0;
+	background: var(--panel);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+article .seal-notice p {
+	margin: 0;
+}
+
+/* the drop cap would otherwise land on the notice */
+article.sealed > .seal-notice:first-of-type::first-letter,
+article.sealed > .seal-notice p:first-of-type::first-letter {
+	color: inherit;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+article .seal-runes {
+	/* the futhark and the planets are near-universal; the alchemical block
+		 wants one of these before it falls back to tofu */
+	font-family:
+		"Noto Sans Symbols 2",
+		"Noto Sans Symbols2",
+		"Noto Sans Symbols",
+		"Noto Sans Runic",
+		"Segoe UI Symbol",
+		"Apple Symbols",
+		system-ui,
+		sans-serif;
+
+	color: var(--gold);
+	font-style: normal;
+	font-size: 1.45rem;
+	letter-spacing: 0.28em;
+	line-height: 1.9;
+	text-align: center;
+
+	animation: rune-field-breathe 7s ease-in-out infinite;
+}
+
+article .seal-rune-row {
+	white-space: nowrap;
+}
+
+@keyframes rune-field-breathe {
+	0%,
+	100% {
+		opacity: 0.62;
+		text-shadow: 0 0 0 transparent;
+	}
+
+	50% {
+		opacity: 0.82;
+		text-shadow:
+			0 0 12px
+			color-mix(
+				in srgb,
+				var(--gold) 18%,
+				transparent
+			);
+	}
+}
+
+article .seal-rune {
+	display: inline-block;
+	position: relative;
+
+	width: 1.25em;
+	text-align: center;
+
+	color: var(--gold);
+	opacity: 0.72;
+
+	transform:
+		translate(0, 0)
+		rotate(0)
+		scale(1);
+
+	text-shadow: none;
+
+	will-change:
+		transform,
+		opacity,
+		color,
+		text-shadow;
+}
+
+
+/* ---- badge ---- */
+article.is-unsealed .badge-sealed {
+	color: #c8a24a;
+}
+
+article.seal-breaking .badge-sealed,
+article.seal-unsealing .badge-sealed {
+	transition: color 0.6s ease-in-out;
+	transition-delay: 0.1s;
+}
+
+
+/* ---- one rune becoming another ---- */
+/* sealed.js sets --rune-hue / --rune-x / --rune-y / --rune-rot per flare and
+	 swaps the glyph itself at 48%, where nothing is on screen to swap. */
+
+article .seal-rune.changing {
+	animation-name: rune-transmutation;
+	animation-duration: var(--rune-duration, 1.5s);
+	animation-timing-function: cubic-bezier(.4, 0, .2, 1);
+}
+
+@keyframes rune-transmutation {
+	/* resting rune */
+
+	0% {
+		color: var(--gold);
+		opacity: 0.72;
+
+		transform:
+			translate(0, 0)
+			rotate(0)
+			scale(1);
+
+		text-shadow:
+			0 0 0 transparent;
+	}
+
+
+	/* begins to stir */
+
+	20% {
+		color: hsl(var(--rune-hue) var(--rune-sat, 80%) var(--rune-lit, 70%));
+		opacity: 0.9;
+
+		transform:
+			translate(
+				calc(var(--rune-x) * 0.25),
+				calc(var(--rune-y) * 0.25)
+			)
+			rotate(calc(var(--rune-rot) * 0.25))
+			scale(1.08);
+
+		text-shadow:
+			0 0 5px currentColor;
+	}
+
+
+	/* old rune drifts away */
+
+	44% {
+		color: hsl(var(--rune-hue) 90% 76%);
+		opacity: 0;
+
+		transform:
+			translate(
+				var(--rune-x),
+				var(--rune-y)
+			)
+			rotate(var(--rune-rot))
+			scale(0.82);
+
+		text-shadow:
+			0 0 8px currentColor,
+			0 0 18px currentColor;
+	}
+
+	/* INVISIBLE BUFFER ZONE (44% to 52% / 1320ms to 1560ms):
+		 Position resets and JS swaps text (1440ms) completely unseen.
+		 The old glyph is gone and the new one begins to emerge. */
+
+	52% {
+			opacity: 0;
+			transform: translate(calc(var(--rune-x) * -0.25), 6px) rotate(calc(var(--rune-rot) * -0.2)) scale(0.75);
+			text-shadow: 0 0 16px currentColor;
+		}
+
+
+	/* new rune manifests */
+
+	68% {
+		color: hsl(var(--rune-hue) 90% 82%);
+		opacity: 1;
+
+		transform:
+			translate(0, -2px)
+			rotate(0)
+			scale(1.14);
+
+		text-shadow:
+			0 0 7px currentColor,
+			0 0 16px currentColor,
+			0 0 28px currentColor;
+	}
+
+
+	/* glow recedes */
+
+	84% {
+		color:
+			color-mix(
+				in srgb,
+				var(--gold) 75%,
+				white
+			);
+
+		opacity: 0.85;
+
+		transform:
+			translate(0, 1px)
+			rotate(0)
+			scale(0.98);
+
+		text-shadow:
+			0 0 4px currentColor;
+	}
+
+
+	/* settled new rune */
+
+	100% {
+		color: var(--gold);
+		opacity: 0.72;
+
+		transform:
+			translate(0, 0)
+			rotate(0)
+			scale(1);
+
+		text-shadow:
+			0 0 0 transparent;
+	}
+}
+
+
+/* ---- successful / failed hidden key entry ---- */
+
+/* Neither of these may put a transform or a filter on <body>. Either one
+	 makes body the containing block for its fixed-position descendants, and
+	 button.theme — which is fixed to the viewport corner — would jump to the
+	 corner of the centred column instead, i.e. into the hero, for exactly as
+	 long as the animation lasts. So the refusal shakes the article that
+	 refused, and the acceptance flares in a fixed overlay that lays no
+	 transform on anything. */
+
+html.seal-key-rejected article[data-seal] {
+	animation: seal-key-rejected 0.45s ease-out;
+}
+
+html.seal-key-accepted body::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	pointer-events: none;
+
+	background:
+		radial-gradient(
+			ellipse at 50% 42%,
+			color-mix(in srgb, var(--gold) 26%, transparent) 0%,
+			color-mix(in srgb, var(--gold) 10%, transparent) 38%,
+			transparent 68%
+		);
+
+	animation: seal-key-accepted 1.2s ease-out forwards;
+}
+
+@keyframes seal-key-accepted {
+	0% {
+		opacity: 0;
+	}
+
+	28% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes seal-key-rejected {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+
+	30% {
+		transform: translateX(-2px);
+	}
+
+	60% {
+		transform: translateX(2px);
+	}
+}
+
+
+/* ---- the seal breaking ---- */
+/* Stage one of the unsealing, and the half that has no counterpart in the
+	 LOCKED reveal: every rune catches, whitens, and is thrown out of the
+	 field. sealed.js sets the direction and per-rune delay. */
+
+/* the resting field is clipped to the panel; a scattering one must be free
+	 to leave it */
+article.seal-breaking .seal-notice {
+	overflow: visible;
+	background: transparent;
+	transition: background 0.5s ease-out;
+}
+
+article.seal-breaking .seal-runes {
+	animation: rune-field-break 1.25s ease-in forwards;
+}
+
+article.seal-breaking .seal-rune {
+	animation: rune-scatter 0.95s cubic-bezier(.2, .7, .3, 1) forwards;
+	animation-delay: var(--scatter-delay, 0ms);
+}
+
+@keyframes rune-field-break {
+	0% {
+		opacity: 1;
+	}
+
+	55% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes rune-scatter {
+	/* the glyph catches light */
+
+	0% {
+		color: var(--gold);
+		opacity: 0.72;
+
+		transform:
+			translate(0, 0)
+			rotate(0)
+			scale(1);
+
+		text-shadow: 0 0 0 transparent;
+	}
+
+
+	/* ignition */
+
+	24% {
+		color:
+			color-mix(
+				in srgb,
+				white 80%,
+				var(--gold)
+			);
+
+		opacity: 1;
+
+		transform:
+			translate(0, -3px)
+			rotate(0)
+			scale(1.38);
+
+		text-shadow:
+			0 0 6px var(--gold),
+			0 0 20px var(--gold),
+			0 0 44px
+			color-mix(
+				in srgb,
+				var(--gold) 60%,
+				transparent
+			);
+	}
+
+
+	/* thrown clear */
+
+	100% {
+		color:
+			color-mix(
+				in srgb,
+				white 60%,
+				var(--gold)
+			);
+
+		opacity: 0;
+
+		transform:
+			translate(
+				var(--scatter-x, 0),
+				var(--scatter-y, -80px)
+			)
+			rotate(var(--scatter-rot, 0))
+			scale(0.3);
+
+		text-shadow:
+			0 0 26px var(--gold);
+	}
+}
+
+
+/* ---- the text condensing ---- */
+/* Stage two. A band of light passes down the article while the blocks
+	 arrive under it, one after another. Deliberately unlike .just-unlocked,
+	 which simply resolves the whole body at once. */
+
+article.seal-unsealing {
+	position: relative;
+}
+
+article.seal-unsealing::before {
+	content: "";
+	position: absolute;
+	inset: -3rem -3rem -1.5rem;
+	z-index: 2;
+	pointer-events: none;
+
+	background:
+		linear-gradient(
+			180deg,
+			transparent 0%,
+			color-mix(in srgb, var(--gold) 30%, transparent) 40%,
+			color-mix(in srgb, var(--gold) 62%, white) 50%,
+			color-mix(in srgb, var(--gold) 30%, transparent) 60%,
+			transparent 100%
+		);
+
+	background-size: 100% 46%;
+	background-repeat: no-repeat;
+	opacity: 0;
+
+	animation: seal-sweep 2s cubic-bezier(.35, 0, .25, 1) forwards;
+}
+
+@media (max-width: 40rem) {
+	article.seal-unsealing::before {
+		inset: -3rem -1.25rem -1rem;
+	}
+}
+
+@keyframes seal-sweep {
+	0% {
+		background-position: 0 -50%;
+		opacity: 0;
+	}
+
+	10% {
+		opacity: 0.85;
+	}
+
+	80% {
+		opacity: 0.55;
+	}
+
+	100% {
+		background-position: 0 150%;
+		opacity: 0;
+	}
+}
+
+.seal-reveal-start {
+	opacity: 0;
+	filter: blur(14px);
+	transform: translateY(14px) scale(0.985);
+}
+
+.just-unsealed {
+	animation: magical-unseal 1.5s cubic-bezier(.22, .8, .28, 1) both;
+	animation-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes magical-unseal {
+	/* nothing there but a smear of light */
+
+	0% {
+		opacity: 0;
+		filter: blur(14px) brightness(1.7);
+
+		transform:
+			translateY(14px)
+			scale(0.985);
+
+		text-shadow:
+			0 0 24px var(--gold);
+	}
+
+
+	/* shapes gather out of it */
+
+	38% {
+		opacity: 0.9;
+		filter: blur(3px) brightness(1.3);
+
+		transform:
+			translateY(4px)
+			scale(1.004);
+
+		text-shadow:
+			0 0 10px
+			color-mix(in srgb, var(--gold) 70%, transparent),
+			0 0 28px
+			color-mix(in srgb, var(--gold) 35%, transparent);
+	}
+
+
+	/* words, still lit */
+
+	72% {
+		opacity: 1;
+		filter: blur(0) brightness(1.06);
+
+		transform:
+			translateY(0)
+			scale(1);
+
+		text-shadow:
+			0 0 6px
+			color-mix(in srgb, var(--gold) 42%, transparent);
+	}
+
+
+	/* plain ink */
+
+	100% {
+		opacity: 1;
+		filter: none;
+		transform: none;
+		text-shadow: 0 0 0 transparent;
+	}
+}
+
+
+/* ---- accessibility ---- */
+/* sealed.js checks the same query and skips the choreography outright, so
+	 these are the belt to its braces. */
+
+@media (prefers-reduced-motion: reduce) {
+	article .seal-runes {
+		animation: none;
+		opacity: 0.72;
+		text-shadow: none;
+	}
+
+	article .seal-rune,
+	article .seal-rune.changing,
+	article.seal-breaking .seal-rune,
+	article.seal-breaking .seal-runes {
+		animation: none;
+		transition: none;
+		color: var(--gold);
+		opacity: 0.72;
+		transform: none;
+		text-shadow: none;
+	}
+
+	article.seal-unsealing::before {
+		animation: none;
+		opacity: 0;
+	}
+
+	.seal-reveal-start {
+		opacity: 1;
+		filter: none;
+		transform: none;
+	}
+
+	html.seal-key-accepted body::after,
+	html.seal-key-rejected article[data-seal],
+	.just-unsealed {
+		animation-duration: 0.01ms;
+	}
+
+	article.seal-unsealing .badge-sealed {
+		transition: none;
+	}
+}

@@ -117,6 +117,7 @@ header.post h2 {
 .badge-pin      { color: #e6e946; }
 .badge-unlisted { color: #1fbdd2; }
 .badge-locked   { color: #9b7fd4; }
+.badge-sealed   { color: #9f6c2d; }
 
 .post-foot {
 	display: flex;

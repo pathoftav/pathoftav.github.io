@@ -22,11 +22,12 @@ import hashlib
 import html
 import json
 import os
+import random
 import re
+import shutil
 import threading
 import time
 import traceback
-import shutil
 
 from datetime import date, datetime, timezone
 from functools import partial
@@ -34,7 +35,9 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from dotenv import load_dotenv
 import markdown
 import rcssmin
@@ -51,8 +54,10 @@ POSTS = ROOT / "posts"
 OLD = POSTS / "old"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
-INDEX = "index.html" if IS_LOCAL else ""
-EXT = ".html" if IS_LOCAL else ""
+# INDEX = "index.html" if IS_LOCAL else ""
+# EXT = ".html" if IS_LOCAL else ""
+INDEX = ""
+EXT = ""
 
 SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
@@ -61,6 +66,31 @@ DATE_FMT = "%B %-d, %Y"
 SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
+
+# The passphrase that opens every SEALED post. Never written into the build;
+# only ciphertext derived from it is. Set it in .env (SEALED_PASSWORD=...) and
+# in the CI secret store used by the deploy job.
+SEALED_PASSWORD = os.getenv("SEALED_PASSWORD")
+
+# PBKDF2 rounds standing between a stolen page and its plaintext. Raise it
+# freely: the cost is paid once, in the reader's browser, on Enter. Changing it
+# needs no migration — the number rides along in the payload's data-rounds.
+SEAL_ROUNDS = 310_000
+
+# The glyph pool the rune field draws from, shipped to sealed.js in a data
+# attribute so the two never drift apart. Rows are ordered by how reliably
+# fonts carry them: futhark and the planets are near-universal, the alchemical
+# block wants Noto Sans Symbols 2 or Segoe UI Symbol. Seeing empty boxes on
+# your machine? Delete the last row.
+SEAL_RUNES = (
+    "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚻᚾᛁᛃᛇᛈᛉᛊᛋᛏᛒᛖᛗᛚᛜᛝᛞᛟ"
+    "☉☽☿♀♁♂♃♄♅♆♇☊☋"
+    "♈♉♊♋♌♍♎♏♐♑♒♓"
+    "☤☥☧☩☬☸⚕⚖⚗⚘⚚⚛⚜"
+    "🜁🜂🜃🜄🜍🜔🜚🜛🜞🜠🜫🝆🝊🝳"
+)
+SEAL_RUNE_ROWS = 4
+SEAL_RUNE_COLS = 22
 
 SERVE = False               # True when running under --serve
 BUILD_ID = "0"              # bumped each rebuild; the reload poller watches this
@@ -85,6 +115,13 @@ EXTRA_LOCK = (
     '<style>html.lock-pending [data-unlock] {{ visibility: hidden; }}</style>\n'
     '<script>document.documentElement.classList.add("lock-pending");</script>\n'
     '<script defer src="{site_root}/static/scripts/lock.js"></script>'
+)
+EXTRA_SEAL = (
+    '<link rel="stylesheet" href="{site_root}/static/styles/sealed.css">\n'
+    '<style>html.seal-pending [data-seal] {{ visibility: hidden; }}</style>\n'
+    '<script>try {{ if (sessionStorage.getItem("seal-phrase")) '
+    'document.documentElement.classList.add("seal-pending"); }} catch (e) {{}}</script>\n'
+    '<script defer src="{site_root}/static/scripts/sealed.js"></script>'
 )
 EXTRA_MATH = (
     '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
@@ -180,6 +217,7 @@ def parse_post(path: Path) -> dict:
     tags = extract_tags(body_lines)             # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
+    parse_sealed_option(options, path.name)     # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
     parse_locked_option(options, path.name)     # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
     rendered = render_markdown(body, options)
 
@@ -210,6 +248,8 @@ def extract_options(body_lines: list[str]) -> dict:
         "math":     bool   enable LaTeX rendering
         "locked":   str    ISO date (optionally with time) before which the
                            body is sealed; listed but unreadable until then
+        "sealed":   bool   encrypt the body against SEALED_PASSWORD; listed,
+                           but readable only once a reader types the phrase
     """
     options = {}
     while body_lines and not body_lines[-1].strip():
@@ -353,6 +393,97 @@ def lock_notice(unlock: datetime) -> str:
 
 
 # --------------------------------------------------------------------------
+# sealing by phrase
+# --------------------------------------------------------------------------
+
+def parse_sealed_option(options: dict, source: str) -> None:
+    """Trade the authored "sealed" option (in place) for the one derived key
+    the rest of the build reads:
+
+        "is_sealed": bool   body encrypted against SEALED_PASSWORD
+
+    Unlike "locked", a missing secret is fatal. Warning and publishing anyway
+    would put the plaintext of a post the author meant to hide on the open
+    web, and no build is worth that."""
+    if not options.pop("sealed", False):
+        return
+    if not SEALED_PASSWORD:
+        raise RuntimeError(
+            f'{source}: post is "sealed" but SEALED_PASSWORD is unset. '
+            f"Refusing to publish the body in the clear — set it in .env "
+            f"(and in the deploy environment) and build again."
+        )
+
+    if options.pop("locked", False):
+        # both would mean two keys for one body; the phrase is the stronger
+        # claim, so it wins and the clock is dropped.
+        print(f'warning: {source}: both "locked" and "sealed" set; sealed wins')
+
+    # unlisted by default, unless explicitly set to false
+    if "unlisted" not in options:
+        options["unlisted"] = True
+
+    options["is_sealed"] = True
+
+
+def seal_by_phrase(body: str, phrase: str) -> str:
+    """AES-GCM the post body under a key stretched from the site passphrase.
+
+    Real access control, unlike seal() above: the only input a reader is not
+    handed is the phrase itself, so the ciphertext is worth no more than a
+    guess at it. Hence PBKDF2 rather than a bare hash — here the stretching
+    defends a secret the attacker genuinely lacks, and each round multiplies
+    the cost of grinding through a dictionary.
+
+    The salt is fresh per post per build, so two sealed posts never share a
+    derived key and a rebuild never re-uses one. Layout of the blob:
+
+        [0:16]  salt      [16:28]  iv      [28:]  ciphertext || GCM tag
+
+    There is no separate "is this the right phrase?" check anywhere on the
+    page, by design: the GCM tag is the check. A wrong phrase yields a key
+    that fails authentication, which is indistinguishable from noise — so a
+    reader learns nothing from a failed attempt except that it failed."""
+    salt = os.urandom(16)
+    key = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=SEAL_ROUNDS,
+    ).derive(phrase.encode())
+    iv = os.urandom(12)
+    blob = salt + iv + AESGCM(key).encrypt(iv, body.encode(), None)
+    return base64.b64encode(blob).decode()
+
+
+def seal_notice() -> str:
+    """The rune field that stands in for a sealed body.
+
+    Deliberately says nothing. There is no prompt, no field, no hint that
+    typing would do anything at all — a reader who does not already know the
+    phrase should see only that something has been closed. The glyphs are
+    drawn fresh each build and carry no information about the post; sealed.js
+    keeps transmuting them once it loads, and they are aria-hidden because
+    read aloud they are gibberish."""
+    rows = "\n".join(
+        "<div class=\"seal-rune-row\">"
+        + "".join(
+            f'<span class="seal-rune">{r}</span>'
+            for r in random.choices(SEAL_RUNES, k=SEAL_RUNE_COLS)
+        )
+        + "</div>"
+        for _ in range(SEAL_RUNE_ROWS)
+    )
+    return (
+        '<div class="seal-notice" role="note" aria-label="This writing is sealed.">\n'
+        f'<div class="seal-runes" aria-hidden="true" data-runes="{html.escape(SEAL_RUNES, quote=True)}">\n'
+        f'{rows}\n'
+        '</div>\n'
+        '</div>\n'
+    )
+
+
+# --------------------------------------------------------------------------
 # html fragments
 # --------------------------------------------------------------------------
 
@@ -393,6 +524,8 @@ def post_list_items(posts, slug_prefix: str) -> str:
             badges += badge("pin", "PINNED") + "&nbsp;"
         if locked:
             badges += badge("locked") + "&nbsp;"
+        if p["options"].get("is_sealed", False):
+            badges += badge("sealed") + "&nbsp;"
         return (
             f'<li{unlock}><a href="{slug_prefix}{p["slug"]}{EXT}">{html.escape(p["title"])}</a>'
             '<span class="leader"></span>'
@@ -435,6 +568,9 @@ def post_head_extras(post: dict) -> list[str]:
     if opts.get("is_locked", False):
         extras.append(EXTRA_NOINDEX)
         extras.append(EXTRA_LOCK)
+    if opts.get("is_sealed", False):
+        extras.append(EXTRA_NOINDEX)
+        extras.append(EXTRA_SEAL)
     if opts.get("math", False):
         extras.append(EXTRA_MATH)
     return list(dict.fromkeys(extras))
@@ -445,6 +581,7 @@ def post_article_classes(post: dict) -> list[str]:
     classes = []
     if not post["options"].get("dropcap", True) : classes.append("no-dropcap")
     if post["options"].get("is_locked", False)  : classes.append("locked")
+    if post["options"].get("is_sealed", False)  : classes.append("sealed")
     return classes
 
 
@@ -457,6 +594,7 @@ def post_badges(post: dict) -> list[str]:
     if opts.get("unlisted", False)  : badges.append(badge("unlisted"))
     if opts.get("pin", 0) > 0       : badges.append(badge("pin", "PINNED"))
     if opts.get("is_locked", False) : badges.append(badge("locked"))
+    if opts.get("is_sealed", False) : badges.append(badge("sealed"))
     return badges
 
 
@@ -468,7 +606,11 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
     A sealed post emits its unlock notice and an inert base64 payload in
     place of the body. <script> with a non-JS type is neither executed nor
     parsed as markup, so nothing of the post can render before lock.js
-    decrypts it."""
+    decrypts it.
+
+    A phrase-sealed post does the same, swapping the notice for a field of
+    runes and the clock-derived key for a PBKDF2 one; sealed.js takes it
+    from there."""
     classes = post_article_classes(post)
     class_attr = f' class="{" ".join(classes)}"' if classes else ""
 
@@ -478,16 +620,29 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
         if locked else ""
     )
 
+    sealed = post["options"].get("is_sealed", False)
+    if sealed:
+        lock_attr = f' data-seal data-slug="{post["slug"]}"'
+
     badges = post_badges(post)
     badge_wrapper = (f'<div class="post-badges">{"".join(badges)}</div>' if badges else "")
 
     content = f'{post["html"]}\n{tag_footer(post["tags"])}'
-    if locked:
+    if locked or sealed:
         # tags stay inside the payload: they leak the subject matter.
         # {site_root} must be resolved BEFORE sealing — render() substitutes
         # it on the body string, by which point a sealed body is base64 and
         # every link inside it would survive unreplaced.
         content = content.replace("{site_root}", root.rstrip("/"))
+
+    if sealed:
+        payload = seal_by_phrase(content, SEALED_PASSWORD)
+        content = (
+            seal_notice()
+            + f'<script type="application/octet-stream" class="seal-payload"'
+            f' data-rounds="{SEAL_ROUNDS}">{payload}</script>\n'
+        )
+    elif locked:
         payload = seal(content, post["slug"], post["options"]["unlock_time"])
         content = (
             lock_notice(post["options"]["unlock_time"])
@@ -767,6 +922,7 @@ def load_old_versions() -> dict[str, list[dict]]:
 
 
 def main() -> None:
+    global BUILD_TIME, BUILD_ID
     BUILD_TIME = datetime.now(timezone.utc)
     BUILD_ID = str(time.time_ns())
     prepare_output()
@@ -785,12 +941,19 @@ def main() -> None:
     write_tag_index(by_tag)
     write_404()
 
-    sealed = sum(1 for p in posts if p["options"].get("is_locked", False))
+    locked = sum(1 for p in posts if p["options"].get("is_locked", False))
+    sealed = sum(1 for p in posts if p["options"].get("is_sealed", False))
+    shut = ", ".join(
+        part for part in (
+            f"{locked} locked" if locked else "",
+            f"{sealed} sealed" if sealed else "",
+        ) if part
+    )
     old = sum(len(v) for v in old_posts.values())
     slugs_with_history = len(old_posts)
     print(
         f'built {len(posts)} {"post" if len(posts) == 1 else "posts"}'
-        f'{f" ({sealed} sealed)" if sealed else ""}, '
+        f'{f" ({shut})" if shut else ""}, '
         f'{old} old {"version" if old == 1 else "versions"} '
         f'across {slugs_with_history} {"slug" if slugs_with_history == 1 else "slugs"}, '
         f'{len(by_tag)} {"tag" if len(by_tag) == 1 else "tags"}: {SITE}/'
@@ -856,6 +1019,7 @@ def snapshot() -> dict:
 
 
 def serve(port: int) -> None:
+    global SERVE
     SERVE = True
     main()
 

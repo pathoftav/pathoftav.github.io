@@ -93,8 +93,9 @@ SEAL_RUNES = (
 SEAL_RUNE_ROWS = 4
 SEAL_RUNE_COLS = 22
 
-SERVE = False               # True when running under --serve
-BUILD_ID = "0"              # bumped each rebuild; the reload poller watches this
+SERVE = False                   # True when running under --serve
+BUILD_ID = "0"                  # bumped each rebuild; the reload poller watches this
+BUILD_LOCK = threading.Lock()   # held while site/ is mid-rebuild and briefly empty
 LIVE_RELOAD = """<script>
 (function () {
   var seen = null;
@@ -925,22 +926,23 @@ def load_old_versions() -> dict[str, list[dict]]:
 def main() -> None:
     global BUILD_TIME, BUILD_ID
     BUILD_TIME = datetime.now(timezone.utc)
+    with BUILD_LOCK:
+        prepare_output()
+        posts = load_posts()
+        old_posts = load_old_versions()
+        for p in posts:
+            p["history"] = old_posts.get(p["slug"], [])
+
+        listed = [p for p in posts if not p["options"].get("unlisted", False)]
+        by_tag = group_by_tag(listed)
+
+        write_index(listed)
+        write_posts(posts)
+        write_old_posts(posts, old_posts)
+        write_tag_pages(by_tag)
+        write_tag_index(by_tag)
+        write_404()
     BUILD_ID = str(time.time_ns())
-    prepare_output()
-    posts = load_posts()
-    old_posts = load_old_versions()
-    for p in posts:
-        p["history"] = old_posts.get(p["slug"], [])
-
-    listed = [p for p in posts if not p["options"].get("unlisted", False)]
-    by_tag = group_by_tag(listed)
-
-    write_index(listed)
-    write_posts(posts)
-    write_old_posts(posts, old_posts)
-    write_tag_pages(by_tag)
-    write_tag_index(by_tag)
-    write_404()
 
     locked = sum(1 for p in posts if p["options"].get("is_locked", False))
     sealed = sum(1 for p in posts if p["options"].get("is_sealed", False))
@@ -986,7 +988,8 @@ class DevHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
-        super().do_GET()
+        with BUILD_LOCK:
+            super().do_GET()
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")

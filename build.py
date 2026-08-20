@@ -25,6 +25,7 @@ import os
 import random
 import re
 import shutil
+import sys
 import threading
 import time
 import traceback
@@ -963,6 +964,18 @@ def main() -> None:
 # --------------------------------------------------------------------------
 # dev server
 # --------------------------------------------------------------------------
+class DevServer(ThreadingHTTPServer):
+    """Suppresses the traceback socketserver logs when a client disconnects
+    mid-response. Only the logging changes: the request still fails and the
+    socket is still closed."""
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1],
+                      (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            return
+        super().handle_error(request, client_address)
+
+
 class DevHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.split("?")[0] == "/__build":
@@ -1023,10 +1036,8 @@ def serve(port: int) -> None:
     SERVE = True
     main()
 
-    # directory= is an absolute path resolved per request, so this process
-    # never cds into site/ and never cares that it gets emptied
     handler = partial(DevHandler, directory=str(SITE))
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), handler)
+    httpd = DevServer(("127.0.0.1", port), handler)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     print(f"serving http://127.0.0.1:{port}  (ctrl-c to stop)")
 

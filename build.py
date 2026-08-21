@@ -55,10 +55,8 @@ POSTS = ROOT / "posts"
 OLD = POSTS / "old"
 STATIC = ROOT / "static"
 SITE = ROOT / "site"
-# INDEX = "index.html" if IS_LOCAL else ""
-# EXT = ".html" if IS_LOCAL else ""
-INDEX = ""
-EXT = ""
+INDEX = "index.html" if IS_LOCAL else ""    # set to "" in serve() if --serve
+EXT = ".html" if IS_LOCAL else ""           # set to "" in serve() if --serve
 
 SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
@@ -703,7 +701,7 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
 def root_for(dest: Path) -> str:
     """The {site_root} replacement for a page at dest: derived from its
     depth locally, and "/" in production."""
-    if not IS_LOCAL:
+    if SERVE or not IS_LOCAL:
         return "/"
     depth = len(dest.relative_to(SITE).parent.parts)
     return "../" * depth if depth else "."
@@ -1077,8 +1075,10 @@ def snapshot() -> dict:
 
 
 def serve(port: int) -> None:
-    global SERVE
+    global SERVE, INDEX, EXT
     SERVE = True
+    INDEX = ""
+    EXT = ""
     main()
 
     handler = partial(DevHandler, directory=str(SITE))

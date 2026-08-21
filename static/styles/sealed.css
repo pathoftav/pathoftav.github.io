@@ -99,14 +99,17 @@ article .seal-rune {
 
 
 /* ---- badge ---- */
-article.is-unsealed .badge-sealed {
+article.seal-breaking  .badge-sealed,
+article.seal-unsealing .badge-sealed,
+article.is-unsealed    .badge-sealed,
+html.seal-open ul.toc  .badge-sealed {
 	color: #c8a24a;
 }
 
-article.seal-breaking .badge-sealed,
+article.seal-breaking  .badge-sealed,
 article.seal-unsealing .badge-sealed {
 	transition: color 0.6s ease-in-out;
-	transition-delay: 0.1s;
+	transition-delay: 0.0s;
 }
 
 

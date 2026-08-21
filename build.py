@@ -120,6 +120,13 @@ EXTRA_SEAL = (
     'document.documentElement.classList.add("seal-pending"); }} catch (e) {{}}</script>\n'
     '<script defer src="{site_root}/static/scripts/sealed.js"></script>'
 )
+def EXTRA_SEAL_BADGE() -> str:
+    return (
+        '<link rel="stylesheet" href="{site_root}/static/styles/sealed.css">\n'
+        '<script>try {{ if (sessionStorage.getItem("seal-salt") === "'
+        + HANDLE_SALT
+        + '") document.documentElement.classList.add("seal-open"); }} catch (e) {{}}</script>'
+    )
 EXTRA_MATH = (
     '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
     '<script defer src="{site_root}/static/vendor/katex/katex.min.js"></script>\n'
@@ -709,9 +716,16 @@ def write_page(dest: Path, title: str, body: str, extras=None) -> None:
 
 
 def listing_extras(posts) -> list[str]:
-    """Any listing holding a sealed row needs lock.js, so the LOCKED badge
-    clears itself when the moment arrives."""
-    return [EXTRA_LOCK] if any(p["options"].get("is_locked", False) for p in posts) else []
+    """Any listing holding a locked row needs lock.js, so the LOCKED badge
+    clears itself when the moment arrives. A sealed row needs far less:
+    nothing on the page can be opened, so its badge only has to reflect
+    whether this session already holds a handle for this build."""
+    extras = []
+    if any(p["options"].get("is_locked", False) for p in posts):
+        extras.append(EXTRA_LOCK)
+    if any(p["options"].get("is_sealed", False) for p in posts):
+        extras.append(EXTRA_SEAL_BADGE())
+    return extras
 
 
 def write_index(posts) -> None:

@@ -29,6 +29,15 @@
 	var DEFAULT_ROUNDS = 310000;        /* only used if data-rounds is missing */
 	var DEFAULT_HANDLE_ROUNDS = 310000; /* only used if data-handle-rounds is missing */
 
+	var SWEEP_SPEED = 900;              /* px per second, whatever the length of the post */
+	var SWEEP_MIN = 1200;               /* floor, so a short post still gets a sweep */
+	var SWEEP_INSET_TOP = 48;           /* the ::before starts 3rem above the article */
+
+	/* against the band's bright core, not its edge: the gradient is
+		 transparent at both ends, so the edge arrives half a band early */
+	var REVEAL_LEAD = 80;               /* px before the core that a block starts resolving */
+	var REVEAL_MS = 420;                /* and how long it takes */
+
 	var CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	function still() {
@@ -297,6 +306,23 @@
 		} catch (e) {}
 	}
 
+	/* The wave runs to the foot of the page, not to the end of the post, so
+		 the nav below the article and the column's bottom padding are distance
+		 too. Needs seal-unsealing already on the element: --seal-band lives
+		 there. */
+	function sweep(el) {
+		var band = parseFloat(getComputedStyle(el).getPropertyValue("--seal-band")) || 500;
+		var tail = Math.max(0,
+			document.body.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom);
+		el.style.setProperty("--seal-tail", tail.toFixed(0) + "px");
+
+		var travel = el.offsetHeight + SWEEP_INSET_TOP + tail + band;
+		var ms = Math.max(SWEEP_MIN, travel / SWEEP_SPEED * 1000);
+
+		el.style.setProperty("--seal-sweep-duration", ms.toFixed(0) + "ms");
+		return { ms: ms, band: band };
+	}
+
 	function reveal(el, markup, quiet) {
 		var holder = document.createElement("div");
 		holder.innerHTML = markup;
@@ -353,8 +379,21 @@
 			el.classList.remove("seal-breaking");
 			el.classList.add("seal-unsealing");
 
+			var s = sweep(el);
+			var top = el.getBoundingClientRect().top;
+
+			el.style.setProperty("--reveal-ms", REVEAL_MS + "ms");
+
+			/* measured before the loop writes anything: seal-reveal-start puts a
+				 transform on each block, which moves the next rect */
+			var offsets = blocks.map(function (n) {
+				return n.getBoundingClientRect().top - top;
+			});
+
 			blocks.forEach(function (n, i) {
-				n.style.setProperty("--reveal-delay", (i * 85).toFixed(0) + "ms");
+				var core = offsets[i] + SWEEP_INSET_TOP + s.band / 2;
+				var delay = Math.max(0, (core - REVEAL_LEAD) / SWEEP_SPEED * 1000);
+				n.style.setProperty("--reveal-delay", delay.toFixed(0) + "ms");
 				n.classList.add("seal-reveal-start");
 			});
 
@@ -368,7 +407,7 @@
 				}, { once: true });
 			});
 
-			return wait(2200).then(function () {
+			return wait(s.ms + 200).then(function () {
 				el.classList.remove("seal-unsealing");
 			});
 		});

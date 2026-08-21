@@ -416,18 +416,21 @@ article.seal-breaking .seal-rune {
 
 
 /* ---- the text condensing ---- */
-/* Stage two. A band of light passes down the article while the blocks
-	 arrive under it, one after another. Deliberately unlike .just-unlocked,
-	 which simply resolves the whole body at once. */
+/* Stage two. A band of light passes down the article and on through the
+	 nav below it, at a constant px/s that sealed.js turns into a duration.
+	 Linear, because an ease is a change of speed and the speed is the point.
+	 Deliberately unlike .just-unlocked, which resolves the body at once. */
 
 article.seal-unsealing {
 	position: relative;
+
+	--seal-band: 700px;      /* thickness of the light; sealed.js reads this back */
 }
 
 article.seal-unsealing::before {
 	content: "";
 	position: absolute;
-	inset: -3rem -3rem -1.5rem;
+	inset: -3rem -3rem calc(0px - var(--seal-tail, 1.5rem));
 	z-index: 2;
 	pointer-events: none;
 
@@ -435,28 +438,33 @@ article.seal-unsealing::before {
 		linear-gradient(
 			180deg,
 			transparent 0%,
-			color-mix(in srgb, var(--gold) 30%, transparent) 40%,
+			color-mix(in srgb, var(--gold) 30%, transparent) 32%,
 			color-mix(in srgb, var(--gold) 62%, white) 50%,
-			color-mix(in srgb, var(--gold) 30%, transparent) 60%,
+			color-mix(in srgb, var(--gold) 30%, transparent) 68%,
 			transparent 100%
 		);
 
-	background-size: 100% 46%;
+	background-size: 100% var(--seal-band);
 	background-repeat: no-repeat;
 	opacity: 0;
 
-	animation: seal-sweep 2s cubic-bezier(.35, 0, .25, 1) forwards;
+	animation: seal-sweep var(--seal-sweep-duration, 2s) linear forwards;
 }
 
 @media (max-width: 40rem) {
 	article.seal-unsealing::before {
-		inset: -3rem -1.25rem -1rem;
+		inset: -3rem -1.25rem calc(0px - var(--seal-tail, 1rem));
 	}
 }
 
+/* A background-position percentage resolves against (area - image), so
+	 100% plus one band clears the bottom by exactly one thickness, as 0%
+	 minus one band clears the top. The opacity keyframes name no position,
+	 so it interpolates across the whole animation rather than in segments. */
+
 @keyframes seal-sweep {
 	0% {
-		background-position: 0 -50%;
+		background-position-y: calc(0px - var(--seal-band));
 		opacity: 0;
 	}
 
@@ -464,12 +472,12 @@ article.seal-unsealing::before {
 		opacity: 0.85;
 	}
 
-	80% {
+	92% {
 		opacity: 0.55;
 	}
 
 	100% {
-		background-position: 0 150%;
+		background-position-y: calc(100% + var(--seal-band));
 		opacity: 0;
 	}
 }
@@ -481,7 +489,7 @@ article.seal-unsealing::before {
 }
 
 .just-unsealed {
-	animation: magical-unseal 1.5s cubic-bezier(.22, .8, .28, 1) both;
+	animation: magical-unseal var(--reveal-ms, 1.5s) cubic-bezier(.22, .8, .28, 1) both;
 	animation-delay: var(--reveal-delay, 0ms);
 }
 
@@ -590,3 +598,4 @@ article.seal-unsealing::before {
 		transition: none;
 	}
 }
+

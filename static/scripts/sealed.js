@@ -17,10 +17,17 @@
 		return;
 	}
 
-	var STORE_KEY = "seal-phrase";      /* sessionStorage: forgotten with the tab */
+	/* The phrase is never stored, and after the handle is derived it is never
+		 held anywhere either. What sessionStorage keeps is the handle: one-way,
+		 so a copy of it does not give up what was typed, and salted per build,
+		 so it stops opening anything the next time the site is built. The salt
+		 is kept beside it only to recognise a handle that has gone stale. */
+	var STORE_KEY = "seal-handle";      /* sessionStorage: forgotten with the tab */
+	var SALT_KEY = "seal-salt";         /* the build the handle belongs to */
 	var MAX_PHRASE = 256;               /* cap the buffer so a lean on the keyboard can't grow it */
 	var IDLE_MS = 5000;                 /* a pause this long abandons a half-typed phrase */
 	var DEFAULT_ROUNDS = 310000;        /* only used if data-rounds is missing */
+	var DEFAULT_HANDLE_ROUNDS = 310000; /* only used if data-handle-rounds is missing */
 
 	var CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -45,9 +52,60 @@
 	 * the seal itself
 	 * ---------------------------------------------------------------- */
 
+	function hex(bytes) {
+		return Array.prototype.map.call(new Uint8Array(bytes), function (b) {
+			return b.toString(16).padStart(2, "0");
+		}).join("");
+	}
+
+	function unhex(s) {
+		return Uint8Array.from((s || "").match(/../g) || [], function (pair) {
+			return parseInt(pair, 16);
+		});
+	}
+
+	/* Any sealed post on the page will do: the handle salt and rounds describe
+		 the build, not the post, which is what lets one handle open all of them. */
+	function anyPayload() {
+		return document.querySelector("script.seal-payload");
+	}
+
+	function buildSalt() {
+		var payload = anyPayload();
+		return payload ? (payload.dataset.handleSalt || "") : "";
+	}
+
+	/* The phrase goes in and does not come out. What comes out is the handle:
+		 the only value the rest of this script sees and the only one ever
+		 written down. Stretched, not plain-hashed, so that a handle read out of
+		 sessionStorage is not a dictionary attack away from the phrase itself.
+		 Matches build.py's derive_handle(). */
+	async function handleFor(phrase, payload) {
+		var material = await crypto.subtle.importKey(
+			"raw",
+			new TextEncoder().encode(phrase),
+			"PBKDF2",
+			false,
+			["deriveBits"]
+		);
+
+		var bits = await crypto.subtle.deriveBits(
+			{
+				name: "PBKDF2",
+				salt: unhex(payload.dataset.handleSalt),
+				iterations: Number(payload.dataset.handleRounds) || DEFAULT_HANDLE_ROUNDS,
+				hash: "SHA-256"
+			},
+			material,
+			256
+		);
+
+		return hex(bits);
+	}
+
 	/* blob layout, matching build.py's seal_by_phrase():
 		 [0:16] salt   [16:28] iv   [28:] ciphertext || GCM tag */
-	async function unwrap(el, phrase) {
+	async function unwrap(el, handle) {
 		var payload = el.querySelector("script.seal-payload");
 		if (!payload) return null;
 
@@ -60,7 +118,7 @@
 
 		var material = await crypto.subtle.importKey(
 			"raw",
-			new TextEncoder().encode(phrase),
+			new TextEncoder().encode(handle),
 			"PBKDF2",
 			false,
 			["deriveKey"]
@@ -86,7 +144,7 @@
 				blob.slice(28)
 			);
 		} catch (e) {
-			return null;      /* wrong phrase — indistinguishable from noise */
+			return null;      /* wrong handle — indistinguishable from noise */
 		}
 
 		return new TextDecoder().decode(plain);
@@ -260,8 +318,8 @@
 			if (payload) payload.remove();
 			if (notice) notice.remove();
 
-			el.classList.add("is-unsealed");
 			el.classList.remove("sealed");
+			el.classList.add("is-unsealed");
 			el.removeAttribute("data-seal");
 
 			revive(el);         /* after the payload is gone, so it is not a candidate */
@@ -330,40 +388,45 @@
 		}, ms);
 	}
 
-	function remember(phrase) {
+	/* the salt rides along so a handle from an earlier build can be spotted
+		 without spending a PBKDF2 finding out */
+	function remember(handle, salt) {
 		try {
-			sessionStorage.setItem(STORE_KEY, phrase);
+			sessionStorage.setItem(STORE_KEY, handle);
+			sessionStorage.setItem(SALT_KEY, salt);
 		} catch (e) {}
 	}
 
 	function forget() {
 		try {
 			sessionStorage.removeItem(STORE_KEY);
+			sessionStorage.removeItem(SALT_KEY);
 		} catch (e) {}
 	}
 
 	var busy = false;
 
-	async function attempt(phrase, quiet) {
+	async function attempt(handle, quiet) {
 		var targets = still();
 		if (busy || !targets.length) return false;
 		busy = true;
 
 		try {
+			var salt = buildSalt();     /* read before reveal() takes the payloads away */
 			var opened = [];
 
 			for (var i = 0; i < targets.length; i++) {
-				var markup = await unwrap(targets[i], phrase);
+				var markup = await unwrap(targets[i], handle);
 				if (markup !== null) opened.push([targets[i], markup]);
 			}
 
 			if (!opened.length) {
-				if (quiet) forget();       /* a stale phrase; stop trying it */
+				if (quiet) forget();       /* a stale handle; stop trying it */
 					else flash("seal-key-rejected", 460);
 				return false;
 			}
 
-			remember(phrase);
+			remember(handle, salt);
 			if (!quiet) flash("seal-key-accepted", 1250);
 
 			await Promise.all(opened.map(function (pair) {
@@ -404,8 +467,20 @@
 				/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
 
 			if (e.key === "Enter") {
-				if (buffer) attempt(buffer, false);
-				clear();
+				var typed = buffer;
+				clear();                 /* before the await, not after */
+
+				if (typed) {
+					var payload = anyPayload();
+					if (payload) {
+						handleFor(typed, payload).then(function (h) {
+							typed = "";      /* the phrase is done with */
+							return attempt(h, false);
+						}).catch(function (err) {
+							console.error("unseal failed", err);
+						});
+					}
+				}
 				return;
 			}
 
@@ -440,9 +515,16 @@
 	 * start
 	 * ---------------------------------------------------------------- */
 
+	/* A handle only opens the build it was derived under. Checking the salt
+		 before spending a PBKDF2 on it means a reader arriving after a rebuild
+		 is told the truth immediately, rather than after a wasted derivation. */
 	var recalled = null;
 	try {
-		recalled = sessionStorage.getItem(STORE_KEY);
+		if (sessionStorage.getItem(SALT_KEY) === buildSalt()) {
+			recalled = sessionStorage.getItem(STORE_KEY);
+		} else {
+			forget();
+		}
 	} catch (e) {}
 
 	(recalled ? attempt(recalled, true) : Promise.resolve(false))

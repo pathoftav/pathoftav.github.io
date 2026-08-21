@@ -68,21 +68,16 @@ SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 
-# The passphrase that opens every SEALED post. Never written into the build;
-# only ciphertext derived from it is. Set it in .env (SEALED_PASSWORD=...) and
-# in the CI secret store used by the deploy job.
 SEALED_PASSWORD = os.getenv("SEALED_PASSWORD")
-
-# PBKDF2 rounds standing between a stolen page and its plaintext. Raise it
-# freely: the cost is paid once, in the reader's browser, on Enter. Changing it
-# needs no migration — the number rides along in the payload's data-rounds.
-SEAL_ROUNDS = 310_000
+SEAL_ROUNDS = 310_000       # PBKDF2 rounds — the cost of one guess at the phrase.
+HANDLE_ROUNDS = 310_000     # the same as above, one stage earlier. Rides in data-handle-rounds.
+HANDLE_SALT = ""            # derived per build
+SEALED_HANDLE = None        # derived per build
 
 # The glyph pool the rune field draws from, shipped to sealed.js in a data
 # attribute so the two never drift apart. Rows are ordered by how reliably
 # fonts carry them: futhark and the planets are near-universal, the alchemical
-# block wants Noto Sans Symbols 2 or Segoe UI Symbol. Seeing empty boxes on
-# your machine? Delete the last row.
+# block wants Noto Sans Symbols 2 or Segoe UI Symbol.
 SEAL_RUNES = (
     "ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚻᚾᛁᛃᛇᛈᛉᛊᛋᛏᛒᛖᛗᛚᛜᛝᛞᛟ"
     "☉☽☿♀♁♂♃♄♅♆♇☊☋"
@@ -121,7 +116,7 @@ EXTRA_LOCK = (
 EXTRA_SEAL = (
     '<link rel="stylesheet" href="{site_root}/static/styles/sealed.css">\n'
     '<style>html.seal-pending [data-seal] {{ visibility: hidden; }}</style>\n'
-    '<script>try {{ if (sessionStorage.getItem("seal-phrase")) '
+    '<script>try {{ if (sessionStorage.getItem("seal-handle")) '
     'document.documentElement.classList.add("seal-pending"); }} catch (e) {{}}</script>\n'
     '<script defer src="{site_root}/static/scripts/sealed.js"></script>'
 )
@@ -428,14 +423,38 @@ def parse_sealed_option(options: dict, source: str) -> None:
     options["is_sealed"] = True
 
 
-def seal_by_phrase(body: str, phrase: str) -> str:
-    """AES-GCM the post body under a key stretched from the site passphrase.
+def derive_handle(phrase: str, salt_hex: str) -> str:
+    """The value a reader's session is given to hold, in place of the phrase.
+
+    Sealed posts are keyed to this rather than to the phrase itself, so
+    nothing capable of opening a post ever has to keep the phrase around: the
+    handle is one-way, and a copy of it says nothing about what was typed.
+    Stretched rather than plain-hashed for exactly that reason — a memorable
+    phrase behind a bare SHA-256 falls to a dictionary in seconds, and the
+    protection being bought here is precisely that a leaked handle does not
+    hand over the phrase.
+
+    Salted per build, so the handle rotates with the site. A handle lifted out
+    of a reader's session opens that build's posts and no others; ciphertext
+    already captured stays readable, but nothing published afterwards does."""
+    return PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=bytes.fromhex(salt_hex),
+        iterations=HANDLE_ROUNDS,
+    ).derive(phrase.encode()).hex()
+
+
+def seal_by_phrase(body: str, handle: str) -> str:
+    """AES-GCM the post body under a key stretched from the build's handle.
 
     Real access control, unlike seal() above: the only input a reader is not
     handed is the phrase itself, so the ciphertext is worth no more than a
     guess at it. Hence PBKDF2 rather than a bare hash — here the stretching
     defends a secret the attacker genuinely lacks, and each round multiplies
-    the cost of grinding through a dictionary.
+    the cost of grinding through a dictionary. Note that the grind runs the
+    full chain, phrase to handle to key, so both round counts are charged
+    against every candidate.
 
     The salt is fresh per post per build, so two sealed posts never share a
     derived key and a rebuild never re-uses one. Layout of the blob:
@@ -452,7 +471,7 @@ def seal_by_phrase(body: str, phrase: str) -> str:
         length=32,
         salt=salt,
         iterations=SEAL_ROUNDS,
-    ).derive(phrase.encode())
+    ).derive(handle.encode())
     iv = os.urandom(12)
     blob = salt + iv + AESGCM(key).encrypt(iv, body.encode(), None)
     return base64.b64encode(blob).decode()
@@ -638,11 +657,18 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
         content = content.replace("{site_root}", root.rstrip("/"))
 
     if sealed:
-        payload = seal_by_phrase(content, SEALED_PASSWORD)
+        if SEALED_HANDLE is None:
+            raise RuntimeError(
+                f'{post["slug"]}: sealed post reached render with no handle. '
+                "SEALED_PASSWORD must be set before main() derives one."
+            )
+        payload = seal_by_phrase(content, SEALED_HANDLE)
         content = (
             seal_notice()
             + f'<script type="application/octet-stream" class="seal-payload"'
-            f' data-rounds="{SEAL_ROUNDS}">{payload}</script>\n'
+            f' data-rounds="{SEAL_ROUNDS}"'
+            f' data-handle-rounds="{HANDLE_ROUNDS}"'
+            f' data-handle-salt="{HANDLE_SALT}">{payload}</script>\n'
         )
     elif locked:
         payload = seal(content, post["slug"], post["options"]["unlock_time"])
@@ -924,7 +950,9 @@ def load_old_versions() -> dict[str, list[dict]]:
 
 
 def main() -> None:
-    global BUILD_TIME, BUILD_ID
+    global HANDLE_SALT, SEALED_HANDLE, BUILD_TIME, BUILD_ID
+    HANDLE_SALT = "10ca1" * 6 + "77" if IS_LOCAL else os.urandom(16).hex()
+    SEALED_HANDLE = derive_handle(SEALED_PASSWORD, HANDLE_SALT) if SEALED_PASSWORD else None
     BUILD_TIME = datetime.now(timezone.utc)
     with BUILD_LOCK:
         prepare_output()

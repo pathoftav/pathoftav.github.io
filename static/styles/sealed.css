@@ -621,3 +621,44 @@ article.seal-unsealing::before {
 	}
 }
 
+
+/* ---- entry without a keyboard ---- */
+/* Opened only by a long press on the theme button, so nothing on the page
+	 points at it. sealed.css is the right home despite the button belonging
+	 to ui.css: the rule is only wanted where there is something to unseal. */
+
+button.theme {
+	-webkit-touch-callout: none;
+	user-select: none;
+}
+
+.seal-ask {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+
+	background: color-mix(in srgb, var(--page) 84%, transparent);
+	backdrop-filter: blur(3px);
+}
+
+.seal-ask input {
+	width: min(22rem, 100%);
+	padding: 0.7rem 0.9rem;
+
+	font-family: inherit;
+	font-size: 1.1rem;
+	color: var(--ink);
+	text-align: center;
+	letter-spacing: 0.08em;
+
+	background: var(--card);
+	border: 1px solid var(--gold);
+	border-radius: 6px;
+	outline: none;
+}
+

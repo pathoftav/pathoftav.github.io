@@ -38,6 +38,9 @@
 	var REVEAL_LEAD = 80;               /* px before the core that a block starts resolving */
 	var REVEAL_MS = 420;                /* and how long it takes */
 
+	var HOLD_MS = 5000;                 /* press on the theme button that opens the field */
+	var HOLD_MEDIA = "(max-width: 40rem), (pointer: coarse)";
+
 	var CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	/* a duration declared in sealed.css, read rather than repeated */
@@ -563,6 +566,125 @@
 
 
 	/* ------------------------------------------------------------------
+	 * entry without a keyboard
+	 * ---------------------------------------------------------------- */
+
+	/* Blind typing needs keys. Where there are none the phrase has to arrive
+		 through a field, which is the one thing the rest of this file avoids:
+		 it is in the DOM, and the on-screen keyboard sees it. Hidden behind a
+		 long press on the theme button so the page still advertises nothing —
+		 a reader who does not know the gesture never finds it. */
+
+	function ask() {
+		var payload = anyPayload();
+		if (!payload || document.querySelector(".seal-ask")) return;
+
+		var form = document.createElement("form");
+		form.className = "seal-ask";
+
+		var input = document.createElement("input");
+		input.type = "password";
+		input.enterKeyHint = "go";
+		input.setAttribute("aria-label", "Phrase");
+
+		/* a phone will otherwise capitalise the first letter and autocorrect
+			 the rest, and neither is the phrase that was typed */
+		input.setAttribute("autocomplete", "off");
+		input.setAttribute("autocapitalize", "none");
+		input.setAttribute("autocorrect", "off");
+		input.setAttribute("spellcheck", "false");
+
+		form.appendChild(input);
+		document.body.appendChild(form);
+		input.focus();
+
+		function close() {
+			input.value = "";
+			form.remove();
+		}
+
+		form.addEventListener("submit", function (e) {
+			e.preventDefault();
+
+			var typed = input.value;
+			close();                 /* before the await, as on the keyboard path */
+			if (!typed) return;
+
+			handleFor(typed, payload).then(function (h) {
+				typed = "";
+				return attempt(h, false);
+			}).catch(function (err) {
+				console.error("unseal failed", err);
+			});
+		});
+
+		form.addEventListener("click", function (e) {
+			if (e.target === form) close();      /* tapping the backdrop abandons it */
+		});
+
+		input.addEventListener("keydown", function (e) {
+			if (e.key === "Escape") close();
+		});
+	}
+
+	function holdToAsk() {
+		var button = document.querySelector("button.theme");
+		if (!button) return;
+
+		var timer = null;
+		var fired = false;
+
+		function stop() {
+			clearTimeout(timer);
+			timer = null;
+		}
+
+		button.addEventListener("pointerdown", function (e) {
+			if (!still().length) return;
+			if (!matchMedia(HOLD_MEDIA).matches) return;
+
+			/* so the release lands on the button and not on the overlay that
+				 opened underneath the finger — without it no click fires here and
+				 the suppressor below would swallow the next honest one instead */
+			try { button.setPointerCapture(e.pointerId); } catch (err) {}
+
+			timer = setTimeout(function () {
+				timer = null;
+				fired = true;
+				ask();
+			}, HOLD_MS);
+		});
+
+		button.addEventListener("pointerup", function () {
+			stop();
+
+			/* iOS opens the keyboard only for a focus() inside a real gesture,
+				 and the one in ask() runs on a timer. This is that gesture. */
+			if (fired) {
+				var field = document.querySelector(".seal-ask input");
+				if (field) field.focus();
+			}
+		});
+
+		button.addEventListener("pointercancel", stop);
+		button.addEventListener("pointerleave", stop);
+
+		/* the release after a long press must not also toggle the theme */
+		button.addEventListener("click", function (e) {
+			if (!fired) return;
+			fired = false;
+			e.preventDefault();
+			e.stopImmediatePropagation();
+		}, true);
+
+		/* a long press on a control is also the callout gesture */
+		button.addEventListener("contextmenu", function (e) {
+			if (matchMedia(HOLD_MEDIA).matches) e.preventDefault();
+		});
+	}
+
+
+	/* ------------------------------------------------------------------
 	 * start
 	 * ---------------------------------------------------------------- */
 
@@ -585,6 +707,7 @@
 		.finally(function () {
 			root.classList.remove("seal-pending");
 			listen();
+			holdToAsk();
 			stirRunes();
 		});
 })();

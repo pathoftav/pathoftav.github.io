@@ -309,6 +309,28 @@ html.seal-key-accepted body::after {
 
 
 /* ---- the seal breaking ---- */
+/* Stage one's four numbers, written once. sealed.js reads back the three it
+	 needs, so the wait it does and the fade the field runs cannot drift.
+	 In ms throughout: parseFloat("1.9s") is 1.9.
+
+	 The window should end when the field looks empty, which is sooner than
+	 the last rune's animation formally ends — each rune fades out across its
+	 own flight, so the tail is invisible before it is over. Set the window
+	 much past that and the panel sits blank while the sweep waits:
+
+	     window ~= (runes - 1) * stagger + jitter + flight * 0.65
+
+	 For a longer stage one, raise the flight rather than the stagger: a long
+	 flight keeps runes in the air together, a long stagger thins the tail. */
+
+:root {
+	--seal-break-ms: 1950ms;      /* stage one, start to finish */
+	--rune-flight-ms: 1600ms;      /* one rune's flight */
+	--rune-stagger-ms: 9ms;       /* each rune waits this much longer than the last */
+	--rune-jitter-ms: 90ms;       /* plus up to this much, at random */
+}
+
+
 /* Stage one of the unsealing, and the half that has no counterpart in the
 	 LOCKED reveal: every rune catches, whitens, and is thrown out of the
 	 field. sealed.js sets the direction and per-rune delay. */
@@ -322,11 +344,11 @@ article.seal-breaking .seal-notice {
 }
 
 article.seal-breaking .seal-runes {
-	animation: rune-field-break 1.25s ease-in forwards;
+	animation: rune-field-break var(--seal-break-ms) ease-in forwards;
 }
 
 article.seal-breaking .seal-rune {
-	animation: rune-scatter 0.95s cubic-bezier(.2, .7, .3, 1) forwards;
+	animation: rune-scatter var(--rune-flight-ms) cubic-bezier(.2, .7, .3, 1) forwards;
 	animation-delay: var(--scatter-delay, 0ms);
 }
 

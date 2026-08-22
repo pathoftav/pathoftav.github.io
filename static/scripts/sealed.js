@@ -40,6 +40,12 @@
 
 	var CALM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+	/* a duration declared in sealed.css, read rather than repeated */
+	function dial(name, fallback) {
+		var v = parseFloat(getComputedStyle(root).getPropertyValue(name));
+		return isNaN(v) ? fallback : v;
+	}
+
 	function still() {
 		return sealed.filter(function (el) {
 			return el.hasAttribute("data-seal");
@@ -247,7 +253,7 @@
 					transmute(runes[Math.floor(Math.random() * runes.length)], pool);
 				}
 			});
-		}, 2500);
+		}, 2000);
 	}
 
 
@@ -362,19 +368,25 @@
 		/* 1. the runes catch, flare white-gold, and scatter */
 		var field = el.querySelector(".seal-runes");
 		if (field) {
+			var stagger = dial("--rune-stagger-ms", 9);
+			var jitter = dial("--rune-jitter-ms", 90);
+
 			field.querySelectorAll(".seal-rune").forEach(function (rune, i) {
 				rune.classList.remove("changing");
 				rune.style.cssText = "";
 				rune.style.setProperty("--scatter-x", rand(-90, 90).toFixed(0) + "px");
 				rune.style.setProperty("--scatter-y", rand(-170, -50).toFixed(0) + "px");
 				rune.style.setProperty("--scatter-rot", rand(-140, 140).toFixed(0) + "deg");
-				rune.style.setProperty("--scatter-delay", (i * 9 + rand(0, 90)).toFixed(0) + "ms");
+				rune.style.setProperty(
+					"--scatter-delay",
+					(i * stagger + rand(0, jitter)).toFixed(0) + "ms"
+				);
 			});
 			el.classList.add("seal-breaking");
 		}
 
 		/* 2. the text condenses out of the light the runes left behind */
-		return wait(field ? 1250 : 200).then(function () {
+		return wait(field ? dial("--seal-break-ms", 1250) : 200).then(function () {
 			swap();
 			el.classList.remove("seal-breaking");
 			el.classList.add("seal-unsealing");

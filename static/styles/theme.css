@@ -72,8 +72,9 @@ button.theme::before { content: "\2609"; }                           /* ☉ in l
 @media (max-width: 40rem) {
 	button.theme {
 		position: absolute;
-		top: 1rem;
-		right: 1rem;
+		inset: auto 1rem 1rem auto;
+		width: 2.75rem;
+		height: 2.75rem;
 		color: var(--hero-ink);
 	}
 }

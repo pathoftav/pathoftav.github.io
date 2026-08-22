@@ -93,7 +93,7 @@ LIVE_RELOAD = """<script>
 (function () {
   var seen = null;
   setInterval(function () {
-    fetch("/__build", { cache: "no-store" })
+    fetch("/__build", { cache: "no-cache" })
       .then(function (r) { return r.text(); })
       .then(function (v) {
         if (seen === null) { seen = v; }
@@ -150,17 +150,6 @@ PAGE = """\
 :root[data-theme="light"] {{ color-scheme: light; background: #f1ecdf; }}
 :root[data-theme="dark"]  {{ color-scheme: dark;  background: #17141f; }}
 </style>
-<link rel="preload" href="{site_root}/static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{site_root}/static/styles/theme.css">
-<link rel="stylesheet" href="{site_root}/static/styles/base.css">
-<link rel="stylesheet" href="{site_root}/static/styles/ui.css">
-<link rel="stylesheet" href="{site_root}/static/styles/article.css">
-<link rel="stylesheet" href="{site_root}/static/styles/media.css">
-<link rel="apple-touch-icon" sizes="180x180" href="{site_root}/static/favicon/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="{site_root}/static/favicon/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="{site_root}/static/favicon/favicon-16x16.png">
-<link rel="manifest" href="{site_root}/static/favicon/site.webmanifest">
-{head_extras}
 <script>
 /* Apply theme before first paint to prevent flashes.
    Syncs with OS preference or localStorage override. */
@@ -183,6 +172,17 @@ try {{
   }}
 }} catch (e) {{}}
 </script>
+<link rel="preload" href="{site_root}/static/fonts/EBGaramond.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{site_root}/static/styles/theme.css">
+<link rel="stylesheet" href="{site_root}/static/styles/base.css">
+<link rel="stylesheet" href="{site_root}/static/styles/ui.css">
+<link rel="stylesheet" href="{site_root}/static/styles/article.css">
+<link rel="stylesheet" href="{site_root}/static/styles/media.css">
+<link rel="apple-touch-icon" sizes="180x180" href="{site_root}/static/favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="{site_root}/static/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="{site_root}/static/favicon/favicon-16x16.png">
+<link rel="manifest" href="{site_root}/static/favicon/site.webmanifest">
+{head_extras}
 </head>
 <body>
 <header class="site">
@@ -1032,7 +1032,7 @@ class DevHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
     def log_message(self, format: str, *args: object) -> None:

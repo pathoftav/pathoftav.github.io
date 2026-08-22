@@ -251,7 +251,11 @@ def extract_options(body_lines: list[str]) -> dict:
         "locked":   str    ISO date (optionally with time) before which the
                            body is sealed; listed but unreadable until then
         "sealed":   bool   encrypt the body against SEALED_PASSWORD; listed,
-                           but readable only once a reader types the phrase
+                           but readable only once a reader types the phrase.
+                           sealed implicitly adds "unlisted": true and also
+                           hides the unlisted badge, unless "unlisted": false is
+                           specified — in which case the sealed post will show
+                           in the index.
     """
     options = {}
     while body_lines and not body_lines[-1].strip():
@@ -621,6 +625,10 @@ def post_badges(post: dict) -> list[str]:
     if opts.get("pin", 0) > 0       : badges.append(badge("pin", "PINNED"))
     if opts.get("is_locked", False) : badges.append(badge("locked"))
     if opts.get("is_sealed", False) : badges.append(badge("sealed"))
+
+    if opts.get("is_sealed", False) and opts.get("unlisted", False):
+        badges.remove(badge("unlisted"))
+
     return badges
 
 

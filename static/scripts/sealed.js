@@ -240,6 +240,34 @@
 		}, { once: true });
 	}
 
+	/* A row is a nowrap line of fixed-width glyphs, so a narrow column clips
+		 the last one through the middle. Hide whole runes past what fits: the
+		 glyphs carry nothing, so a shorter row is only a shorter row. */
+	function fitRunes() {
+		if (document.querySelector(".seal-breaking")) return;
+
+		document.querySelectorAll(".seal-runes").forEach(function (field) {
+			var rows = field.querySelectorAll(".seal-rune-row");
+			if (!rows.length || rows[0].children.length < 2) return;
+
+			/* measured, not computed from the em values, so letter-spacing and
+				 whatever font actually resolved are both accounted for */
+			var probe = rows[0].children;
+			probe[0].hidden = probe[1].hidden = false;
+			var step = probe[1].getBoundingClientRect().left
+				- probe[0].getBoundingClientRect().left;
+			if (step <= 0) return;
+
+			var fit = Math.max(1, Math.floor(field.clientWidth / step));
+
+			rows.forEach(function (row) {
+				Array.prototype.forEach.call(row.children, function (rune, i) {
+					rune.hidden = i >= fit;
+				});
+			});
+		});
+	}
+
 	function stirRunes() {
 		if (CALM) return;
 
@@ -247,7 +275,7 @@
 			if (document.hidden) return;
 
 			document.querySelectorAll(".seal-runes").forEach(function (field) {
-				var runes = field.querySelectorAll(".seal-rune");
+				var runes = field.querySelectorAll(".seal-rune:not([hidden])");
 				if (!runes.length) return;
 
 				var pool = poolFor(field);
@@ -374,7 +402,7 @@
 			var stagger = dial("--rune-stagger-ms", 9);
 			var jitter = dial("--rune-jitter-ms", 90);
 
-			field.querySelectorAll(".seal-rune").forEach(function (rune, i) {
+			field.querySelectorAll(".seal-rune:not([hidden])").forEach(function (rune, i) {
 				rune.classList.remove("changing");
 				rune.style.cssText = "";
 				rune.style.setProperty("--scatter-x", rand(-90, 90).toFixed(0) + "px");
@@ -706,9 +734,16 @@
 		})
 		.finally(function () {
 			root.classList.remove("seal-pending");
+			fitRunes();
 			listen();
 			holdToAsk();
 			stirRunes();
+
+			var refit;
+			addEventListener("resize", function () {
+				clearTimeout(refit);
+				refit = setTimeout(fitRunes, 150);
+			});
 		});
 })();
 

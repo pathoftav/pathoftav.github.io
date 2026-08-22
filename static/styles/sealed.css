@@ -54,6 +54,11 @@ article .seal-rune-row {
 	white-space: nowrap;
 }
 
+/* the display: inline-block above outranks the UA's [hidden] rule */
+article .seal-rune[hidden] {
+	display: none;
+}
+
 @keyframes rune-field-breathe {
 	0%,
 	100% {

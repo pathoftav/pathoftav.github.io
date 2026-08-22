@@ -49,6 +49,17 @@
 		return isNaN(v) ? fallback : v;
 	}
 
+	/* How long stage one needs for a field of n runes: the last one launches
+		 after the stagger and its jitter, and is out of sight partway through
+		 its flight rather than at the end of it. A narrow screen shows fewer
+		 runes, so it needs less time — a fixed window would leave the panel
+		 blank while the sweep waited on it. */
+	function breakMs(n) {
+		return Math.max(0, n - 1) * dial("--rune-stagger-ms", 9)
+			+ dial("--rune-jitter-ms", 90)
+			+ dial("--rune-flight-ms", 1600) * dial("--rune-fade-at", 0.65);
+	}
+
 	function still() {
 		return sealed.filter(function (el) {
 			return el.hasAttribute("data-seal");
@@ -398,11 +409,14 @@
 
 		/* 1. the runes catch, flare white-gold, and scatter */
 		var field = el.querySelector(".seal-runes");
+		var span = 200;
+
 		if (field) {
 			var stagger = dial("--rune-stagger-ms", 9);
 			var jitter = dial("--rune-jitter-ms", 90);
+			var runes = field.querySelectorAll(".seal-rune:not([hidden])");
 
-			field.querySelectorAll(".seal-rune:not([hidden])").forEach(function (rune, i) {
+			runes.forEach(function (rune, i) {
 				rune.classList.remove("changing");
 				rune.style.cssText = "";
 				rune.style.setProperty("--scatter-x", rand(-90, 90).toFixed(0) + "px");
@@ -413,11 +427,16 @@
 					(i * stagger + rand(0, jitter)).toFixed(0) + "ms"
 				);
 			});
+
+			/* the field's own fade reads it back off the element */
+			span = breakMs(runes.length);
+			el.style.setProperty("--seal-break-ms", span.toFixed(0) + "ms");
+
 			el.classList.add("seal-breaking");
 		}
 
 		/* 2. the text condenses out of the light the runes left behind */
-		return wait(field ? dial("--seal-break-ms", 1250) : 200).then(function () {
+		return wait(span).then(function () {
 			swap();
 			el.classList.remove("seal-breaking");
 			el.classList.add("seal-unsealing");

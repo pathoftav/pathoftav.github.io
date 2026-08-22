@@ -314,25 +314,22 @@ html.seal-key-accepted body::after {
 
 
 /* ---- the seal breaking ---- */
-/* Stage one's four numbers, written once. sealed.js reads back the three it
-	 needs, so the wait it does and the fade the field runs cannot drift.
-	 In ms throughout: parseFloat("1.9s") is 1.9.
+/* Stage one's inputs, written once. In ms throughout: parseFloat("1.9s")
+	 is 1.9, and --rune-fade-at is the one bare number.
 
-	 The window should end when the field looks empty, which is sooner than
-	 the last rune's animation formally ends — each rune fades out across its
-	 own flight, so the tail is invisible before it is over. Set the window
-	 much past that and the panel sits blank while the sweep waits:
+	 The window is not here — sealed.js derives it from these, per field, and
+	 writes it back as --seal-break-ms for the field's fade to run on. A
+	 narrow screen shows fewer runes and needs less time; a window fixed for
+	 a full field would leave the panel blank while the sweep waited on it.
 
-	     window ~= (runes - 1) * stagger + jitter + flight * 0.65
-
-	 For a longer stage one, raise the flight rather than the stagger: a long
-	 flight keeps runes in the air together, a long stagger thins the tail. */
+	 For a longer stage one raise the flight, not the stagger: a long flight
+	 keeps runes in the air together, a long stagger thins the tail. */
 
 :root {
-	--seal-break-ms: 1950ms;      /* stage one, start to finish */
-	--rune-flight-ms: 1600ms;      /* one rune's flight */
+	--rune-flight-ms: 1600ms;     /* one rune's flight */
 	--rune-stagger-ms: 9ms;       /* each rune waits this much longer than the last */
 	--rune-jitter-ms: 90ms;       /* plus up to this much, at random */
+	--rune-fade-at: 0.65;         /* of its flight, a rune is already out of sight */
 }
 
 
@@ -349,7 +346,7 @@ article.seal-breaking .seal-notice {
 }
 
 article.seal-breaking .seal-runes {
-	animation: rune-field-break var(--seal-break-ms) ease-in forwards;
+	animation: rune-field-break var(--seal-break-ms, 1950ms) ease-in forwards;
 }
 
 article.seal-breaking .seal-rune {

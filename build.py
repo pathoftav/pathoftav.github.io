@@ -66,7 +66,7 @@ SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 
-SEALED_PASSWORD = os.getenv("SEALED_PASSWORD")
+SEALED_PASSWORD = os.getenv("SEALED_PASSWORD", "secret")
 SEAL_ROUNDS = 310_000       # PBKDF2 rounds — the cost of one guess at the phrase.
 HANDLE_ROUNDS = 310_000     # the same as above, one stage earlier. Rides in data-handle-rounds.
 HANDLE_SALT = ""            # derived per build

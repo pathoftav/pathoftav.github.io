@@ -14,6 +14,464 @@ $$
 \frac{\partial \psi}{\partial t} = -\frac{i}{\hbar} \hat{H}\psi
 $$
 
+
+<div class="vecfig" id="vecfig">
+  <div class="vecfig-row">
+    <p class="vecfig-lbl">you type</p>
+    <div class="vecfig-bar"><span id="vf-typed"></span><span class="vecfig-caret"></span></div>
+  </div>
+  <div class="vecfig-stage" id="vf-stage"><div class="vecfig-num" id="vf-num"></div></div>
+  <div class="vecfig-row">
+    <p class="vecfig-lbl">read back as words</p>
+    <div class="vecfig-bar vecfig-out" id="vf-resp"></div>
+  </div>
+  <button class="vecfig-btn" id="vf-go">Replay</button>
+</div>
+
+<style>
+.vecfig{
+  --vf-surface:#f1efe8;
+  --vf-card:#ffffff;
+  --vf-border:rgba(0,0,0,.12);
+  --vf-text:#2c2c2a;
+  --vf-muted:#888780;
+  --vf-in:#378add;
+  --vf-out:#7f77dd;
+  --vf-dim:#b4b2a9;
+  display:flex;flex-direction:column;gap:1rem;
+  max-width:520px;margin:2rem 0;
+  font-family:inherit;color:var(--vf-text);
+}
+@media (prefers-color-scheme:dark){
+  .vecfig{
+    --vf-surface:#1c1c1a;
+    --vf-card:#252523;
+    --vf-border:rgba(255,255,255,.14);
+    --vf-text:#e8e6e1;
+    --vf-muted:#8a8880;
+    --vf-in:#85b7eb;
+    --vf-out:#afa9ec;
+    --vf-dim:#5f5e5a;
+  }
+}
+.vecfig-row{display:flex;flex-direction:column}
+.vecfig-lbl{font-size:12px;color:var(--vf-muted);margin:0 0 6px}
+.vecfig-bar{
+  background:var(--vf-card);border:.5px solid var(--vf-border);border-radius:8px;
+  padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;min-height:20px;line-height:1.4;
+}
+.vecfig-out{color:var(--vf-out)}
+.vecfig-caret{
+  display:inline-block;width:1px;height:15px;background:var(--vf-text);
+  vertical-align:-2px;animation:vf-blink 1s steps(1) infinite;
+}
+@keyframes vf-blink{50%{opacity:0}}
+.vecfig-stage{
+  background:var(--vf-surface);border-radius:12px;height:300px;
+  position:relative;overflow:hidden;
+}
+.vecfig-stage canvas{display:block}
+.vecfig-num{
+  position:absolute;left:12px;bottom:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;color:var(--vf-muted);
+}
+.vecfig-btn{
+  align-self:flex-start;font:inherit;font-size:14px;color:var(--vf-text);
+  background:transparent;border:.5px solid var(--vf-border);border-radius:8px;
+  padding:7px 14px;cursor:pointer;
+}
+.vecfig-btn:hover{background:var(--vf-card)}
+.vecfig-btn:active{transform:scale(.98)}
+.vecfig-btn:focus-visible{outline:2px solid var(--vf-in);outline-offset:2px}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "{site_root}/static/vendor/three-js/three.module.min.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+(function () {
+  const PROMPT = "what is an LLM?";
+  const REPLY  = "a labryinth of vectors collapsing into the next token";
+
+  // ---- timing, all in milliseconds ---------------------------------------
+  // Every value is a DURATION or a GAP, never an absolute timestamp. The marks
+  // below are derived by chaining these, so changing any one shifts everything
+  // after it and the sequence stays intact.
+  const T = {
+    charDelay:      95,   // per keystroke while typing the prompt
+    beforeFire:    700,   // beat between the last keystroke and the shot
+    flight:       1250,   // anchor to centre
+    pulseLead:     140,   // blue starts this much BEFORE the arrow is swallowed
+                          //   (negative-going gap; it's what makes the pulse
+                          //    read as caused by the arrow rather than following it)
+    bluePulse:    1100,   // outward shell, centre to surface
+    betweenPulses: 320,   // beat between blue arriving and purple starting back
+    purplePulse:  2500,   // inward shell, surface to centre
+    outputLead:   2200,   // output arrow appears this much BEFORE the purple shell
+                          //   reaches the centre, so it is already thrashing while
+                          //   the shell closes in. Keep it < purplePulse, or the
+                          //   arrow shows up before the purple pulse has started.
+    outputGrow:   1900,   // how long the output arrow flails before it settles
+    beforeReply:     0,   // beat before the reply starts typing
+
+    get replyDelay() {
+        return this.outputGrow / REPLY.length;  // delay per character of the reply
+    }
+  };
+
+  // ---- easing -------------------------------------------------------------
+  // Every `grab` below is a per-frame lerp fraction tuned at 60Hz. Run through
+  // ease() it becomes per-elapsed-time instead, so motion settles at the same
+  // wall-clock rate whatever the display does. At dt = 16.667 this is identity,
+  // which is why the numbers keep the feel they were tuned with.
+  const FRAME60 = 1000 / 60;
+  const ease = (g, dt) => 1 - Math.pow(1 - g, dt / FRAME60);
+
+  // ---- input arrow aim ----------------------------------------------------
+  // Not random: each keystroke hashes the prefix typed so far to a fixed target
+  // and the tip eases toward it, so a given prompt always traces the same path.
+  // These control how wide the throws start out and how they decay.
+  const AIM = {
+    spread:  3.9,   // how far off-centre the first keystrokes can throw the tip
+    decay:   1.1,   // >1 = stays wild, then collapses late; 1 = linear; <1 = settles early
+    floor:   0.3,   // residual swing on the last keystroke (0 = ends dead centre)
+    yScale:  0.8,   // vertical throws damped — the cloud reads wider than tall
+    grab:    0.3    // ease toward the current target
+  };
+
+  // ---- output arrow wobble ------------------------------------------------
+  // Character of the bounce. `interval` is the rate, `grab` is how far each
+  // throw actually moves it, `minTurn` guarantees every throw is a real swing
+  // instead of a nudge.
+  const WOB = {
+    interval:    70,   // ms between direction throws — lower = twitchier
+    grab:      0.35,   // how hard it snaps toward each new direction
+    settleGrab:0.14,   // easing once it locks onto outDir
+    phase:     0.82,   // fraction of outputGrow spent flailing
+    minTurn:   0.35,   // reject a new direction closer than this to the current one
+                       //   (0 = anything goes, 1 = only near-reversals survive)
+    maxTurn:   0.70,   // reject a new direction greater than this to the current one
+    lenJitter: 0.22    // ± length kick on each throw, as a fraction of full length
+  };
+
+  // ---- output arrow length ------------------------------------------------
+  // Deliberately on its own clock, not outputGrow. outputGrow is how long the
+  // arrow THRASHES; this is how fast it reaches full size. Sharing one ramp
+  // meant every increase to the flail duration also left the arrow a stub for
+  // proportionally longer.
+  const OUT = {
+    minLen:   0.24,   // length at the instant it appears
+    fullLen:  1.74,   // settled length
+    growMs:   1700,   // how long the length ramp takes
+    growPow:   0.4    // >1 = ease-out: most of the length arrives up front
+  };
+
+  // ---- derived marks (don't edit these; edit T above) ---------------------
+  const M = {};
+  M.typeStart  = 300;
+  M.typeEnd    = M.typeStart + T.charDelay * PROMPT.length;
+  M.fire       = M.typeEnd + T.beforeFire;
+  M.arrive     = M.fire + T.flight;              // arrow fully swallowed
+  M.blue       = M.arrive - T.pulseLead;
+  M.purple     = M.blue + T.bluePulse + T.betweenPulses;
+  M.output     = M.purple + T.purplePulse - T.outputLead;   // lands mid-pulse
+  M.reply      = M.output + T.beforeReply;
+
+  const root  = document.getElementById("vecfig");
+  const stage = document.getElementById("vf-stage");
+  const typed = document.getElementById("vf-typed");
+  const resp  = document.getElementById("vf-resp");
+  const num   = document.getElementById("vf-num");
+  const go    = document.getElementById("vf-go");
+
+  // Colors come straight from the CSS custom properties. Since r152 three.js
+  // treats CSS/hex input as sRGB and converts to the linear working space, so
+  // these round-trip correctly through the renderer's sRGB output.
+  const css = getComputedStyle(root);
+  const readVar = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const C_IN  = readVar("--vf-in", "#378add");
+  const C_OUT = readVar("--vf-out", "#7f77dd");
+  const C_DIM = readVar("--vf-dim", "#b4b2a9");
+
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- geometry constants -------------------------------------------------
+  let W = stage.clientWidth || 380;   // stage width in px
+  const H = 300;                      // stage height in px
+  const SR = 1.55;                    // radius of the vector cloud
+  const AL = 0.95;                    // length of the input arrow
+  const SEG = 14;                     // shaft segments (needed for the gradient fade)
+  const SHL = AL - 0.22;              // shaft length; remainder is the head
+  const NS = 1400;                    // number of vectors in the cloud
+  const REACH = SR * 1.25;            // how far past the surface a shell travels
+
+  // ---- scene --------------------------------------------------------------
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(46, W / H, 0.1, 50);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  stage.appendChild(renderer.domElement);
+
+  // The cloud: NS short line segments scattered through a sphere. Each one gets
+  // its radius cached so the pulses can light them up by distance from centre.
+  const pos = new Float32Array(NS * 6);
+  const col = new Float32Array(NS * 6);
+  const rad = new Float32Array(NS);
+  const base = new THREE.Color(C_DIM);
+  const hotIn = new THREE.Color(C_IN);
+  const hotOut = new THREE.Color(C_OUT);
+
+  for (let i = 0; i < NS; i++) {
+    const u = Math.random() * 2 - 1;
+    const th = Math.random() * Math.PI * 2;
+    const r = SR * Math.cbrt(Math.random());   // cbrt gives uniform density, not centre-heavy
+    const q = Math.sqrt(1 - u * u);
+    const x = r * q * Math.cos(th), y = r * u, z = r * q * Math.sin(th);
+    const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5)
+      .normalize().multiplyScalar(0.13);
+    pos[i*6] = x;       pos[i*6+1] = y;       pos[i*6+2] = z;
+    pos[i*6+3] = x+d.x; pos[i*6+4] = y+d.y;   pos[i*6+5] = z+d.z;
+    rad[i] = r;
+    for (let k = 0; k < 2; k++) {
+      col[i*6+k*3] = base.r; col[i*6+k*3+1] = base.g; col[i*6+k*3+2] = base.b;
+    }
+  }
+  const cloudGeo = new THREE.BufferGeometry();
+  cloudGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  cloudGeo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  scene.add(new THREE.LineSegments(cloudGeo, new THREE.LineBasicMaterial({
+    vertexColors: true, transparent: true, opacity: 0.72
+  })));
+
+  // Input arrow. The shaft is built from SEG stacked cylinders, each with its own
+  // material, so opacity can be swept along the length — that's the tip-to-tail
+  // dissolve. `u` is each part's normalised position from tail (0) to tip (1).
+  const A = new THREE.Group();
+  const parts = [];
+  const segL = SHL / SEG;
+  for (let s = 0; s < SEG; s++) {
+    const m = new THREE.MeshBasicMaterial({ color: C_IN, transparent: true, opacity: 0 });
+    const cyl = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, segL * 1.02, 8), m);
+    cyl.position.y = segL * (s + .5);
+    A.add(cyl);
+    parts.push({ m, u: segL * (s + .5) / AL });
+  }
+  const headMat = new THREE.MeshBasicMaterial({ color: C_IN, transparent: true, opacity: 0 });
+  const head = new THREE.Mesh(new THREE.ConeGeometry(.082, .22, 14), headMat);
+  head.position.y = SHL + .11;
+  A.add(head);
+  parts.push({ m: headMat, u: (SHL + .05) / AL });
+  scene.add(A);
+
+  // Output arrow: single material, grows in length, hidden until M.output.
+  const B = new THREE.Group();
+  const outMat = new THREE.MeshBasicMaterial({ color: C_OUT, transparent: true, opacity: 0 });
+  const outShaft = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 1, 8), outMat);
+  outShaft.position.y = .5;
+  const outHead = new THREE.Mesh(new THREE.ConeGeometry(.082, .22, 14), outMat);
+  outHead.position.y = 1;
+  B.add(outShaft, outHead);
+  B.visible = false;
+  scene.add(B);
+
+  const UP = new THREE.Vector3(0, 1, 0);
+
+  function setOutLen(L) {
+    const s = Math.max(.001, L - .22);
+    outShaft.scale.y = s;
+    outShaft.position.y = s / 2;
+    outHead.position.y = s + .11;
+  }
+  function aim(g, v) {
+    g.quaternion.setFromUnitVectors(UP, v.clone().normalize());
+  }
+
+  // Deterministic hash -> [-1, 1]. Same prompt always produces the same direction.
+  function h(str, k) {
+    let v = k * 2654435761;
+    for (let i = 0; i < str.length; i++) v = (v * 31 + str.charCodeAt(i)) >>> 0;
+    return ((v >>> 8) % 2000) / 1000 - 1;
+  }
+
+  const anchor = new THREE.Vector3();   // fixed tail position, lower left
+  const cur = new THREE.Vector3();      // current aim direction
+  const tgt = new THREE.Vector3();      // direction the tip is easing toward
+  const odir = new THREE.Vector3();     // output arrow direction (wobbles, then settles)
+  const wob = new THREE.Vector3();
+  const perp = new THREE.Vector3();
+  const outDir = new THREE.Vector3(h(REPLY, 1), h(REPLY, 2) * .7, h(REPLY, 3)).normalize();
+
+  let t0 = 0, prev = 0, lastChar = -1, nextWob = 0, ang = 1.02, L0 = 4, lenKick = 0;
+
+  function placeCamera() {
+    cam.position.set(Math.cos(ang) * 4.7, 1.45, Math.sin(ang) * 4.7);
+    cam.lookAt(0, 0, 0);
+    cam.updateMatrixWorld();
+  }
+
+  function reset() {
+    t0 = performance.now(); prev = t0;
+    lastChar = -1; nextWob = 0; ang = 1.02; lenKick = 0;
+    typed.textContent = ""; resp.textContent = ""; num.textContent = "";
+    placeCamera();
+    // Anchor the tail by unprojecting a lower-left screen coordinate into world
+    // space, so it stays put no matter what the camera does afterwards.
+    const ray = new THREE.Vector3(-.72, -.68, .5).unproject(cam).sub(cam.position).normalize();
+    anchor.copy(cam.position).add(ray.multiplyScalar(5.0));
+    tgt.set(0, 0, 0).sub(anchor).normalize();
+    cur.copy(tgt);
+    odir.copy(outDir);
+    setOutLen(.001);
+    outMat.opacity = 0;
+    B.visible = false;
+    for (const p of parts) p.m.opacity = 0;
+  }
+
+  function frame() {
+    const now = performance.now();
+    const t = now - t0;
+    const dt = Math.min(50, now - prev);
+    prev = now;
+
+    if (t > M.fire && !reduced) {
+      const w = Math.min(1, (t - M.fire) / 1400);
+      ang += dt * 0.00013 * w * w;      // orbit eases in only after the shot
+    }
+    placeCamera();
+
+    // Typing. Each new prefix picks a target point; the swing radius decays as
+    // the prompt completes, so early keystrokes flail and the last few settle
+    // near the centre of the cloud.
+    const n = Math.max(0, Math.min(PROMPT.length,
+      Math.floor((t - M.typeStart) / T.charDelay)));
+    if (n !== lastChar) {
+      lastChar = n;
+      typed.textContent = PROMPT.slice(0, n);
+      if (n > 0) {
+        const pre = PROMPT.slice(0, n);
+        const k = n / PROMPT.length;
+        const spread = AIM.spread * Math.pow(1 - k, AIM.decay) + AIM.floor;
+        tgt.set(h(pre,1) * spread, h(pre,2) * spread * AIM.yScale, h(pre,3) * spread)
+           .sub(anchor).normalize();
+      }
+    }
+    if (t < M.fire) {
+      cur.lerp(tgt, ease(AIM.grab, dt)).normalize();
+      L0 = -anchor.dot(cur);   // distance along the ray to closest approach to origin
+    }
+    aim(A, cur);
+
+    // Flight: tail travels from anchor to the centre. Consumption reaches 1
+    // exactly when the tail arrives, so the arrow is always fully eaten.
+    let travel = 0;
+    if (t > M.fire) {
+      const f = Math.min(1, (t - M.fire) / T.flight);
+      travel = L0 * f * f * (3 - 2 * f);
+    }
+    A.position.copy(anchor).addScaledVector(cur, travel);
+
+    const consumed = Math.max(0, Math.min(1, (travel + AL - L0) / AL));
+    const edge = 1.08 - consumed * 1.2;
+    for (const p of parts) {
+      p.m.opacity = n > 0 ? Math.max(0, Math.min(1, (edge - p.u) / 0.13)) : 0;
+    }
+
+    if (n > 0 && t < M.fire) {
+      num.textContent = `[${cur.x.toFixed(2)}, ${cur.y.toFixed(2)}, ${cur.z.toFixed(2)}]`;
+    }
+
+    // Two shells. Blue runs centre -> surface, purple runs surface -> centre;
+    // the only difference is the direction of the progress ramp. A segment takes
+    // whichever shell is currently brighter on it — max, not sum, so that if the
+    // gap is ever tightened enough for the two to cross, the overlap degrades to
+    // the dominant colour instead of overshooting into a washed-out blend.
+    const liveIn = t > M.blue && t < M.blue + T.bluePulse + 300;
+    const liveOut = t > M.purple && t < M.purple + T.purplePulse + 200;
+    const shellIn = REACH * (t - M.blue) / T.bluePulse;
+    const shellOut = REACH * (1 - (t - M.purple) / T.purplePulse);
+    const ca = cloudGeo.attributes.color;
+    for (let i = 0; i < NS; i++) {
+      // band widths differ slightly: a converging shell covers shrinking volume,
+      // so an equal width would look progressively fatter as it closes in
+      const gi = liveIn ? Math.max(0, 1 - Math.abs(rad[i] - shellIn) / 0.45) : 0;
+      const go2 = liveOut ? Math.max(0, 1 - Math.abs(rad[i] - shellOut) / 0.40) : 0;
+      const hc = go2 > gi ? hotOut : hotIn;
+      const g = gi > go2 ? gi : go2;
+      const cr = base.r + (hc.r - base.r) * g;
+      const cg = base.g + (hc.g - base.g) * g;
+      const cb = base.b + (hc.b - base.b) * g;
+      ca.array[i*6] = cr; ca.array[i*6+1] = cg; ca.array[i*6+2] = cb;
+      ca.array[i*6+3] = cr; ca.array[i*6+4] = cg; ca.array[i*6+5] = cb;
+    }
+    ca.needsUpdate = true;
+
+    // Output arrow: thrashes through random directions while the purple shell is
+    // still closing in, then locks onto outDir as the shell reaches the centre.
+    if (t > M.output) {
+      B.visible = true;
+      outMat.opacity = Math.min(1, (t - M.output) / 160);   // short fade, no snap
+      const e = Math.min(1, (t - M.output) / T.outputGrow);
+      const flail = e < WOB.phase;
+
+      if (flail && t > nextWob) {
+        nextWob = t + WOB.interval;
+        // Pick how far to turn first, then build a direction at exactly that
+        // angle by rotating odir about a random perpendicular axis. Uniform over
+        // the allowed band in one shot — no rejection loop, so narrowing the
+        // band costs nothing and no throw ever falls back out of range.
+        // minTurn keeps every throw a real swing rather than a nudge; maxTurn
+        // stops it flipping to the far side, so it sweeps instead of thrashing.
+        const c = (1 - WOB.maxTurn) + Math.random() * (WOB.maxTurn - WOB.minTurn);
+        do {
+          perp.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).cross(odir);
+        } while (perp.lengthSq() < 1e-6);   // re-roll only if it landed parallel
+        perp.normalize();
+        wob.copy(odir).multiplyScalar(c).addScaledVector(perp, Math.sqrt(1 - c * c));
+        lenKick = (Math.random() * 2 - 1) * WOB.lenJitter;
+      }
+
+      odir.lerp(flail ? wob : outDir,
+                ease(flail ? WOB.grab : WOB.settleGrab, dt)).normalize();
+      aim(B, odir);
+      // Length runs on OUT.growMs, not outputGrow, so the arrow is full size for
+      // the bulk of the flail instead of a stub that only fills out at the end.
+      const eL = Math.min(1, (t - M.output) / OUT.growMs);
+      const L = OUT.minLen + (OUT.fullLen - OUT.minLen) * (1 - Math.pow(1 - eL, OUT.growPow));
+      setOutLen(L * (1 + (flail ? lenKick * (1 - e) : 0)));   // kick decays as it settles
+    }
+
+    const q = Math.floor((t - M.reply) / T.replyDelay);
+    if (q >= 0) resp.textContent = REPLY.slice(0, Math.min(REPLY.length, q));
+
+    renderer.render(scene, cam);
+  }
+
+  window.addEventListener("resize", () => {
+    const nw = stage.clientWidth || W;
+    if (nw === W) return;
+    W = nw;
+    cam.aspect = W / H;
+    cam.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+
+  go.addEventListener("click", reset);
+  reset();
+  renderer.setAnimationLoop(frame);
+})();
+</script>
+
+
 <div class="eq-left" markdown="1">
 $$
 E = mc^2
@@ -31,5 +489,5 @@ $$
 ## TODO
 LLMs are a matrix of vectors that you shoot your own vector into (input prompt), which is then transformed and a new vector is returned (output response)
 
-<!-- [OPTIONS]: { "draft": true, "math": true } -->
+<!-- [OPTIONS]: { "sealed": true, "draft": false, "math": true } -->
 

@@ -983,8 +983,23 @@ def clear_dir(path: Path) -> None:
 def prepare_output() -> None:
     """Wipe site/ and copy static assets in."""
     clear_dir(SITE)
-    shutil.copytree(STATIC, SITE / STATIC.name, dirs_exist_ok=True)
 
+    # Copy static files
+    shutil.copytree(
+        STATIC,
+        SITE / STATIC.name,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns("favicon", "favicon_dev"),
+    )
+
+    # Copy favicon folder
+    shutil.copytree(
+        STATIC / ("favicon" if not IS_LOCAL else "favicon_dev"),
+        SITE / STATIC.name / "favicon",
+        dirs_exist_ok=True,
+    )
+
+    # Minify .css and .js files
     if not IS_LOCAL:
         styles_dir = SITE / STATIC.name / "styles"
         if styles_dir.exists():

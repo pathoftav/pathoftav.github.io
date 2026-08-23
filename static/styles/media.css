@@ -1,26 +1,47 @@
 /* ---- embedded images and videos ---- */
-/* three selector families: img[src$=] for images the extension left alone,
-   video.x for bare videos, .media.x for caption boxes and <a> wrappers */
-article img[src$='#left-inline'],  video.left-inline,  .media.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; margin-left: 0; }
-article img[src$='#right-inline'], video.right-inline, .media.right-inline { float: right; max-width: 45%; margin-left:  1rem; margin-right: 0; }
+/* ?align=<dir> becomes a class on whichever element ends up outermost:
+   img.x for bare images, video.x for bare videos, .media.x for caption
+   boxes and <a> wrappers. */
+article img.left-inline,  article video.left-inline,  article .media.left-inline  { float: left;  max-width: 45%; margin-right: 1rem; margin-left: 0; }
+article img.right-inline, article video.right-inline, article .media.right-inline { float: right; max-width: 45%; margin-left:  1rem; margin-right: 0; }
 
-article img[src$='#left'],   video.left,   .media.left   { margin-left:  0; margin-right: auto; clear: both; }
-article img[src$='#right'],  video.right,  .media.right  { margin-right: 0; margin-left:  auto; clear: both; }
-/* article img[src$='#center'], video.center, .media.center { display: block; margin-inline: auto; } */
+article img.left,   article video.left,   article .media.left   { margin-left:  0; margin-right: auto; clear: both; }
+article img.right,  article video.right,  article .media.right  { margin-right: 0; margin-left:  auto; clear: both; }
+/* align=center is the default and emits no class — the base rules below
+   already centre every image, video and caption box. It stays a legal
+   value so a post can say so out loud. If centre ever needs a rule of its
+   own (clear: both, say, to match left/right), add it here and drop
+   "center" from IMPLICIT_ALIGNS in media_ext.py. */
 
 article img   { max-width: 100%; border-radius: 6px; }
 article video { max-width: 100%; border-radius: 6px; }
 
+/* A caption box has no intrinsic size of its own, so without a width it
+   would fill the column and the rule below — which makes the inner media
+   fill the box — would stretch the media to match. fit-content shrinks
+   the box to the media instead, so media keeps its natural size, the
+   caption stays tucked under it, and there is leftover space for the
+   alignment rules to push against. max-width caps anything wider than the
+   column; ?w= overrides the width outright and ?mw= lowers the cap. */
 article .media {
-    display: block;
-    margin-inline: auto;
+	display: block;
+	margin-inline: auto;
+	width: fit-content;
+	max-width: 100%;
 }
 
+/* fit-content can only shrink to something that has a size, and a <video>
+   has none until its metadata arrives — it would lay out at the browser's
+   300x150 default and jump to the real size on load. So a box around a
+   video takes the column instead, and ?w= / ?mw= still override it.
+   A bare video, with no box to shrink-wrap it, is unaffected. */
+article .media.media-video { width: 100%; }
+
 article img, article video {
-    display: block;
-    margin-inline: auto;
-    max-width: 100%;
-    border-radius: 6px;
+	display: block;
+	margin-inline: auto;
+	max-width: 100%;
+	border-radius: 6px;
 }
 
 /* ---- theme-aware images (?dark=) ---- */
@@ -56,19 +77,9 @@ figcaption {
 	white-space: pre-line;
 }
 
-/* A figure/span has no intrinsic size of its own, so it needs an explicit
-   width to size to anything. fit-content shrinks it to the media rather
-   than the column, keeping the caption tucked under the image; ?w= then
-   overrides it outright and ?mw= lowers the 45% cap. */
-article figure.media.left-inline,  article span.media.left-inline,
-article figure.media.right-inline, article span.media.right-inline {
-	width: fit-content;
-	max-width: 45%;
-}
-
 /* the caption box owns the width and alignment — make the inner element
    simply fill it.
-   NOTE: article .media > img and article img[src$='#…'] have identical
+   NOTE: article .media > img and article img.<align> have identical
          specificity (0,1,2), so this block MUST stay after the alignment
          rules above. Reordering silently floats images inside their own
          caption box. */

@@ -1,14 +1,19 @@
 """Markdown extension for media written with image syntax.
 
-    ![alt](.../waterfall.webm?w=50#center "Crabtree Falls, October")
-    ![alt](.../sigil.png?dark=sigil-dark.png&link=1#center)
+    ![alt](.../waterfall.webm?w=50&align=center "Crabtree Falls, October")
+    ![alt](.../sigil.png?dark=sigil-dark.png&link=1&align=center)
 
-Query parameters sit before the fragment, so img[src$='#center'] still
-matches and the pure-CSS alignment rules keep working:
+Every option is a query parameter:
 
+    align=<dir>   left | right | center | left-inline | right-inline.
+                  Emitted as a class on whichever element ends up
+                  outermost, and styled entirely in CSS. An unrecognised
+                  value is ignored rather than passed through, and so is
+                  center — it is the default, so it emits no class.
     w=<1-100>     width as a percentage of the containing block. A fixed
                   size, like h — media smaller than the slot IS stretched
-                  up to fill it. Omit it to keep natural dimensions.
+                  up to fill it. Use it to make something bigger than it
+                  really is; omit it to keep natural dimensions.
     mw=<1-100>    max-width as a percentage; a cap rather than a size.
                   On floated media it overrides the default 45% cap.
     h=<px>        height in pixels
@@ -24,6 +29,19 @@ matches and the pure-CSS alignment rules keep working:
 
 Without loop=1 a video is an ordinary player — controls, sound, and the
 reader presses play.
+
+Sizing is natural by default: media renders at its own dimensions and is
+capped at the column width, captioned and linked media included. ?w=
+forces it wider than it really is, ?mw= caps it narrower. A <video> has no
+dimensions until its metadata arrives, so a captioned video with neither
+?w= nor ?ar= starts at the browser's 300x150 default and resizes on load —
+a box around a video therefore takes the column rather than shrink-wrapping;
+add ?ar= to reserve its height too.
+
+The query never reaches the browser: it is consumed here and the emitted
+src is the bare path. Alignment used to ride along as a '#dir' fragment so
+that img[src$='#dir'] could match it in CSS; it is a class now, so the
+fragment is gone and the CSS matches img.dir instead.
 
 Whichever element ends up outermost carries the alignment class, since a
 wrapping <a> is inline and would otherwise shrink-wrap the media and
@@ -44,12 +62,22 @@ from markdown.treeprocessors import Treeprocessor
 
 # path / ?query / #fragment. Hand-rolled rather than urlsplit because the
 # {site_root} placeholder contains braces, which aren't legal URL chars.
+# The fragment is still split off so a stray one can't end up inside path.
 SRC_RE = re.compile(r"^(?P<path>[^?#]*)(?:\?(?P<query>[^#]*))?(?:#(?P<frag>.*))?$")
 VIDEO_RE = re.compile(r"\.(?:webm|mp4)$", re.IGNORECASE)
 AR_RE = re.compile(r"^(?P<w>\d+)[x:](?P<h>\d+)$")
 
-# fragments that take the media out of normal flow
-FLOAT_FRAGS = {"left-inline", "right-inline"}
+# every accepted ?align= value
+ALIGNS = {"left", "right", "center", "left-inline", "right-inline"}
+
+# accepted, but the default already does it, so no class is emitted and the
+# media keeps the plain-image fast path. Writing align=center is a note to
+# the reader of the post, not an instruction to the browser. If centre ever
+# needs a rule of its own, drop it from here and add the rule to media.css.
+IMPLICIT_ALIGNS = {"center"}
+
+# alignments that take the media out of normal flow
+FLOAT_ALIGNS = {"left-inline", "right-inline"}
 
 
 def parse_query(query: str | None) -> dict[str, str]:
@@ -108,20 +136,28 @@ class MediaTreeprocessor(Treeprocessor):
                 if m is None:
                     continue
 
-                path, frag = m["path"], m["frag"]
+                path = m["path"]
                 params = parse_query(m["query"])
                 caption = child.get("title")
                 is_video = VIDEO_RE.search(path) is not None
+
+                # unknown values are dropped rather than emitted as a class,
+                # and so is centre, which is what the CSS does anyway
+                align = params.get("align")
+                if align not in ALIGNS or align in IMPLICIT_ALIGNS:
+                    align = None
 
                 if not params and not caption and not is_video:
                     continue  # a plain image: leave it entirely alone
 
                 if is_video:
-                    media = self.build_video(child, path, frag, params)
+                    media = self.build_video(child, path, align, params)
                 else:
                     media = child
                     media.attrib.pop("title", None)
-                    media.set("src", f"{path}#{frag}" if frag else path)
+                    media.set("src", path)
+                    if align:
+                        self.add_class(media, align)
 
                 styles = self.styles_for(params)
                 # width and max-width size the outermost box; height and
@@ -132,7 +168,9 @@ class MediaTreeprocessor(Treeprocessor):
                     if k in styles
                 )
                 if styles:
-                    media.set("style", ";".join(f"{k}:{v}" for k, v in styles.items()))
+                    self.merge_style(
+                        media, ";".join(f"{k}:{v}" for k, v in styles.items())
+                    )
 
                 dark = params.get("dark")
                 if dark and not is_video:
@@ -145,10 +183,15 @@ class MediaTreeprocessor(Treeprocessor):
                     href = path if link == "1" else sibling(path, link)
                     node = self.wrap_link(node, href)
 
-                # the outermost box owns the alignment, because a wrapping
-                # <a> is inline and would shrink-wrap the media
-                if node is not media and frag:
-                    node.set("class", f"media {frag}")
+                # the outermost box owns the sizing and alignment, because a
+                # wrapping <a> is inline and would otherwise shrink-wrap the
+                # media and defeat both
+                if node is not media:
+                    node.set("class", f"media {align}" if align else "media")
+                    if align:
+                        # leaving the class on the inner element too would
+                        # float it *inside* its own wrapper
+                        self.remove_class(media, align)
 
                 if node is not child:
                     # `tail` is the text after the closing tag; it belongs
@@ -160,11 +203,17 @@ class MediaTreeprocessor(Treeprocessor):
                     parent[list(parent).index(child)] = node
 
                 if caption:
-                    node = self.add_caption(parent, node, caption, frag, box_style)
+                    node = self.add_caption(parent, node, caption, align, box_style)
                 elif box_style:
                     self.merge_style(node, box_style)
 
-                if frag in FLOAT_FRAGS:
+                # a caption/link box shrink-wraps its contents, which a
+                # <video> cannot supply until its metadata arrives — see
+                # media.css. Mark the box so CSS can give it the column.
+                if is_video and node is not media:
+                    self.add_class(node, "media-video")
+
+                if align in FLOAT_ALIGNS:
                     self.drop_following_br(parent, node)
         return root
 
@@ -197,6 +246,19 @@ class MediaTreeprocessor(Treeprocessor):
         el.set("style", f"{existing};{extra}" if existing else extra)
 
     @staticmethod
+    def add_class(el: ET.Element, name: str) -> None:
+        existing = el.get("class")
+        el.set("class", f"{existing} {name}" if existing else name)
+
+    @staticmethod
+    def remove_class(el: ET.Element, name: str) -> None:
+        rest = [c for c in (el.get("class") or "").split() if c != name]
+        if rest:
+            el.set("class", " ".join(rest))
+        else:
+            el.attrib.pop("class", None)
+
+    @staticmethod
     def styles_for(params: dict[str, str]) -> dict[str, str]:
         styles: dict[str, str] = {}
         w = params.get("w", "")
@@ -213,13 +275,13 @@ class MediaTreeprocessor(Treeprocessor):
             styles["aspect-ratio"] = f"{ar['w']}/{ar['h']}"
         return styles
 
-    @staticmethod
+    @classmethod
     def build_video(
-        img: ET.Element, path: str, frag: str | None, params: dict[str, str]
+        cls, img: ET.Element, path: str, align: str | None, params: dict[str, str]
     ) -> ET.Element:
         video = ET.Element("video")
         video.set("src", path)
-        video.set("class", f"video {frag}" if frag else "video")
+        video.set("class", f"video {align}" if align else "video")
 
         if params.get("loop") == "1":
             # decorative loop: plays itself, silently, forever, with no controls.
@@ -245,8 +307,7 @@ class MediaTreeprocessor(Treeprocessor):
         :root[data-theme] toggle. A <picture> with a prefers-color-scheme
         media query could only ever see the OS setting.
         """
-        existing = img.get("class")
-        img.set("class", f"{existing} theme-aware" if existing else "theme-aware")
+        cls.add_class(img, "theme-aware")
         cls.merge_style(img, f"--dark:url({dark_src})")
 
     @staticmethod
@@ -262,7 +323,7 @@ class MediaTreeprocessor(Treeprocessor):
         parent: ET.Element,
         node: ET.Element,
         caption: str,
-        frag: str | None,
+        align: str | None,
         box_style: str,
     ) -> ET.Element:
         """Attach a visible caption, using whichever container is legal here.
@@ -304,18 +365,14 @@ class MediaTreeprocessor(Treeprocessor):
             parent.insert(index, box)
             classes = "media media-inline"
 
-        box.set("class", f"{classes} {frag}" if frag else classes)
+        box.set("class", f"{classes} {align}" if align else classes)
         if box_style:
             box.set("style", box_style)
 
         # the box now owns the alignment; leaving the same class on the
         # inner element would float it *inside* its own caption box
-        if frag:
-            inner = [c for c in (node.get("class") or "").split() if c != frag]
-            if inner:
-                node.set("class", " ".join(inner))
-            else:
-                node.attrib.pop("class", None)
+        if align:
+            cls.remove_class(node, align)
 
         figcaption = ET.SubElement(box, "figcaption" if alone else "span")
         if not alone:

@@ -1,7 +1,7 @@
 """Markdown extension for media written with image syntax.
 
-    ![alt](.../waterfall.webm?w=50&align=center "Crabtree Falls, October")
-    ![alt](.../sigil.png?dark=sigil-dark.png&link=1&align=center)
+    ![alt]({site_root}/static/media/{slug}/waterfall.webm?w=50&align=center "Crabtree Falls, October")
+    ![alt](sigil.png?dark=sigil-dark.png&link=1&align=center)
 
 Every option is a query parameter:
 
@@ -26,6 +26,11 @@ Every option is a query parameter:
                   containing '/' is used as given.
     link=<url>    wrap in an anchor; link=1 links to the media itself
     loop=1        silent decorative loop: autoplays, repeats, no controls
+
+A bare media filename resolves under {site_root}/static/media/<slug>/, so
+a post's own media needs no path; anything containing '/' is used as
+given. The same rule applies to ?dark= and ?link= siblings, which resolve
+against the main path once it has been resolved.
 
 Without loop=1 a video is an ordinary player — controls, sound, and the
 reader presses play.
@@ -107,6 +112,14 @@ def sibling(path: str, name: str) -> str:
     return f"{base}/{name}" if base else name
 
 
+def media_path(path: str, slug: str) -> str:
+    """A bare filename resolves under the post's own media directory;
+    anything containing '/' is used as given."""
+    if not path or not slug or "/" in path:
+        return path
+    return f"{{site_root}}/static/media/{slug}/{path}"
+
+
 def css_dark_path(path: str, name: str) -> str:
     """Resolve a dark-image path and express it relative to
     static/styles/media.css."""
@@ -127,6 +140,10 @@ def css_dark_path(path: str, name: str) -> str:
 
 
 class MediaTreeprocessor(Treeprocessor):
+    def __init__(self, md: Markdown, slug: str = "") -> None:
+        super().__init__(md)
+        self.slug = slug
+
     def run(self, root: ET.Element) -> ET.Element:
         for parent in root.iter():
             for child in list(parent):
@@ -136,7 +153,7 @@ class MediaTreeprocessor(Treeprocessor):
                 if m is None:
                     continue
 
-                path = m["path"]
+                path = media_path(m["path"], self.slug)
                 params = parse_query(m["query"])
                 caption = child.get("title")
                 is_video = VIDEO_RE.search(path) is not None
@@ -148,7 +165,9 @@ class MediaTreeprocessor(Treeprocessor):
                     align = None
 
                 if not params and not caption and not is_video:
-                    continue  # a plain image: leave it entirely alone
+                    if path != m["path"]:
+                        child.set("src", path)   # bare name still needs resolving
+                    continue  # otherwise a plain image: leave it entirely alone
 
                 if is_video:
                     media = self.build_video(child, path, align, params)
@@ -383,9 +402,13 @@ class MediaTreeprocessor(Treeprocessor):
 
 
 class MediaExtension(Extension):
+    def __init__(self, slug: str = "", **kwargs) -> None:
+        self.slug = slug
+        super().__init__(**kwargs)
+
     def extendMarkdown(self, md: Markdown) -> None:
         md.treeprocessors.register(
-            MediaTreeprocessor(md),
+            MediaTreeprocessor(md, self.slug),
             "media_embed",
             7,  # after inline processing has built the <img> nodes
         )

@@ -223,11 +223,11 @@ def parse_post(path: Path) -> dict:
     tags = extract_tags(body_lines)                 # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
-    body = expand_includes(body, path.name, slug)   # NOTE: splices in <include> tags
+    body = expand_includes(slug, body, path.name)   # NOTE: splices in <include> tags
     body = body.replace("{slug}", slug)
     parse_sealed_option(options, path.name)         # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
     parse_locked_option(options, path.name)         # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
-    rendered = render_markdown(body, options)
+    rendered = render_markdown(slug, body, options)
 
     return {
         "title": title,
@@ -297,7 +297,7 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
 
-def expand_includes(text: str, source: str, slug: str) -> str:
+def expand_includes(slug: str, text: str, source: str) -> str:
     """Splice component fragments into a post body, in place of <include> tags.
 
         <include source="vecfig.html" prompt="what is an LLM?" reply="...">
@@ -339,7 +339,7 @@ def expand_includes(text: str, source: str, slug: str) -> str:
     return INCLUDE_RE.sub(swap, text)
 
 
-def render_markdown(body: str, options: dict) -> str:
+def render_markdown(slug: str, body: str, options: dict) -> str:
     """Convert post body to HTML, prepending a Contents panel when the post
     has at least three top-level (##) sections."""
     md = markdown.Markdown(
@@ -356,7 +356,7 @@ def render_markdown(body: str, options: dict) -> str:
             # Third-Party
             "pymdownx.arithmatex",
             # Custom
-            MediaExtension(),
+            MediaExtension(slug=slug),
         ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )

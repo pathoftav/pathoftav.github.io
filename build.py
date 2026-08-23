@@ -1110,6 +1110,8 @@ class DevServer(ThreadingHTTPServer):
     mid-response. Only the logging changes: the request still fails and the
     socket is still closed."""
 
+    request_queue_size = 64
+
     def handle_error(self, request, client_address):
         if isinstance(sys.exc_info()[1],
                       (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
@@ -1118,10 +1120,8 @@ class DevServer(ThreadingHTTPServer):
 
 
 class DevHandler(SimpleHTTPRequestHandler):
-    # how long a stream waits before sending a comment instead. The comment is
-    # the only thing that reveals a tab that went away without saying so: the
-    # socket does not fail until something is written to it, and a quiet build
-    # writes nothing, so without this the thread would wait forever.
+    protocol_version = "HTTP/1.1"
+    timeout = 30
     PING_SECONDS = 15
 
     def do_GET(self):
@@ -1131,6 +1131,10 @@ class DevHandler(SimpleHTTPRequestHandler):
         with BUILD_LOCK:
             super().do_GET()
 
+    def do_HEAD(self):
+        with BUILD_LOCK:
+            super().do_HEAD()
+
     def stream_reloads(self) -> None:
         """Hold the connection open and emit an event on each rebuild.
 
@@ -1138,9 +1142,10 @@ class DevHandler(SimpleHTTPRequestHandler):
         CPython, and the worst a torn read could do is delay a reload until
         the next wakeup. Cache-Control is added by end_headers() below."""
         seen = BUILD_ID
+        self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")
         self.send_header("X-Accel-Buffering", "no")   # in case a proxy ever sits in front
         self.end_headers()
         try:
@@ -1160,9 +1165,25 @@ class DevHandler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
-    def log_message(self, format: str, *args: object) -> None:
-        if args and str(args[1]).startswith(("4", "5")):
-            super().log_message(format, *args)
+    def log_request(self, code="-", size="-") -> None:
+        """Log failures only. Overriding log_request rather than log_message
+        because only this one is passed a status code — log_error goes through
+        log_message too, with a different and shorter argument list."""
+        try:
+            status = int(code)
+        except (TypeError, ValueError):
+            status = 0
+        if status >= 400:
+            super().log_request(code, size)
+
+    def log_error(self, format: str, *args: object) -> None:
+        """Idle keep-alive connections are closed by `timeout` above, and the
+        stdlib reports each one. That is the reaping working as intended, and
+        a browser holds several sockets open at a time, so it would be steady
+        noise for something that is not a fault."""
+        if "timed out" in format:
+            return
+        super().log_error(format, *args)
 
     def translate_path(self, path):
         fs = super().translate_path(path)

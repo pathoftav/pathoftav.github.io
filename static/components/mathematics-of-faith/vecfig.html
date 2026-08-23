@@ -1,20 +1,3 @@
-# God from Math
-
-Foobar
-
-```tex
-\frac{1}{n}
-```
-
-$$
-\frac{1}{n}
-$$
-
-$$
-\frac{\partial \psi}{\partial t} = -\frac{i}{\hbar} \hat{H}\psi
-$$
-
-
 <div class="vecfig" id="vecfig">
   <div class="vecfig-row">
     <p class="vecfig-lbl">you type</p>
@@ -27,6 +10,8 @@ $$
   </div>
   <button class="vecfig-btn" id="vf-go">Replay</button>
 </div>
+
+
 
 <style>
 .vecfig{
@@ -87,6 +72,8 @@ $$
 .vecfig-btn:focus-visible{outline:2px solid var(--vf-in);outline-offset:2px}
 </style>
 
+
+
 <script type="importmap">
 {
   "imports": {
@@ -99,8 +86,8 @@ $$
 import * as THREE from "three";
 
 (function () {
-  const PROMPT = "what is an LLM?";
-  const REPLY  = "a labryinth of vectors collapsing into the next token";
+  const PROMPT = "{{prompt}}";
+  const REPLY  = "{{reply}}";
 
   // ---- timing, all in milliseconds ---------------------------------------
   // Every value is a DURATION or a GAP, never an absolute timestamp. The marks
@@ -470,24 +457,4 @@ import * as THREE from "three";
   renderer.setAnimationLoop(frame);
 })();
 </script>
-
-
-<div class="eq-left" markdown="1">
-$$
-E = mc^2
-$$
-</div>
-
-<div class="eq-left">
-<div class="arithmatex">\[ E = mc^3 \]</div>
-</div>
-
-$$
-E = mc^4
-$$
-
-## TODO
-LLMs are a matrix of vectors that you shoot your own vector into (input prompt), which is then transformed and a new vector is returned (output response)
-
-<!-- [OPTIONS]: { "sealed": true, "draft": false, "math": true } -->
 

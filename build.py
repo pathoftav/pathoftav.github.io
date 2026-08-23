@@ -867,10 +867,13 @@ def post_badges(post: dict) -> list[str]:
     return badges
 
 
-def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
+def render_article(post: dict, *, nav: str = "", root: str = "") -> str:
     """The <article> block shared by post pages and old version pages:
     header (title + badges), date, rendered HTML, tag footer, then a caller
-    -supplied footer nav appended after </article>.
+    -supplied nav appended after </article>.
+
+    The tag footer is a <footer> inside the article and is sealed along with
+    the body; `nav` is a sibling of the article and stays in the clear.
 
     A sealed post emits its unlock notice and an inert base64 payload in
     place of the body. <script> with a non-JS type is neither executed nor
@@ -942,7 +945,7 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
         '</header>\n'
         f'{content}'
         '</article>\n'
-        f'{footer}'
+        f'{nav}'
     )
 
 
@@ -996,10 +999,10 @@ def write_posts(posts) -> None:
             n = len(p["history"])
             hist = (f'<a href="{{site_root}}/posts/old/{p["slug"]}/{INDEX}">'
                     f'{n} earlier version{"" if n == 1 else "s"} &rarr;</a>')
-        footer = f'<nav class="post-foot">{back}{hist}</nav>'
+        nav = f'<nav class="post-foot">{back}{hist}</nav>'
 
         dest = SITE / "posts" / f"{p['slug']}.html"
-        body = render_article(p, footer=footer, root=root_for(dest))
+        body = render_article(p, nav=nav, root=root_for(dest))
         write_page(
             dest,
             f"{p['title']} — {SITE_TITLE}",
@@ -1024,9 +1027,9 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
         # each old version as its own page
         for v in versions:
             stamp = v["date"].isoformat()
-            footer = f'<nav class="back"><a href="./{INDEX}">&larr; all versions</a></nav>'
+            nav = f'<nav class="back"><a href="./{INDEX}">&larr; all versions</a></nav>'
             dest = old_dir / f"{stamp}.html"
-            body = render_article(v, footer=footer, root=root_for(dest))
+            body = render_article(v, nav=nav, root=root_for(dest))
 
             write_page(
                 dest,

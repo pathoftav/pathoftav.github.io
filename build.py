@@ -200,6 +200,10 @@ try {{
 DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
 TAG_LINE_RE = re.compile(r"^\s*#[\w-]+(?:\s+#[\w-]+)*\s*$")     # a line consisting only of hashtags: "#placebo #tree-of-life #philosophy"
 
+INCLUDE_RE = re.compile(r'^[ \t]*<include\s+(.+?)\s*/?>[ \t]*$', re.MULTILINE | re.DOTALL)
+ATTR_RE = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+SLOT_RE = re.compile(r'\{\{\s*(\w+)\s*\}\}')
+
 
 # --------------------------------------------------------------------------
 # parsing
@@ -215,12 +219,14 @@ def parse_post(path: Path) -> dict:
     title = first.lstrip("#").strip() if first.startswith("#") else first
     body_lines = lines[1:]
 
-    options = extract_options(body_lines)       # NOTE: mutates body_lines: pops the OPTIONS line
-    tags = extract_tags(body_lines)             # NOTE: mutates body_lines: pops the tag line
+    options = extract_options(body_lines)           # NOTE: mutates body_lines: pops the OPTIONS line
+    tags = extract_tags(body_lines)                 # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
-    parse_sealed_option(options, path.name)     # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
-    parse_locked_option(options, path.name)     # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
+    body = expand_includes(body, path.name, slug)   # NOTE: splices in <include> tags
+    body = body.replace("{slug}", slug)
+    parse_sealed_option(options, path.name)         # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
+    parse_locked_option(options, path.name)         # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
     rendered = render_markdown(body, options)
 
     return {
@@ -289,6 +295,48 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     if m:
         return date.fromisoformat(m.group(1)), path.stem[len(m.group(0)):]
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
+
+
+def expand_includes(text: str, source: str, slug: str) -> str:
+    """Splice component fragments into a post body, in place of <include> tags.
+
+        <include source="vecfig.html" prompt="what is an LLM?" reply="...">
+
+    The tag stands alone on its own line, though it may wrap across several.
+    A bare `source` resolves under static/components/<slug>/; anything with a
+    slash resolves against ROOT. {site_root}/ and {slug} are substituted first.
+
+    Other attributes fill matching {{slot}}s in the fragment — double braces so
+    single-brace {site_root} survives for render(). Values are escaped for
+    attribute position, so a fragment wanting one in JS should read it back
+    with getAttribute rather than interpolate it into a script.
+
+    Runs after options and tags are peeled, so a fragment cannot reconfigure
+    its post, and before markdown, so it parses as if pasted in. Includes do
+    not nest. A missing file or unfilled slot is fatal."""
+    def swap(m: re.Match) -> str:
+        attrs = dict(ATTR_RE.findall(m.group(1)))
+        src = attrs.pop("source", "")
+        rel = src.replace("{site_root}/", "").replace("{slug}", slug).lstrip("/")
+        if not rel:
+            raise ValueError(f"{source}: <include> with no source")
+
+        # a bare filename belongs to this post; anything with a slash is a path
+        path = STATIC / "components" / slug / rel if "/" not in rel else ROOT / rel
+        if not path.is_file():
+            raise FileNotFoundError(f"{source}: no such include: {src!r} -> {path}")
+
+        frag = path.read_text(encoding="utf-8").strip("\n")
+
+        def fill(s: re.Match) -> str:
+            key = s.group(1)
+            if key not in attrs:
+                raise KeyError(f"{source}: {rel} wants {key!r}; got {sorted(attrs)}")
+            return html.escape(attrs[key], quote=True)
+
+        return SLOT_RE.sub(fill, frag)
+
+    return INCLUDE_RE.sub(swap, text)
 
 
 def render_markdown(body: str, options: dict) -> str:

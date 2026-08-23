@@ -990,7 +990,7 @@ def prepare_output() -> None:
         STATIC,
         SITE / STATIC.name,
         dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns("favicon", "favicon_dev"),
+        ignore=shutil.ignore_patterns("components", "favicon", "favicon_dev"),
     )
 
     # Copy favicon folder

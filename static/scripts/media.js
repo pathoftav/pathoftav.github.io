@@ -23,5 +23,9 @@
 
 	apply();
 	q.addEventListener("change", apply);
+
+	/* a shut-in post has no <video> until its body decrypts; lock.js and
+	   sealed.js call this once the markup is in */
+	window.applyMediaPrefs = apply;
 })();
 

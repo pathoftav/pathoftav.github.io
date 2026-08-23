@@ -371,9 +371,26 @@
 		return { ms: ms, band: band };
 	}
 
-	function reveal(el, markup, quiet) {
+	async function reveal(el, markup, quiet) {
 		var holder = document.createElement("div");
 		holder.innerHTML = markup;
+
+		/* The post's media is encrypted under a key that travelled inside the
+		   payload, so it is only legible now. Done here, while the markup is
+		   still detached, for two reasons: nothing flashes a placeholder, and
+		   the stagger below measures each block at its final height rather
+		   than against an image that has not loaded. */
+		var assetKey = holder.querySelector(".asset-key");
+		if (assetKey) {
+			if (window.decryptMedia) {
+				try {
+					await decryptMedia(holder, assetKey.textContent.trim());
+				} catch (e) {
+					console.warn("media decrypt failed", e);
+				}
+			}
+			assetKey.remove();      /* before incoming: not a block to reveal */
+		}
 
 		var incoming = Array.prototype.slice.call(holder.childNodes);
 		var blocks = incoming.filter(function (n) {
@@ -398,13 +415,14 @@
 
 			revive(el);         /* after the payload is gone, so it is not a candidate */
 			typesetMath(el);
+			if (window.applyMediaPrefs) applyMediaPrefs();
 		}
 
 		/* recalled from sessionStorage: the reader already earned the
 			 theatre once, so this time the post is simply there */
 		if (quiet || CALM) {
 			swap();
-			return Promise.resolve();
+			return;
 		}
 
 		/* 1. the runes catch, flare white-gold, and scatter */

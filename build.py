@@ -28,6 +28,7 @@ import base64
 import hashlib
 import html
 import json
+import mimetypes
 import os
 import random
 import re
@@ -41,6 +42,7 @@ from datetime import date, datetime, timezone
 from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from posixpath import join as urljoin, normpath as urlnorm
 from zoneinfo import ZoneInfo
 
 from cryptography.hazmat.primitives import hashes
@@ -112,11 +114,31 @@ LIVE_RELOAD = """<script>
 })();
 </script>"""
 
+# Media belonging to a shut-in post. Encrypted per (slug, kind) under a key
+# that ships inside the payload; see seal_assets(). Reset each build.
+ASSET_KEYS: dict[tuple[str, str], bytes] = {}    # (slug, kind) -> content key
+ASSET_NAMES: dict[tuple[bytes, Path], str] = {}  # (key, source) -> .enc filename
+SEALED_ASSETS: set[Path] = set()
+PUBLIC_ASSETS: set[Path] = set()
+
+SEALED_DIR = "static/sealed"
+ASSET_ROOTS = ("static/media/",)    # trees a post's assets may be sealed out of
+
+ASSET_TAG_RE = re.compile(r"<(?:img|video|source)\b[^>]*>", re.IGNORECASE)
+ASSET_SRC_RE = re.compile(r'\bsrc="([^"]+)"')
+ASSET_DARK_RE = re.compile(r"--dark:url\(([^)]+)\);?")
+ASSET_PLACEHOLDER = (      # 1x1 transparent GIF, so nothing flashes a broken icon
+    "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+)
+
+EXTRA_DECRYPT = '<script defer src="{site_root}/static/scripts/decrypt-media.js"></script>'
+
 EXTRA_NOINDEX = '<meta name="robots" content="noindex">'
 EXTRA_LOCK = (
     '<link rel="stylesheet" href="{site_root}/static/styles/locked.css">\n'
     '<style>html.lock-pending [data-unlock] {{ visibility: hidden; }}</style>\n'
     '<script>document.documentElement.classList.add("lock-pending");</script>\n'
+    + EXTRA_DECRYPT + '\n'
     '<script defer src="{site_root}/static/scripts/lock.js"></script>'
 )
 EXTRA_SEAL = (
@@ -124,6 +146,7 @@ EXTRA_SEAL = (
     '<style>html.seal-pending [data-seal] {{ visibility: hidden; }}</style>\n'
     '<script>try {{ if (sessionStorage.getItem("seal-handle")) '
     'document.documentElement.classList.add("seal-pending"); }} catch (e) {{}}</script>\n'
+    + EXTRA_DECRYPT + '\n'
     '<script defer src="{site_root}/static/scripts/sealed.js"></script>'
 )
 def EXTRA_SEAL_BADGE() -> str:
@@ -585,6 +608,147 @@ def seal_notice() -> str:
 
 
 # --------------------------------------------------------------------------
+# sealing media
+# --------------------------------------------------------------------------
+
+def resolve_asset(url: str) -> Path | None:
+    """Map a URL in rendered HTML back to a file on disk, or None if it isn't
+    a sealable asset.
+
+    Media carries the {site_root} token; a ?dark= variant instead carries a
+    path relative to static/styles, where the CSS that reads it lives. Both
+    normalise to a repo-relative path, and anything outside ASSET_ROOTS is
+    left alone."""
+    u = url.strip().strip("\"'")
+    if u.startswith("{site_root}/"):
+        rel = u[len("{site_root}/"):]
+    elif u.startswith(("http:", "https:", "data:", "//")):
+        return None
+    else:
+        rel = urlnorm(urljoin("static/styles", u)).lstrip("/")
+    rel = urlnorm(rel)
+    if not rel.startswith(ASSET_ROOTS):
+        return None
+    path = ROOT / rel
+    return path if path.is_file() else None
+
+
+def asset_key(slug: str, kind: str) -> bytes:
+    """One content key per post per kind, minted on first use.
+
+    Keyed by kind as well as slug because a locked post's body key derives
+    from values that ship with the page: sharing a content key would let
+    anyone who can open a locked post reach a sealed one's media. Old
+    versions share the live slug, so they reuse the key and the files."""
+    return ASSET_KEYS.setdefault((slug, kind), os.urandom(32))
+
+
+def publish_asset(source: Path, key: bytes) -> str:
+    """Encrypt one file into site/static/sealed/ and return its URL.
+
+    Named from a hash of the key and the path, so the name gives up neither
+    the post nor the original filename and rotates whenever the key does.
+    Blob layout matches seal(): iv || ciphertext || GCM tag."""
+    cached = ASSET_NAMES.get((key, source))
+    if cached:
+        return f"{{site_root}}/{SEALED_DIR}/{cached}"
+
+    rel = source.relative_to(ROOT).as_posix()
+    name = hashlib.sha256(key + rel.encode()).hexdigest()[:32] + ".enc"
+    iv = os.urandom(12)
+
+    out = SITE / SEALED_DIR / name
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(iv + AESGCM(key).encrypt(iv, source.read_bytes(), None))
+
+    ASSET_NAMES[(key, source)] = name
+    SEALED_ASSETS.add(source)
+    return f"{{site_root}}/{SEALED_DIR}/{name}"
+
+
+def seal_assets(content: str, slug: str, kind: str) -> tuple[str, bytes | None]:
+    """Swap media URLs in a body for encrypted stand-ins, returning the
+    content key so the caller can bury it in the payload.
+
+    Runs before {site_root} is resolved, so the token is the anchor and the
+    URLs emitted here are resolved by the same later pass.
+
+    Rewritten a tag at a time rather than a URL at a time: an <img> can carry
+    both a src and a ?dark= variant, and each needs its own attribute on that
+    one element. src is replaced rather than dropped so a <video> does not
+    refetch the page as its source."""
+    used: list[bytes] = []
+
+    def stash(url: str) -> tuple[str, str] | None:
+        source = resolve_asset(url)
+        if source is None:
+            return None
+        key = asset_key(slug, kind)
+        used.append(key)
+        mime = mimetypes.guess_type(source.name)[0] or "application/octet-stream"
+        return publish_asset(source, key), mime
+
+    def rewrite(m: re.Match) -> str:
+        tag = m.group(0)
+        extra = ""
+
+        def swap_src(sm: re.Match) -> str:
+            hit = stash(sm.group(1))
+            if hit is None:
+                return sm.group(0)
+            return (f'src="{ASSET_PLACEHOLDER}"'
+                    f' data-enc="{hit[0]}" data-enc-type="{hit[1]}"')
+
+        def swap_dark(dm: re.Match) -> str:
+            nonlocal extra
+            hit = stash(dm.group(1))
+            if hit is None:
+                return dm.group(0)
+            extra += f' data-enc-dark="{hit[0]}" data-enc-dark-type="{hit[1]}"'
+            return ""      # a --dark left pointing at a deleted file breaks the toggle
+
+        tag = ASSET_SRC_RE.sub(swap_src, tag)
+        tag = ASSET_DARK_RE.sub(swap_dark, tag)
+        if extra:
+            tag = re.sub(r"^<\w+", lambda t: t.group(0) + extra, tag, count=1)
+        return tag
+
+    content = ASSET_TAG_RE.sub(rewrite, content)
+    return content, used[0] if used else None
+
+
+def note_public_assets(content: str) -> None:
+    """Record media an open page serves in the clear, so a file it shares
+    with a shut-in post survives that post's withdrawal."""
+    for m in ASSET_TAG_RE.finditer(content):
+        for pattern in (ASSET_SRC_RE, ASSET_DARK_RE):
+            for hit in pattern.finditer(m.group(0)):
+                source = resolve_asset(hit.group(1))
+                if source is not None:
+                    PUBLIC_ASSETS.add(source)
+
+
+def withdraw_sealed_assets() -> None:
+    """Delete the plaintext of anything encrypted, unless an open page still
+    points at it.
+
+    Without this the encryption is theatre: the original would sit at a
+    guessable URL beside the sealed page, crawlable precisely because nothing
+    links to it. The .enc copies outlive it, so a locked post still opens on
+    schedule with no rebuild."""
+    for source in sorted(SEALED_ASSETS - PUBLIC_ASSETS):
+        (SITE / source.relative_to(ROOT)).unlink(missing_ok=True)
+
+    for tree in ASSET_ROOTS:
+        base = SITE / tree.rstrip("/")
+        if not base.is_dir():
+            continue
+        for d in sorted(base.rglob("*"), key=lambda q: len(q.parts), reverse=True):
+            if d.is_dir() and not any(d.iterdir()):
+                d.rmdir()
+
+
+# --------------------------------------------------------------------------
 # html fragments
 # --------------------------------------------------------------------------
 
@@ -734,11 +898,20 @@ def render_article(post: dict, *, footer: str = "", root: str = "") -> str:
 
     content = f'{post["html"]}\n{tag_footer(post["tags"])}'
     if locked or sealed:
+        # media first, while {site_root} is still a token to match on
+        content, cek = seal_assets(content, post["slug"], "sealed" if sealed else "locked")
+        if cek is not None:
+            content = (
+                f'<script type="application/octet-stream" class="asset-key">'
+                f'{cek.hex()}</script>\n' + content
+            )
         # tags stay inside the payload: they leak the subject matter.
         # {site_root} must be resolved BEFORE sealing — render() substitutes
         # it on the body string, by which point a sealed body is base64 and
         # every link inside it would survive unreplaced.
         content = content.replace("{site_root}", root.rstrip("/"))
+    else:
+        note_public_assets(content)
 
     if sealed:
         if SEALED_HANDLE is None:
@@ -1063,6 +1236,8 @@ def main() -> None:
     HANDLE_SALT = "10ca1" * 6 + "77" if IS_LOCAL else os.urandom(16).hex()
     SEALED_HANDLE = derive_handle(SEALED_PASSWORD, HANDLE_SALT) if SEALED_PASSWORD else None
     BUILD_TIME = datetime.now(timezone.utc)
+    for cache in (ASSET_KEYS, ASSET_NAMES, SEALED_ASSETS, PUBLIC_ASSETS):
+        cache.clear()
     with BUILD_LOCK:
         prepare_output()
         posts = load_posts()
@@ -1079,6 +1254,7 @@ def main() -> None:
         write_tag_pages(by_tag)
         write_tag_index(by_tag)
         write_404()
+        withdraw_sealed_assets()   # after every page has declared what it uses
     BUILD_ID = str(time.time_ns())
     with BUILD_DONE:
         BUILD_DONE.notify_all()   # wake any open reload stream
@@ -1091,6 +1267,15 @@ def main() -> None:
             f"{sealed} sealed" if sealed else "",
         ) if part
     )
+    if SEALED_ASSETS:
+        print(f"sealed {len(SEALED_ASSETS)} media "
+              f'{"file" if len(SEALED_ASSETS) == 1 else "files"}, '
+              f"withdrew {len(SEALED_ASSETS - PUBLIC_ASSETS)} from the clear")
+        kept = SEALED_ASSETS & PUBLIC_ASSETS
+        for source in sorted(kept):
+            print(f"  still public (an open post uses it): "
+                  f"{source.relative_to(ROOT)}")
+
     old = sum(len(v) for v in old_posts.values())
     slugs_with_history = len(old_posts)
     print(

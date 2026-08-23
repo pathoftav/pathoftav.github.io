@@ -55,6 +55,23 @@
 			var holder = document.createElement("div");
 			holder.innerHTML = new TextDecoder().decode(plain);
 
+			/* The post's media is encrypted under a key that travelled inside
+			   the payload, so it is only legible now. Swapped in while the
+			   markup is still detached: the images arrive already loaded, so
+			   nothing flashes and the view transition has nothing to catch
+			   mid-swap. */
+			var assetKey = holder.querySelector(".asset-key");
+			if (assetKey) {
+				if (window.decryptMedia) {
+					try {
+						await decryptMedia(holder, assetKey.textContent.trim());
+					} catch (e) {
+						console.warn("media decrypt failed", e);
+					}
+				}
+				assetKey.remove();
+			}
+
 			function applyDOMUpdates() {
 				while (holder.firstChild) {
 					el.insertBefore(holder.firstChild, payload);
@@ -75,6 +92,8 @@
 				if (animate) {
 					el.classList.add("just-unlocked");
 				}
+
+				if (window.applyMediaPrefs) applyMediaPrefs();
 			}
 
 			if (animate && document.startViewTransition) {

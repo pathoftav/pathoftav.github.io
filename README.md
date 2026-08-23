@@ -19,7 +19,11 @@ static/components/<slug>/       HTML fragments spliced in with <include>
 static/media/<slug>/            images and video for one post
 static/<type>/<slug>/<date>/    per-version snapshots for an old post version
 site/                           generated output — deploy this
+site/static/sealed/             encrypted media belonging to shut-in posts
 ```
+
+`static/components/` is a build-time input and is not copied into `site/` — a
+fragment's contents already live in the post that spliced them in.
 
 ## Environment
 
@@ -218,10 +222,66 @@ Because the phrase salt rotates per build, a handle lifted from a reader's
 session opens that build and no other.
 
 Sealed and locked bodies are encrypted *after* `{site_root}` is resolved, so links
-inside them still work. One consequence worth knowing: an `<include>` fragment
-under `static/` is also published as a standalone file at a predictable URL, so it
-is served in the clear regardless of the seal. Fine for a figure; keep prose you
-mean to hide out of `static/`.
+inside them still work.
+
+### Media in a shut-in post
+
+Encrypting a body is pointless if its images stay at a guessable URL beside the
+ciphertext — crawlable precisely because nothing links to them. So they are
+encrypted too.
+
+Each referenced file under `static/media/` is AES-GCM encrypted into
+`site/static/sealed/<hash>.enc` under a random content key, and that key is
+written into the body *before* the body itself is encrypted. Opening the post
+therefore yields the key; not opening it yields nothing. The `.enc` filename is a
+hash of the key and path, so it gives up neither the post nor the original
+filename, and it rotates whenever the key does.
+
+In the page, `src` becomes a transparent placeholder and the real URL moves to
+`data-enc`; a `?dark=` variant moves to `data-enc-dark` and its `--dark`
+declaration is stripped, since one pointing at a deleted file would break on the
+first theme toggle. `decrypt-media.js` fetches each `.enc`, decrypts it, and
+hands back a `blob:` URL — including putting `--dark` back, so
+`content: var(--dark)` keeps working. `lock.js` and `sealed.js` call it while the
+markup is still detached, so images arrive already loaded and nothing flashes a
+placeholder.
+
+The plaintext original is then deleted from `site/`, and the build reports what
+it withdrew:
+
+```
+sealed 3 media files, withdrew 2 from the clear
+  still public (an open post uses it): static/media/secret-post/sigil.png
+```
+
+A file an open page also references is never deleted — that would break the open
+page. Any gap between the two counts is named, so it is worth reading.
+
+Locked and sealed posts never share a content key. A locked post's body key
+derives from values that ship with the page, so a shared content key would let
+anyone who can open a locked post reach a sealed one's media. Old versions do
+share, since they share the slug — one set of `.enc` files serves the live post
+and its whole history.
+
+Two things to watch:
+
+- **Withdrawal is per file, not per directory.** An image sitting in
+  `static/media/<slug>/` that no post references is never encrypted and never
+  withdrawn, and the directory name is guessable from the slug. Run
+  `find site/static/media -type f` after a build to see what is still exposed.
+- **An unsealed old version keeps the live post's media public.** Old versions
+  share the media directory, so if the current post is sealed but an archived
+  one is not, the archived page holds those files in the clear. The "still
+  public" line above catches it.
+
+Sealing covers the trees named in `ASSET_ROOTS`, `static/media/` by default. Add
+a directory there if a post keeps assets elsewhere and they should travel with
+it.
+
+A `<video>` is a poor fit: `blob:` URLs cannot be range-requested and AES-GCM
+authenticates the whole message, so the file downloads and decrypts in full
+before the first frame. Fine for short decorative loops; for anything long, leave
+it unsealed.
 
 ## Old versions
 
@@ -237,16 +297,39 @@ new one.
 To prevent that, a version prefers a snapshot named for its own date and falls
 back to the shared directory when there isn't one:
 
+```
+static/components/mathematics-of-faith/vecfig.html             # live, and the default
+static/components/mathematics-of-faith/2025-11-02/vecfig.html  # frozen for that version
+static/media/mathematics-of-faith/sigil.png
+static/media/mathematics-of-faith/2025-11-02/sigil.png
+```
+
+The date is the version's own, taken from its filename in `posts/old/`. The check
+is per file, so only keep a snapshot for assets that have actually been replaced
+— everything else resolves to the shared copy with no duplication and no upkeep.
+
+Explicit paths bypass this entirely, which is what you want for anything shared
+across posts.
+
 ## Dev server
 
-`--serve` builds, serves `site/` on `127.0.0.1:8000`, and polls for changes every
-0.4s across `build.py`, `media_ext.py`, `posts/` and `static/`. Pages carry a
-small poller that hits `/__build` and reloads when the build id changes.
+`--serve` builds, serves `site/` on `127.0.0.1:8000`, and watches for changes
+every 0.4s across `build.py`, `media_ext.py`, `posts/` and `static/`.
+
+Pages hold an `EventSource` on `/__reload` — one connection per tab for as long
+as the tab is open, rather than a request every fraction of a second cluttering
+the network tab. The handler emits an event when the build id changes, and a
+comment every 15s to keep the connection honest; `EventSource` reconnects on its
+own if the stream drops.
+
+The server speaks HTTP/1.1 so browsers can reuse sockets. Under the stdlib
+default of 1.0 every response closed its connection, and a speculatively reused
+socket would occasionally land on a closed one as `ERR_CONNECTION_RESET`.
 
 URLs are extensionless while serving, matching production. A build error prints
 the traceback and keeps the server up, so you can fix the post and save again. A
 build lock keeps requests from landing while `site/` is mid-rebuild and briefly
-empty.
+empty. Only failed requests are logged.
 
 ## Production notes
 
@@ -256,4 +339,7 @@ Both globs are shallow — a script in a subdirectory such as
 
 `site/404.html` uses absolute asset paths, since GitHub Pages serves it for any
 unmatched URL at any depth.
+
+Content keys and the phrase salt rotate every build, so a reader holding a page
+cached across a deploy will 404 on sealed media until they reload.
 

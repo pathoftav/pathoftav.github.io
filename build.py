@@ -8,6 +8,13 @@ Layout:
     static/   files copied verbatim into the build
     site/     generated output — deploy this directory anywhere static
 
+A post's own assets live under static/components/<slug>/ and
+static/media/<slug>/, where a bare filename in an <include> or an image
+finds them without a path. An old version out of posts/old/ shares the
+live slug, so it first looks in a <slug>/<date>/ subdirectory and falls
+back to the shared one — keep a snapshot there only for the versions whose
+assets have since been rewritten.
+
 Post format: if the first line is an H1 ("# Title") it becomes the
 post title; otherwise the first line is taken as the title verbatim.
 The rest is standard Markdown (with extensions enabled).
@@ -209,7 +216,7 @@ SLOT_RE = re.compile(r'\{\{\s*(\w+)\s*\}\}')
 # parsing
 # --------------------------------------------------------------------------
 
-def parse_post(path: Path) -> dict:
+def parse_post(path: Path, old: bool = False) -> dict:
     """Read one .md file into a post dict: title, date, slug, tags, html, options."""
     text = path.read_text(encoding="utf-8").strip()
     if not text:
@@ -219,15 +226,16 @@ def parse_post(path: Path) -> dict:
     title = first.lstrip("#").strip() if first.startswith("#") else first
     body_lines = lines[1:]
 
-    options = extract_options(body_lines)           # NOTE: mutates body_lines: pops the OPTIONS line
-    tags = extract_tags(body_lines)                 # NOTE: mutates body_lines: pops the tag line
+    options = extract_options(body_lines)                   # NOTE: mutates body_lines: pops the OPTIONS line
+    tags = extract_tags(body_lines)                         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
-    body = expand_includes(slug, body, path.name)   # NOTE: splices in <include> tags
+    version = d.isoformat() if old else ""                  # NOTE: names the snapshot dir an old version prefers
+    body = expand_includes(body, path.name, slug, version)  # NOTE: splices in <include> tags
     body = body.replace("{slug}", slug)
-    parse_sealed_option(options, path.name)         # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
-    parse_locked_option(options, path.name)         # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
-    rendered = render_markdown(slug, body, options)
+    parse_sealed_option(options, path.name)                 # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
+    parse_locked_option(options, path.name)                 # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
+    rendered = render_markdown(body, slug, version, options)
 
     return {
         "title": title,
@@ -297,7 +305,7 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
 
-def expand_includes(slug: str, text: str, source: str) -> str:
+def expand_includes(text: str, source: str, slug: str, version: str) -> str:
     """Splice component fragments into a post body, in place of <include> tags.
 
         <include source="vecfig.html" prompt="what is an LLM?" reply="...">
@@ -305,6 +313,11 @@ def expand_includes(slug: str, text: str, source: str) -> str:
     The tag stands alone on its own line, though it may wrap across several.
     A bare `source` resolves under static/components/<slug>/; anything with a
     slash resolves against ROOT. {site_root}/ and {slug} are substituted first.
+
+    An old version passes its date as `version` and prefers a snapshot in
+    static/components/<slug>/<version>/, falling back to the shared directory
+    when there isn't one — so a figure can be frozen for the versions that
+    need it without copying the ones that didn't change.
 
     Other attributes fill matching {{slot}}s in the fragment — double braces so
     single-brace {site_root} survives for render(). Values are escaped for
@@ -322,7 +335,12 @@ def expand_includes(slug: str, text: str, source: str) -> str:
             raise ValueError(f"{source}: <include> with no source")
 
         # a bare filename belongs to this post; anything with a slash is a path
-        path = STATIC / "components" / slug / rel if "/" not in rel else ROOT / rel
+        if "/" in rel:
+            path = ROOT / rel
+        else:
+            base = STATIC / "components" / slug
+            snapshot = base / version / rel if version else None
+            path = snapshot if snapshot and snapshot.is_file() else base / rel
         if not path.is_file():
             raise FileNotFoundError(f"{source}: no such include: {src!r} -> {path}")
 
@@ -339,9 +357,13 @@ def expand_includes(slug: str, text: str, source: str) -> str:
     return INCLUDE_RE.sub(swap, text)
 
 
-def render_markdown(slug: str, body: str, options: dict) -> str:
+def render_markdown(body: str, slug: str, version: str, options: dict) -> str:
     """Convert post body to HTML, prepending a Contents panel when the post
-    has at least three top-level (##) sections."""
+    has at least three top-level (##) sections.
+
+    slug and version reach MediaExtension, which resolves bare media
+    filenames under static/media/<slug>/ and lets an old version prefer a
+    snapshot in <slug>/<version>/."""
     md = markdown.Markdown(
         extensions=[
             # Structural Block Parsers
@@ -356,7 +378,7 @@ def render_markdown(slug: str, body: str, options: dict) -> str:
             # Third-Party
             "pymdownx.arithmatex",
             # Custom
-            MediaExtension(slug=slug),
+            MediaExtension(slug=slug, version=version),
         ],
         extension_configs={"pymdownx.arithmatex": {"generic": True}},
     )
@@ -1002,12 +1024,15 @@ def load_posts() -> list[dict]:
 
 def load_old_versions() -> dict[str, list[dict]]:
     """Map slug -> its old versions in posts/old/, newest first.
-    A slug appears here only if at least one old version exists."""
+    A slug appears here only if at least one old version exists.
+
+    Parsed with old=True so bare component and media filenames can resolve
+    to a per-version snapshot where one has been kept."""
     by_slug: dict[str, list[dict]] = {}
     if not OLD.exists():
         return by_slug
     for p in OLD.glob("*.md"):
-        post = parse_post(p)
+        post = parse_post(p, old=True)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         post["options"]["old"] = True

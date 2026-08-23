@@ -32,6 +32,12 @@ a post's own media needs no path; anything containing '/' is used as
 given. The same rule applies to ?dark= and ?link= siblings, which resolve
 against the main path once it has been resolved.
 
+A version out of posts/old/ shares the live post's slug, so a bare
+filename there would otherwise follow the media as it stands now. Such a
+version looks first in <slug>/<date>/ and falls back to the shared
+directory, so only the assets that have since been replaced need a
+snapshot kept for them.
+
 Without loop=1 a video is an ordinary player — controls, sound, and the
 reader presses play.
 
@@ -57,6 +63,7 @@ alignment, so the caption tracks the media rather than the full column.
 
 import re
 
+from pathlib import Path
 from posixpath import relpath
 from xml.etree import ElementTree as ET
 
@@ -71,6 +78,11 @@ from markdown.treeprocessors import Treeprocessor
 SRC_RE = re.compile(r"^(?P<path>[^?#]*)(?:\?(?P<query>[^#]*))?(?:#(?P<frag>.*))?$")
 VIDEO_RE = re.compile(r"\.(?:webm|mp4)$", re.IGNORECASE)
 AR_RE = re.compile(r"^(?P<w>\d+)[x:](?P<h>\d+)$")
+
+# where a bare media filename is looked for. Resolved on disk rather than
+# guessed, because an old version only gets its own directory when one was
+# actually kept for it.
+MEDIA_DIR = Path(__file__).parent / "static" / "media"
 
 # every accepted ?align= value
 ALIGNS = {"left", "right", "center", "left-inline", "right-inline"}
@@ -112,11 +124,18 @@ def sibling(path: str, name: str) -> str:
     return f"{base}/{name}" if base else name
 
 
-def media_path(path: str, slug: str) -> str:
+def media_path(path: str, slug: str, version: str = "") -> str:
     """A bare filename resolves under the post's own media directory;
-    anything containing '/' is used as given."""
+    anything containing '/' is used as given.
+
+    An old version passes its date as `version` and prefers a snapshot in
+    <slug>/<version>/ when the file is actually there, falling back to the
+    shared directory otherwise. That way a version only needs its own copy
+    of the assets that have since been replaced, not of all of them."""
     if not path or not slug or "/" in path:
         return path
+    if version and (MEDIA_DIR / slug / version / path).is_file():
+        return f"{{site_root}}/static/media/{slug}/{version}/{path}"
     return f"{{site_root}}/static/media/{slug}/{path}"
 
 
@@ -140,9 +159,10 @@ def css_dark_path(path: str, name: str) -> str:
 
 
 class MediaTreeprocessor(Treeprocessor):
-    def __init__(self, md: Markdown, slug: str = "") -> None:
+    def __init__(self, md: Markdown, slug: str = "", version: str = "") -> None:
         super().__init__(md)
         self.slug = slug
+        self.version = version
 
     def run(self, root: ET.Element) -> ET.Element:
         for parent in root.iter():
@@ -153,7 +173,7 @@ class MediaTreeprocessor(Treeprocessor):
                 if m is None:
                     continue
 
-                path = media_path(m["path"], self.slug)
+                path = media_path(m["path"], self.slug, self.version)
                 params = parse_query(m["query"])
                 caption = child.get("title")
                 is_video = VIDEO_RE.search(path) is not None
@@ -402,13 +422,16 @@ class MediaTreeprocessor(Treeprocessor):
 
 
 class MediaExtension(Extension):
-    def __init__(self, slug: str = "", **kwargs) -> None:
+    def __init__(self, slug: str = "", version: str = "", **kwargs) -> None:
+        # popped before super(), which feeds kwargs to setConfigs and raises
+        # on keys it doesn't recognise
         self.slug = slug
+        self.version = version
         super().__init__(**kwargs)
 
     def extendMarkdown(self, md: Markdown) -> None:
         md.treeprocessors.register(
-            MediaTreeprocessor(md, self.slug),
+            MediaTreeprocessor(md, self.slug, self.version),
             "media_embed",
             7,  # after inline processing has built the <img> nodes
         )

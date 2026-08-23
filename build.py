@@ -93,21 +93,22 @@ SEAL_RUNES = (
 SEAL_RUNE_ROWS = 4
 SEAL_RUNE_COLS = 22
 
-SERVE = False                   # True when running under --serve
-BUILD_ID = "0"                  # bumped each rebuild; the reload poller watches this
-BUILD_LOCK = threading.Lock()   # held while site/ is mid-rebuild and briefly empty
+SERVE = False                       # True when running under --serve
+BUILD_ID = "0"                      # bumped each rebuild; open reload streams watch this
+BUILD_LOCK = threading.Lock()       # held while site/ is mid-rebuild and briefly empty
+BUILD_DONE = threading.Condition()  # notified once site/ is whole again
+
+# Server-sent events rather than a poll: one connection per tab for as long as
+# the tab is open, instead of a request every fraction of a second cluttering
+# the network tab. EventSource reconnects on its own if the stream drops, so
+# there is no retry logic to write here.
 LIVE_RELOAD = """<script>
 (function () {
-  var seen = null;
-  setInterval(function () {
-    fetch("/__build", { cache: "no-cache" })
-      .then(function (r) { return r.text(); })
-      .then(function (v) {
-        if (seen === null) { seen = v; }
-        else if (v !== seen) { location.reload(); }
-      })
-      .catch(function () {});
-  }, 700);
+  var events = new EventSource("/__reload");
+  events.onmessage = function () { location.reload(); };
+  // let the server drop the connection now rather than discover it on the
+  // next write, and keep a bfcached page from holding a second stream open
+  window.addEventListener("pagehide", function () { events.close(); });
 })();
 </script>"""
 
@@ -1079,6 +1080,8 @@ def main() -> None:
         write_tag_index(by_tag)
         write_404()
     BUILD_ID = str(time.time_ns())
+    with BUILD_DONE:
+        BUILD_DONE.notify_all()   # wake any open reload stream
 
     locked = sum(1 for p in posts if p["options"].get("is_locked", False))
     sealed = sum(1 for p in posts if p["options"].get("is_sealed", False))
@@ -1115,17 +1118,43 @@ class DevServer(ThreadingHTTPServer):
 
 
 class DevHandler(SimpleHTTPRequestHandler):
+    # how long a stream waits before sending a comment instead. The comment is
+    # the only thing that reveals a tab that went away without saying so: the
+    # socket does not fail until something is written to it, and a quiet build
+    # writes nothing, so without this the thread would wait forever.
+    PING_SECONDS = 15
+
     def do_GET(self):
-        if self.path.split("?")[0] == "/__build":
-            body = BUILD_ID.encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+        if self.path.split("?", 1)[0] == "/__reload":
+            self.stream_reloads()
             return
         with BUILD_LOCK:
             super().do_GET()
+
+    def stream_reloads(self) -> None:
+        """Hold the connection open and emit an event on each rebuild.
+
+        Reads BUILD_ID without the lock. A str assignment is atomic under
+        CPython, and the worst a torn read could do is delay a reload until
+        the next wakeup. Cache-Control is added by end_headers() below."""
+        seen = BUILD_ID
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")   # in case a proxy ever sits in front
+        self.end_headers()
+        try:
+            while True:
+                with BUILD_DONE:
+                    BUILD_DONE.wait(timeout=self.PING_SECONDS)
+                if BUILD_ID != seen:
+                    seen = BUILD_ID
+                    self.wfile.write(f"data: {seen}\n\n".encode())
+                else:
+                    self.wfile.write(b": ping\n\n")
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass   # the tab closed; the thread is free to end
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")

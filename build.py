@@ -682,7 +682,7 @@ def seal_listing(fragment: str, root: str) -> str:
         '<script type="application/octet-stream" class="seal-listing"'
         f' data-rounds="{SEAL_ROUNDS}"'
         f' data-handle-rounds="{HANDLE_ROUNDS}"'
-        f' data-handle-salt="{HANDLE_SALT}">{blob}</script>\n'
+        f' data-handle-salt="{HANDLE_SALT}">{blob}</script>'
     )
 
 
@@ -1104,10 +1104,10 @@ def write_index(listed, revealed) -> None:
     payload = carries_payload(listed, revealed)
     attr = " data-seal-listing" if payload else ""
 
-    body = f'<ul class="toc"{attr}>\n' + post_list_items(listed, "posts/") + "\n</ul>"
+    body = f'<ul class="toc"{attr}>\n' + post_list_items(listed, "posts/") + "\n</ul>\n"
     if payload:
         body += seal_listing(
-            '<ul class="toc">\n' + post_list_items(revealed, "posts/") + "\n</ul>",
+            '<ul class="toc">\n' + post_list_items(revealed, "posts/") + "\n</ul>\n",
             root_for(dest),
         )
 

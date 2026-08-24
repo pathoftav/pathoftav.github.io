@@ -212,6 +212,7 @@ try {{
 <link rel="apple-touch-icon" sizes="180x180" href="{site_root}/static/favicon/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="{site_root}/static/favicon/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="{site_root}/static/favicon/favicon-16x16.png">
+<link rel="icon" href="{site_root}/favicon.ico">
 <link rel="manifest" href="{site_root}/static/favicon/site.webmanifest">
 {head_extras}
 </head>
@@ -1175,6 +1176,7 @@ def prepare_output() -> None:
         SITE / STATIC.name / "favicon",
         dirs_exist_ok=True,
     )
+    shutil.copy(SITE / STATIC.name / "favicon" / "favicon.ico", SITE / "favicon.ico")
 
     # Minify .css and .js files
     if not IS_LOCAL:

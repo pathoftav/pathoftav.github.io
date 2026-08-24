@@ -80,6 +80,16 @@ SEAL_ROUNDS = 310_000       # PBKDF2 rounds — the cost of one guess at the phr
 HANDLE_ROUNDS = 310_000     # the same as above, one stage earlier. Rides in data-handle-rounds.
 HANDLE_SALT = ""            # derived per build
 SEALED_HANDLE = None        # derived per build
+SITE_HAS_SEALED = False     # whether this build sealed anything at all
+
+# Decoys. With this on, every listing carries a payload whether or not it is
+# withholding anything, and every payload is padded to a multiple of the block
+# below. A page that hides rows is then indistinguishable from one that does
+# not: same script, same order of magnitude of base64. Costs about one block
+# per listing page for every visitor. Set the block to 0 to seal unpadded.
+SEAL_DECOY_LISTINGS = True
+SEAL_PAD_BLOCK = 4096
+
 
 # The glyph pool the rune field draws from, shipped to sealed.js in a data
 # attribute so the two never drift apart. Rows are ordered by how reliably
@@ -156,6 +166,13 @@ def EXTRA_SEAL_BADGE() -> str:
         + HANDLE_SALT
         + '") document.documentElement.classList.add("seal-open"); }} catch (e) {{}}</script>'
     )
+# A listing with a fuller form behind the phrase. The style hides the public
+# list only for a reader whose session already holds a handle for this build;
+# everyone else paints once, normally, and never sees a flicker.
+EXTRA_SEAL_LISTING = (
+    '<style>html.seal-open [data-seal-listing] {{ visibility: hidden; }}</style>\n'
+    '<script defer src="{site_root}/static/scripts/seal-listing.js"></script>'
+)
 EXTRA_MATH = (
     '<link rel="stylesheet" href="{site_root}/static/vendor/katex/katex.min.css">\n'
     '<script defer src="{site_root}/static/vendor/katex/katex.min.js"></script>\n'
@@ -608,6 +625,67 @@ def seal_notice() -> str:
     )
 
 
+def pad_fragment(fragment: str, block: int = 0) -> str:
+    """Round a fragment up to a multiple of `block` bytes with a comment.
+
+    AES-GCM is a stream mode: the ciphertext is exactly as long as the
+    plaintext, so the only place a listing's true size can be concealed is
+    here, before it is sealed. An HTML comment is the filler because it
+    survives innerHTML as a comment node and renders as nothing.
+
+    The dots are ASCII, so the byte count and the character count agree."""
+    if block <= 0:
+        return fragment
+    room = -len(fragment.encode()) % block
+    while room < 7:            # "<!---->" is the shortest comment there is
+        room += block
+    return fragment + "<!--" + "." * (room - 7) + "-->"
+
+
+def carries_payload(public: list, full: list) -> bool:
+    """Whether this listing ships a sealed second form.
+
+    With decoys on, every listing on a site that sealed anything ships one,
+    including the listings with nothing to hide — a page that withholds rows
+    has to look like a page that does not, and the only way to arrange that
+    is for both to carry a payload. With decoys off, only the listings that
+    actually withhold something do, and their presence says so."""
+    if not SITE_HAS_SEALED:
+        return False
+    return SEAL_DECOY_LISTINGS or has_sealed_rows(public, full)
+
+
+def seal_listing(fragment: str, root: str) -> str:
+    """The fuller form of a listing, encrypted under the build handle.
+
+    Every listing is built twice: the public page carries the rows anyone may
+    see, and this carries the rows a reader holding the phrase may see. Same
+    handle a sealed post is keyed to, so opening one post opens all of them —
+    the reader never types anything a second time. Where the two forms are
+    identical this is a decoy, and opening it swaps the list for itself.
+
+    Nothing about the withheld rows survives out here. Not a tag name, not a
+    count, not which of the visible rows grew, and — once padded — not how
+    much is behind it.
+
+    {site_root} is resolved here for the reason render_article resolves it:
+    render() substitutes on the body string, by which point this is base64
+    and every link inside it would survive unreplaced."""
+    if SEALED_HANDLE is None:
+        raise RuntimeError(
+            "sealed rows reached a listing with no handle. "
+            "SEALED_PASSWORD must be set before main() derives one."
+        )
+    fragment = fragment.replace("{site_root}", root.rstrip("/"))
+    blob = seal_by_phrase(pad_fragment(fragment, SEAL_PAD_BLOCK), SEALED_HANDLE)
+    return (
+        '<script type="application/octet-stream" class="seal-listing"'
+        f' data-rounds="{SEAL_ROUNDS}"'
+        f' data-handle-rounds="{HANDLE_ROUNDS}"'
+        f' data-handle-salt="{HANDLE_SALT}">{blob}</script>\n'
+    )
+
+
 # --------------------------------------------------------------------------
 # sealing media
 # --------------------------------------------------------------------------
@@ -821,6 +899,35 @@ def group_by_tag(posts) -> dict[str, list]:
     return by_tag
 
 
+def sort_posts(posts: list[dict]) -> list[dict]:
+    """Pinned first, then newest first. The one ordering every listing uses."""
+    return sorted(
+        posts,
+        key=lambda p: (p["options"].get("pin", 0), p["date"]),
+        reverse=True
+    )
+
+
+def has_sealed_rows(public: list, full: list) -> bool:
+    """Whether a listing's fuller form actually holds anything more."""
+    return len(full) > len(public)
+
+
+def tag_row(tag: str, n: int, sealed: bool = False) -> str:
+    """One row of the tag overview.
+
+    Every tag has a page of its own, the ones only sealed posts carry
+    included — those pages stand empty until a phrase opens them. A row for
+    such a tag ships only inside the payload, so the overview never links to
+    a page it should not yet admit exists."""
+    cls = ' class="sealed-tag"' if sealed else ""
+    return (
+        f'  <li{cls}><a href="{html.escape(tag)}{EXT}">#{html.escape(tag)}</a>'
+        '<span class="leader"></span>'
+        f'<span class="count">{n} post{"" if n == 1 else "s"}</span></li>'
+    )
+
+
 def post_head_extras(post: dict) -> list[str]:
     """Head-extras common to any post-like page"""
     opts = post["options"]
@@ -969,26 +1076,46 @@ def write_page(dest: Path, title: str, body: str, extras=None) -> None:
     dest.write_text(render(title, root_for(dest), body, extras), encoding="utf-8")
 
 
-def listing_extras(posts) -> list[str]:
+def listing_extras(posts, payload: bool = False) -> list[str]:
     """Any listing holding a locked row needs lock.js, so the LOCKED badge
-    clears itself when the moment arrives. A sealed row needs far less:
-    nothing on the page can be opened, so its badge only has to reflect
-    whether this session already holds a handle for this build."""
+    clears itself when the moment arrives. A sealed row visible to everyone
+    needs far less: nothing on the page can be opened, so its badge only has
+    to reflect whether this session already holds a handle for this build.
+
+    A listing carrying a payload needs both — the same early class, so the
+    public list does not paint before it is replaced, and the script that
+    replaces it. It gets them whether the payload withholds anything or is
+    a decoy; a page that could be told apart by its <head> would defeat the
+    decoy in the body."""
     extras = []
     if any(p["options"].get("is_locked", False) for p in posts):
         extras.append(EXTRA_LOCK)
-    if any(p["options"].get("is_sealed", False) for p in posts):
+    if payload or any(p["options"].get("is_sealed", False) for p in posts):
         extras.append(EXTRA_SEAL_BADGE())
+    if payload:
+        extras.append(EXTRA_SEAL_LISTING)
     return extras
 
 
-def write_index(posts) -> None:
-    body = '<ul class="toc">\n' + post_list_items(posts, "posts/") + "\n</ul>"
+def write_index(listed, revealed) -> None:
+    """The front page, and behind the phrase the same page with the sealed
+    posts folded back into their places by date."""
+    dest = SITE / "index.html"
+    payload = carries_payload(listed, revealed)
+    attr = " data-seal-listing" if payload else ""
+
+    body = f'<ul class="toc"{attr}>\n' + post_list_items(listed, "posts/") + "\n</ul>"
+    if payload:
+        body += seal_listing(
+            '<ul class="toc">\n' + post_list_items(revealed, "posts/") + "\n</ul>",
+            root_for(dest),
+        )
+
     write_page(
-        SITE / "index.html",
+        dest,
         SITE_TITLE,
         body,
-        extras=listing_extras(posts)
+        extras=listing_extras(listed, payload)
     )
 
 
@@ -1067,58 +1194,125 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
         )
 
 
-def write_tag_pages(by_tag) -> None:
-    for t, tagged in by_tag.items():
-        body = (
-            f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
-            '<ul class="toc">\n' + post_list_items(tagged, "../posts/") + "\n</ul>\n"
+def write_tag_pages(by_tag, by_tag_all) -> None:
+    """A page per tag, the ones only sealed posts carry included.
+
+    Such a page exists and is named for its tag, which is the deliberate
+    trade: a real URL to navigate to and reload, in exchange for the name
+    being guessable by anyone who thinks to try it.
+
+    What that guess buys is the 404 — same body, same title, same head, same
+    payload as any other listing, so it cannot be told from a URL that was
+    never a page at all. The tag name is not in the served markup anywhere;
+    it arrives with the rows, and seal-listing.js puts the title back.
+
+    Note that the status line still reads 200. A static host cannot be told
+    to answer differently to a reader it cannot identify — for a genuine 404
+    the file must not exist, which means naming it from the handle instead
+    and giving up the readable URL."""
+    for t in sorted(by_tag_all):
+        tagged = by_tag.get(t, [])
+        full = by_tag_all[t]
+        dest = SITE / "tags" / f"{t}.html"
+        payload = carries_payload(tagged, full)
+        attr = " data-seal-listing" if payload else ""
+
+        # everything a reader sees once the page opens, title included
+        title = f"#{t} — {SITE_TITLE}"
+        opened = (
+            f'<h2 class="tag-title" data-seal-title="{html.escape(title)}">'
+            f'#{html.escape(t)}</h2>\n'
+            '<ul class="toc">\n' + post_list_items(full, "../posts/") + "\n</ul>\n"
             f'<nav class="back"><a href="./{INDEX}">&larr; all tags</a></nav>'
         )
+
+        if tagged:
+            body = (
+                f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
+                f'<ul class="toc"{attr}>\n'
+                + post_list_items(tagged, "../posts/") + "\n</ul>\n"
+                f'<nav class="back"><a href="./{INDEX}">&larr; all tags</a></nav>'
+            )
+            hidden = '<ul class="toc">\n' + post_list_items(full, "../posts/") + "\n</ul>"
+        else:
+            body = not_found_body(attr)
+            hidden = opened
+            title = f"Not found — {SITE_TITLE}"
+
+        if payload:
+            body += seal_listing(hidden, root_for(dest))
+
         write_page(
-            SITE / "tags" / f"{t}.html",
-            f"#{t} — {SITE_TITLE}",
+            dest,
+            title,
             body,
-            extras=[EXTRA_NOINDEX] + listing_extras(tagged)
+            extras=[EXTRA_NOINDEX] + listing_extras(tagged, payload)
         )
 
 
-def write_tag_index(by_tag) -> None:
-    tag_items = "\n".join(
-        f'  <li><a href="{{t}}{EXT}">#{{t}}</a>'
-        '<span class="leader"></span>'
-        '<span class="count">{n} post{s}</span></li>'.format(
-            t=html.escape(t), n=len(ps), s="" if len(ps) == 1 else "s"
-        )
-        for t, ps in sorted(by_tag.items())
+def write_tag_index(by_tag, by_tag_all) -> None:
+    """The tag overview, and behind the phrase the same overview with true
+    counts and the tags no open post carries.
+
+    A tag carried only by sealed posts is absent from the public list
+    entirely, not shown greyed or teased: a reader without the phrase has no
+    use for a row they cannot follow, and the name is the thing being kept
+    back. Its page exists all the while, unlinked, waiting for the row that
+    points at it."""
+    dest = SITE / "tags" / "index.html"
+    payload = carries_payload(list(by_tag), list(by_tag_all)) or any(
+        len(by_tag_all[t]) > len(by_tag[t]) for t in by_tag
     )
-    body = (f'<ul class="toc">\n{tag_items}\n</ul>\n'
+    attr = " data-seal-listing" if payload else ""
+
+    public = "\n".join(tag_row(t, len(ps)) for t, ps in sorted(by_tag.items()))
+    body = (f'<ul class="toc"{attr}>\n{public}\n</ul>\n'
         f'<nav class="back"><a href="../{INDEX}">&larr; all posts</a></nav>')
+
+    if payload:
+        rows = "\n".join(
+            tag_row(t, len(by_tag_all[t]), t not in by_tag)
+            for t in sorted(by_tag_all)
+        )
+        body += seal_listing(f'<ul class="toc">\n{rows}\n</ul>', root_for(dest))
+
     write_page(
-        SITE / "tags" / "index.html",
+        dest,
         f"Tags — {SITE_TITLE}",
         body,
-        extras=[EXTRA_NOINDEX]
+        extras=[EXTRA_NOINDEX] + listing_extras([], payload)
     )
 
 
-def write_404() -> None:
-    """A site-wide 404. Served from the site root by GitHub Pages for any
-    unmatched URL, so it uses ABSOLUTE asset paths (site_root="/") — relative
-    ones would break for deep URLs like /posts/x that don't exist."""
-    body = (
-        '<style>\n'
-        '@view-transition { navigation: none; }\n'
-        '</style>\n'
-        '<article>\n'
+def not_found_body(attr: str = "") -> str:
+    """The whole of the 404 — the transition suppressant, the article, and
+    the fade that stands in for one.
+
+    All three, not just the article: a tag page only sealed posts carry wears
+    this entire, and a disguise missing the neighbours' furniture is not a
+    disguise. Two pages that differ by a <style> and a <script> are two pages
+    that can be told apart by reading them.
+
+    ABSOLUTE asset paths, because 404.html is served for any unmatched URL at
+    any depth and relative ones would break.
+
+    The fade stands down once the article is gone. On a tag page that opens,
+    the links that replace it are ordinary links to real pages, and fading
+    the body out before following them would be theatre borrowed from a page
+    this no longer is."""
+    return (
+        f'<article class="notfound"{attr}>\n'
         '<header class="post">\n'
         '<h2>Lost in the sublunary</h2>\n'
         '</header>\n'
         '<p>There is no page at this address. The path you followed may be broken, or the writing may have been unmade.</p>\n'
         f'<p><a href="/{INDEX}">Return to the index</a>, or <a href="/tags/{INDEX}">wander the tags</a>.</p>\n'
         '</article>\n'
-        '<script>\n'
+        '<style id="no-view-transition">@view-transition { navigation: none; }</style>\n'
+        '<script id="fake-view-transition">\n'
         '  // Fake a view transition out of the 404 page\n'
         '  document.addEventListener("click", function(e) {\n'
+        '    if (!document.querySelector("article.notfound")) return;\n'
         '    var link = e.target.closest("a");\n'
         '    if (link && link.host === window.location.host) {\n'
         '      e.preventDefault();\n'
@@ -1129,12 +1323,28 @@ def write_404() -> None:
         '  });\n'
         '</script>\n'
     )
+
+
+def write_404() -> None:
+    """A site-wide 404. Served from the site root by GitHub Pages for any
+    unmatched URL, so it uses ABSOLUTE asset paths (site_root="/") — relative
+    ones would break for deep URLs like /posts/x that don't exist.
+
+    It carries a decoy of its own when the build has sealed anything. A tag
+    page that only sealed posts carry wears this same body, and a reader who
+    guesses that URL must not be able to tell the two apart by finding a
+    payload on one and not the other."""
+    decoy = carries_payload([], [])
+    body = (
+        not_found_body(" data-seal-listing" if decoy else "")
+        + (seal_listing(not_found_body(), "/") if decoy else "")
+    )
     (SITE / "404.html").write_text(
         render(
             f"Not found — {SITE_TITLE}",
             "/",
             body,
-            extras=[EXTRA_NOINDEX]
+            extras=[EXTRA_NOINDEX] + listing_extras([], decoy)
         ),
         encoding="utf-8",
     )
@@ -1209,11 +1419,7 @@ def load_posts() -> list[dict]:
             continue
         valid_posts.append(post)
 
-    return sorted(
-        valid_posts,
-        key=lambda p: (p["options"].get("pin", 0), p["date"]),
-        reverse=True
-    )
+    return sort_posts(valid_posts)
 
 
 def load_old_versions() -> dict[str, list[dict]]:
@@ -1237,7 +1443,7 @@ def load_old_versions() -> dict[str, list[dict]]:
 
 
 def main() -> None:
-    global HANDLE_SALT, SEALED_HANDLE, BUILD_TIME, BUILD_ID
+    global HANDLE_SALT, SEALED_HANDLE, SITE_HAS_SEALED, BUILD_TIME, BUILD_ID
     HANDLE_SALT = "10ca1" * 6 + "77" if IS_LOCAL else os.urandom(16).hex()
     SEALED_HANDLE = derive_handle(SEALED_PASSWORD, HANDLE_SALT) if SEALED_PASSWORD else None
     BUILD_TIME = datetime.now(timezone.utc)
@@ -1250,14 +1456,28 @@ def main() -> None:
         for p in posts:
             p["history"] = old_posts.get(p["slug"], [])
 
+        # A sealed post is unlisted by default, so it is absent from every
+        # listing above. `revealed` puts those back — and only those: a post
+        # marked unlisted on its own account stays unlisted, phrase or no.
         listed = [p for p in posts if not p["options"].get("unlisted", False)]
-        by_tag = group_by_tag(listed)
+        withheld = [p for p in posts
+                    if p["options"].get("is_sealed", False)
+                    and p["options"].get("unlisted", False)]
+        revealed = sort_posts(listed + withheld)
 
-        write_index(listed)
+        # Decoys are pointless on a site with nothing sealed, and a payload on
+        # every listing of one would be a claim about the site that is not
+        # true. Set before any writer runs; carries_payload() reads it.
+        SITE_HAS_SEALED = any(p["options"].get("is_sealed", False) for p in posts)
+
+        by_tag = group_by_tag(listed)
+        by_tag_all = group_by_tag(revealed)
+
+        write_index(listed, revealed)
         write_posts(posts)
         write_old_posts(posts, old_posts)
-        write_tag_pages(by_tag)
-        write_tag_index(by_tag)
+        write_tag_pages(by_tag, by_tag_all)
+        write_tag_index(by_tag, by_tag_all)
         write_404()
         withdraw_sealed_assets()   # after every page has declared what it uses
     BUILD_ID = str(time.time_ns())
@@ -1288,7 +1508,9 @@ def main() -> None:
         f'{f" ({shut})" if shut else ""}, '
         f'{old} old {"version" if old == 1 else "versions"} '
         f'across {slugs_with_history} {"slug" if slugs_with_history == 1 else "slugs"}, '
-        f'{len(by_tag)} {"tag" if len(by_tag) == 1 else "tags"}: {SITE}/'
+        f'{len(by_tag_all)} {"tag" if len(by_tag_all) == 1 else "tags"}'
+        f'{f" ({len(by_tag_all) - len(by_tag)} sealed)" if len(by_tag_all) > len(by_tag) else ""}'
+        f': {SITE}/'
     )
 
 

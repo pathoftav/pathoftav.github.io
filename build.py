@@ -75,7 +75,7 @@ SITE_TZ = ZoneInfo("America/New_York")
 UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 
-SEALED_PASSWORD = os.getenv("SEALED_PASSWORD", "secret")
+SEAL_PASSWORD = os.getenv("SEAL_PASSWORD") if not IS_LOCAL else os.getenv("SEAL_PASSWORD", "secret")
 SEAL_ROUNDS = 310_000       # PBKDF2 rounds — the cost of one guess at the phrase.
 HANDLE_ROUNDS = 310_000     # the same as above, one stage earlier. Rides in data-handle-rounds.
 HANDLE_SALT = ""            # derived per build
@@ -306,7 +306,7 @@ def extract_options(body_lines: list[str]) -> dict:
         "math":     bool   enable LaTeX rendering
         "locked":   str    ISO date (optionally with time) before which the
                            body is sealed; listed but unreadable until then
-        "sealed":   bool   encrypt the body against SEALED_PASSWORD; listed,
+        "sealed":   bool   encrypt the body against SEAL_PASSWORD; listed,
                            but readable only once a reader types the phrase.
                            sealed implicitly adds "unlisted": true and also
                            hides the unlisted badge, unless "unlisted": false is
@@ -518,16 +518,16 @@ def parse_sealed_option(options: dict, source: str) -> None:
     """Trade the authored "sealed" option (in place) for the one derived key
     the rest of the build reads:
 
-        "is_sealed": bool   body encrypted against SEALED_PASSWORD
+        "is_sealed": bool   body encrypted against SEAL_PASSWORD
 
     Unlike "locked", a missing secret is fatal. Warning and publishing anyway
     would put the plaintext of a post the author meant to hide on the open
     web, and no build is worth that."""
     if not options.pop("sealed", False):
         return
-    if not SEALED_PASSWORD:
+    if not SEAL_PASSWORD:
         raise RuntimeError(
-            f'{source}: post is "sealed" but SEALED_PASSWORD is unset. '
+            f'{source}: post is "sealed" but SEAL_PASSWORD is unset. '
             f"Refusing to publish the body in the clear — set it in .env "
             f"(and in the deploy environment) and build again."
         )
@@ -674,7 +674,7 @@ def seal_listing(fragment: str, root: str) -> str:
     if SEALED_HANDLE is None:
         raise RuntimeError(
             "sealed rows reached a listing with no handle. "
-            "SEALED_PASSWORD must be set before main() derives one."
+            "SEAL_PASSWORD must be set before main() derives one."
         )
     fragment = fragment.replace("{site_root}", root.rstrip("/"))
     blob = seal_by_phrase(pad_fragment(fragment, SEAL_PAD_BLOCK), SEALED_HANDLE)
@@ -1028,7 +1028,7 @@ def render_article(post: dict, *, nav: str = "", root: str = "") -> str:
         if SEALED_HANDLE is None:
             raise RuntimeError(
                 f'{post["slug"]}: sealed post reached render with no handle. '
-                "SEALED_PASSWORD must be set before main() derives one."
+                "SEAL_PASSWORD must be set before main() derives one."
             )
         payload = seal_by_phrase(content, SEALED_HANDLE)
         content = (
@@ -1445,7 +1445,7 @@ def load_old_versions() -> dict[str, list[dict]]:
 def main() -> None:
     global HANDLE_SALT, SEALED_HANDLE, SITE_HAS_SEALED, BUILD_TIME, BUILD_ID
     HANDLE_SALT = "10ca1" * 6 + "77" if IS_LOCAL else os.urandom(16).hex()
-    SEALED_HANDLE = derive_handle(SEALED_PASSWORD, HANDLE_SALT) if SEALED_PASSWORD else None
+    SEALED_HANDLE = derive_handle(SEAL_PASSWORD, HANDLE_SALT) if SEAL_PASSWORD else None
     BUILD_TIME = datetime.now(timezone.utc)
     for cache in (ASSET_KEYS, ASSET_NAMES, SEALED_ASSETS, PUBLIC_ASSETS):
         cache.clear()

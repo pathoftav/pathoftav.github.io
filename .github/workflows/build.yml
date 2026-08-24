@@ -30,6 +30,8 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python build.py
+        env:
+            SEAL_PASSWORD: ${{ secrets.SEAL_PASSWORD }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

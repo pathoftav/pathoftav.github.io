@@ -31,7 +31,7 @@ Create `.env` at the root:
 
 ```sh
 ENVIRONMENT=LOCAL           # local dev build; omit in production
-SEALED_PASSWORD=secret      # the phrase that opens sealed posts
+SEAL_PASSWORD=secret        # the phrase that opens sealed posts
 ```
 
 `ENVIRONMENT=LOCAL` changes four things: drafts are built, CSS and JS are not
@@ -39,7 +39,7 @@ minified, page links carry `.html` so `site/` can be browsed straight off the
 filesystem, and the seal salt is fixed rather than random so a rebuild doesn't
 invalidate an open session.
 
-`SEALED_PASSWORD` is only read when a post is `sealed`. A sealed post with no
+`SEAL_PASSWORD` is only read when a post is `sealed`. A sealed post with no
 password set is a fatal build error, not a warning — publishing the body in the
 clear is worse than not publishing.
 
@@ -74,7 +74,7 @@ without one the file's mtime is used and the whole stem is the slug.
 | `toc` | bool | Prepend a Contents panel |
 | `math` | bool | Load KaTeX and render LaTeX |
 | `locked` | str | ISO date (optionally with time) before which the body is sealed |
-| `sealed` | bool | Encrypt the body against `SEALED_PASSWORD` |
+| `sealed` | bool | Encrypt the body against `SEAL_PASSWORD` |
 
 `toc` only produces a panel when the post has at least three `##` sections —
 below that a Contents list is noise, so it is skipped silently.

@@ -110,11 +110,11 @@ header.post h2 {
 	line-height: 1;
 	user-select: none;
 	flex-shrink: 0;
-	margin-left: 1rem;
+	margin-left: 0.5rem;
 }
 .badge-old      { color: #8a6d52; }
 .badge-draft    { color: #c63946; }
-.badge-pin      { color: #e6e946; }
+.badge-pin      { color: #7393b3; }
 .badge-unlisted { color: #1f99d2; }
 .badge-locked   { color: #9b7fd4; }
 .badge-sealed   { color: #63441c; }

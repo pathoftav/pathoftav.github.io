@@ -865,11 +865,11 @@ def post_list_items(posts, slug_prefix: str) -> str:
         unlock = f' data-unlock="{iso_utc(p["options"]["unlock_time"])}"' if locked else ""
         badges = ""
         if p["options"].get("pin"):
-            badges += badge("pin", "PINNED") + "&nbsp;"
+            badges += badge("pin", "PINNED")
         if locked:
-            badges += badge("locked") + "&nbsp;"
+            badges += badge("locked")
         if p["options"].get("is_sealed", False):
-            badges += badge("sealed") + "&nbsp;"
+            badges += badge("sealed")
         return (
             f'<li{unlock}><a href="{slug_prefix}{p["slug"]}{EXT}">{html.escape(p["title"])}</a>'
             '<span class="leader"></span>'

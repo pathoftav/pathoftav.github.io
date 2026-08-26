@@ -21,6 +21,13 @@ The rest is standard Markdown (with extensions enabled).
 If the LAST line consists only of hashtags ("#magic #geomancy"), they
 become the post's tags: rendered as links on the post page, indexed
 under site/tags/<tag>.html, with an overview at site/tags/index.html.
+
+Every build writes every page. Under --serve the work that does NOT change
+between rebuilds is skipped instead: only the static files the watcher saw
+move are copied, unchanged posts come out of a parse cache, and the phrase
+KDF runs at a local round count. Every page is still rendered from a post
+parsed or re-parsed this build, so nothing can be written from a stale
+cache and there is no dependency graph to get wrong.
 """
 
 import argparse
@@ -76,8 +83,8 @@ UNLOCK_FMT = "%B %-d, %Y at %-I:%M %p %Z"
 BUILD_TIME = datetime.now(timezone.utc)
 
 SEAL_PASSWORD = os.getenv("SEAL_PASSWORD") if not IS_LOCAL else os.getenv("SEAL_PASSWORD", "secret")
-SEAL_ROUNDS = 310_000       # PBKDF2 rounds — the cost of one guess at the phrase.
-HANDLE_ROUNDS = 310_000     # the same as above, one stage earlier. Rides in data-handle-rounds.
+SEAL_ROUNDS = 1_000 if IS_LOCAL else 310_000
+HANDLE_ROUNDS = 1_000 if IS_LOCAL else 310_000
 HANDLE_SALT = ""            # derived per build
 SEALED_HANDLE = None        # derived per build
 SITE_HAS_SEALED = False     # whether this build sealed anything at all
@@ -107,17 +114,38 @@ SEAL_RUNE_COLS = 22
 
 SERVE = False                       # True when running under --serve
 BUILD_ID = "0"                      # bumped each rebuild; open reload streams watch this
-BUILD_LOCK = threading.Lock()       # held while site/ is mid-rebuild and briefly empty
+RELOAD_HINT = "{}"                  # what the last rebuild touched; read by the client
+BUILD_LOCK = threading.Lock()       # held while site/ is mid-rebuild and briefly inconsistent
 BUILD_DONE = threading.Condition()  # notified once site/ is whole again
 
 # Server-sent events rather than a poll: one connection per tab for as long as
 # the tab is open, instead of a request every fraction of a second cluttering
 # the network tab. EventSource reconnects on its own if the stream drops, so
 # there is no retry logic to write here.
+#
+# The payload names what the rebuild touched. A build that changed no markup
+# and only restyled swaps the <link> hrefs in place — a full reload would lose
+# scroll position and every open <details> to repaint the same document.
 LIVE_RELOAD = """<script>
 (function () {
   var events = new EventSource("/__reload");
-  events.onmessage = function () { location.reload(); };
+  events.onmessage = function (e) {
+    var hint = null;
+    try { hint = JSON.parse(e.data); } catch (err) {}
+    if (hint && hint.css && hint.css.length) {
+      hint.css.forEach(function (href) {
+        document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+          var u = new URL(link.href, location.href);
+          if (u.pathname === href) {
+            u.searchParams.set("v", hint.build);
+            link.href = u.href;
+          }
+        });
+      });
+      return;
+    }
+    location.reload();
+  };
   // let the server drop the connection now rather than discover it on the
   // next write, and keep a bfcached page from holding a second stream open
   window.addEventListener("pagehide", function () { events.close(); });
@@ -125,11 +153,20 @@ LIVE_RELOAD = """<script>
 </script>"""
 
 # Media belonging to a shut-in post. Encrypted per (slug, kind) under a key
-# that ships inside the payload; see seal_assets(). Reset each build.
-ASSET_KEYS: dict[tuple[str, str], bytes] = {}    # (slug, kind) -> content key
-ASSET_NAMES: dict[tuple[bytes, Path], str] = {}  # (key, source) -> .enc filename
+# that ships inside the payload; see seal_assets().
+#
+# ASSET_KEYS and ASSET_NAMES persist across rebuilds under --serve, where site/
+# is not emptied: rotating a key every rebuild would re-encrypt every video on
+# every keystroke. The two sets below are a single build's verdict and are
+# cleared each time.
+ASSET_KEYS: dict[tuple[str, str], bytes] = {}                # (slug, kind) -> content key
+ASSET_NAMES: dict[tuple[bytes, Path], tuple[str, int]] = {}  # (key, source) -> (.enc name, mtime)
 SEALED_ASSETS: set[Path] = set()
 PUBLIC_ASSETS: set[Path] = set()
+LIVE_ENC: set[str] = set()          # .enc filenames this build still points at
+WITHDRAWN: set[Path] = set()        # sources whose plaintext is currently pulled
+WRITTEN_PAGES: set[Path] = set()    # every page this build wrote
+PREV_PAGES: set[Path] = set()       # every page the previous build wrote
 
 SEALED_DIR = "static/sealed"
 ASSET_ROOTS = ("static/media/",)    # trees a post's assets may be sealed out of
@@ -255,11 +292,63 @@ SLOT_RE = re.compile(r'\{\{\s*(\w+)\s*\}\}')
 
 
 # --------------------------------------------------------------------------
+# parse cache
+# --------------------------------------------------------------------------
+# Only markdown rendering is cached, and only under --serve; everything
+# downstream still runs every build. That is the whole point of stopping here:
+# every page is written from a post parsed or re-parsed this build, so no page
+# can go stale, and there is no graph of "which pages does this post appear on"
+# to maintain.
+#
+# The key is the .md's mtime AND the mtimes of every file it reached outside
+# itself. A bare <include source="fig.html"> resolves through the slug and,
+# for an old version, through a snapshot directory; media resolves inside
+# MediaExtension. The post's own mtime is silent about both.
+
+PARSE_CACHE: dict[tuple[str, bool], tuple[int, dict[str, int | None], dict]] = {}
+_HANDLE_CACHE: dict[tuple[str, str], str] = {}
+
+
+def stamp_of(path: Path) -> int | None:
+    return path.stat().st_mtime_ns if path.exists() else None
+
+
+def dep_stamps(deps: set[Path]) -> dict[str, int | None]:
+    return {str(d): stamp_of(d) for d in deps}
+
+
+def deps_unchanged(stamps: dict[str, int | None]) -> bool:
+    return all(stamp_of(Path(d)) == s for d, s in stamps.items())
+
+
+def clone_post(post: dict) -> dict:
+    """A copy safe for the caller to annotate. Only options is mutated
+    downstream (history, the "old" flag, the lock refresh), so only options
+    needs its own dict; html and tags are read-only after parsing."""
+    clone = dict(post)
+    clone["options"] = dict(post["options"])
+    return clone
+
+
+def refresh_lock(post: dict) -> None:
+    """Re-answer "is this still locked?" against the current BUILD_TIME.
+
+    A cached parse froze that verdict at the moment it ran. Nothing here makes
+    a deadline trigger a rebuild on its own — lock.js clears the badge in the
+    browser, as it always did — but a post whose moment passed while the server
+    was up must not be written from a stale one."""
+    unlock = post["options"].get("unlock_time")
+    if unlock is not None:
+        post["options"]["is_locked"] = unlock > BUILD_TIME
+
+
+# --------------------------------------------------------------------------
 # parsing
 # --------------------------------------------------------------------------
 
 def parse_post(path: Path, old: bool = False) -> dict:
-    """Read one .md file into a post dict: title, date, slug, tags, html, options."""
+    """Read one .md file into a post dict: title, date, slug, tags, html,
+    options, and the set of files outside the .md that the render depended on."""
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         raise ValueError(f"{path}: post is empty")
@@ -268,16 +357,23 @@ def parse_post(path: Path, old: bool = False) -> dict:
     title = first.lstrip("#").strip() if first.startswith("#") else first
     body_lines = lines[1:]
 
+    deps: set[Path] = set()
+
     options = extract_options(body_lines)                   # NOTE: mutates body_lines: pops the OPTIONS line
     tags = extract_tags(body_lines)                         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = date_and_slug(path)
     version = d.isoformat() if old else ""                  # NOTE: names the snapshot dir an old version prefers
-    body = expand_includes(body, path.name, slug, version)  # NOTE: splices in <include> tags
+    body = expand_includes(body, path.name, slug, version, deps)  # NOTE: splices in <include> tags
     body = body.replace("{slug}", slug)
     parse_sealed_option(options, path.name)                 # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
     parse_locked_option(options, path.name)                 # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
     rendered = render_markdown(body, slug, version, options)
+
+    # media resolves inside MediaExtension, which has no way to report back;
+    # the rendered HTML is the record of what it chose, and asset_deps() reads
+    # it with the same resolver the sealing pass uses.
+    deps |= asset_deps(rendered)
 
     return {
         "title": title,
@@ -286,7 +382,28 @@ def parse_post(path: Path, old: bool = False) -> dict:
         "tags": tags,
         "html": rendered,
         "options": options,
+        "deps": deps,
     }
+
+
+def parse_post_cached(path: Path, old: bool = False) -> dict:
+    """parse_post() memoised on the .md's mtime and its dependencies'.
+
+    Bypassed entirely off --serve: a one-shot build has nothing to reuse."""
+    if not SERVE:
+        return parse_post(path, old)
+
+    key = (str(path), old)
+    stamp = path.stat().st_mtime_ns
+    hit = PARSE_CACHE.get(key)
+    if hit is not None and hit[0] == stamp and deps_unchanged(hit[1]):
+        post = clone_post(hit[2])
+    else:
+        post = parse_post(path, old)
+        PARSE_CACHE[key] = (stamp, dep_stamps(post["deps"]), post)
+        post = clone_post(post)
+    refresh_lock(post)
+    return post
 
 
 def extract_options(body_lines: list[str]) -> dict:
@@ -347,7 +464,8 @@ def date_and_slug(path: Path) -> tuple[date, str]:
     return datetime.fromtimestamp(path.stat().st_mtime).date(), path.stem
 
 
-def expand_includes(text: str, source: str, slug: str, version: str) -> str:
+def expand_includes(text: str, source: str, slug: str, version: str,
+                    deps: set[Path] | None = None) -> str:
     """Splice component fragments into a post body, in place of <include> tags.
 
         <include source="vecfig.html" prompt="what is an LLM?" reply="...">
@@ -365,6 +483,10 @@ def expand_includes(text: str, source: str, slug: str, version: str) -> str:
     single-brace {site_root} survives for render(). Values are escaped for
     attribute position, so a fragment wanting one in JS should read it back
     with getAttribute rather than interpolate it into a script.
+
+    Every fragment actually opened is recorded in `deps` when one is passed:
+    the resolution rules above mean the post's own mtime says nothing about
+    which file a bare filename found, so the parse cache has to be told.
 
     Runs after options and tags are peeled, so a fragment cannot reconfigure
     its post, and before markdown, so it parses as if pasted in. Includes do
@@ -385,6 +507,8 @@ def expand_includes(text: str, source: str, slug: str, version: str) -> str:
             path = snapshot if snapshot and snapshot.is_file() else base / rel
         if not path.is_file():
             raise FileNotFoundError(f"{source}: no such include: {src!r} -> {path}")
+        if deps is not None:
+            deps.add(path)
 
         frag = path.read_text(encoding="utf-8").strip("\n")
 
@@ -557,13 +681,19 @@ def derive_handle(phrase: str, salt_hex: str) -> str:
 
     Salted per build, so the handle rotates with the site. A handle lifted out
     of a reader's session opens that build's posts and no others; ciphertext
-    already captured stays readable, but nothing published afterwards does."""
-    return PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=bytes.fromhex(salt_hex),
-        iterations=HANDLE_ROUNDS,
-    ).derive(phrase.encode()).hex()
+    already captured stays readable, but nothing published afterwards does.
+
+    Memoised on (phrase, salt), which pays only under --serve: the local salt
+    is a constant, so every rebuild would otherwise re-derive the same value."""
+    hit = _HANDLE_CACHE.get((phrase, salt_hex))
+    if hit is None:
+        hit = _HANDLE_CACHE[(phrase, salt_hex)] = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=bytes.fromhex(salt_hex),
+            iterations=HANDLE_ROUNDS,
+        ).derive(phrase.encode()).hex()
+    return hit
 
 
 def seal_by_phrase(body: str, handle: str) -> str:
@@ -712,6 +842,23 @@ def resolve_asset(url: str) -> Path | None:
     return path if path.is_file() else None
 
 
+def asset_deps(content: str) -> set[Path]:
+    """Every sealable file a rendered body points at.
+
+    Serves two callers with one pass: the parse cache treats these as
+    dependencies (media changing must re-render the post that shows it), and
+    note_public_assets() treats them as files an open page serves in the
+    clear."""
+    found: set[Path] = set()
+    for m in ASSET_TAG_RE.finditer(content):
+        for pattern in (ASSET_SRC_RE, ASSET_DARK_RE):
+            for hit in pattern.finditer(m.group(0)):
+                source = resolve_asset(hit.group(1))
+                if source is not None:
+                    found.add(source)
+    return found
+
+
 def asset_key(slug: str, kind: str) -> bytes:
     """One content key per post per kind, minted on first use.
 
@@ -727,10 +874,17 @@ def publish_asset(source: Path, key: bytes) -> str:
 
     Named from a hash of the key and the path, so the name gives up neither
     the post nor the original filename and rotates whenever the key does.
-    Blob layout matches seal(): iv || ciphertext || GCM tag."""
+    Blob layout matches seal(): iv || ciphertext || GCM tag.
+
+    The cache is keyed on the source's mtime as well: the name is a function
+    of the key and the path, not the bytes, so under --serve — where keys
+    outlive a build — an edited image would otherwise keep its old ciphertext
+    under a name that looks up to date."""
+    mtime = source.stat().st_mtime_ns
     cached = ASSET_NAMES.get((key, source))
-    if cached:
-        return f"{{site_root}}/{SEALED_DIR}/{cached}"
+    if cached is not None and cached[1] == mtime:
+        LIVE_ENC.add(cached[0])
+        return f"{{site_root}}/{SEALED_DIR}/{cached[0]}"
 
     rel = source.relative_to(ROOT).as_posix()
     name = hashlib.sha256(key + rel.encode()).hexdigest()[:32] + ".enc"
@@ -740,7 +894,8 @@ def publish_asset(source: Path, key: bytes) -> str:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(iv + AESGCM(key).encrypt(iv, source.read_bytes(), None))
 
-    ASSET_NAMES[(key, source)] = name
+    ASSET_NAMES[(key, source)] = (name, mtime)
+    LIVE_ENC.add(name)
     SEALED_ASSETS.add(source)
     return f"{{site_root}}/{SEALED_DIR}/{name}"
 
@@ -764,6 +919,7 @@ def seal_assets(content: str, slug: str, kind: str) -> tuple[str, bytes | None]:
             return None
         key = asset_key(slug, kind)
         used.append(key)
+        SEALED_ASSETS.add(source)
         mime = mimetypes.guess_type(source.name)[0] or "application/octet-stream"
         return publish_asset(source, key), mime
 
@@ -799,24 +955,33 @@ def seal_assets(content: str, slug: str, kind: str) -> tuple[str, bytes | None]:
 def note_public_assets(content: str) -> None:
     """Record media an open page serves in the clear, so a file it shares
     with a shut-in post survives that post's withdrawal."""
-    for m in ASSET_TAG_RE.finditer(content):
-        for pattern in (ASSET_SRC_RE, ASSET_DARK_RE):
-            for hit in pattern.finditer(m.group(0)):
-                source = resolve_asset(hit.group(1))
-                if source is not None:
-                    PUBLIC_ASSETS.add(source)
+    PUBLIC_ASSETS.update(asset_deps(content))
 
 
 def withdraw_sealed_assets() -> None:
     """Delete the plaintext of anything encrypted, unless an open page still
-    points at it.
+    points at it — and put back anything that has stopped being encrypted.
 
-    Without this the encryption is theatre: the original would sit at a
-    guessable URL beside the sealed page, crawlable precisely because nothing
-    links to it. The .enc copies outlive it, so a locked post still opens on
-    schedule with no rebuild."""
-    for source in sorted(SEALED_ASSETS - PUBLIC_ASSETS):
+    Without the first half the encryption is theatre: the original would sit
+    at a guessable URL beside the sealed page, crawlable precisely because
+    nothing links to it. The .enc copies outlive it, so a locked post still
+    opens on schedule with no rebuild.
+
+    The second half exists because site/ survives between rebuilds and only
+    the files the watcher saw move are re-copied. Unsealing a post changes
+    the .md, not the image, so nothing would otherwise restore it.
+
+    Every page is written each build, so both sets are the whole site's
+    verdict and the unlink is a straight sweep rather than a diff."""
+    global WITHDRAWN
+    gone = SEALED_ASSETS - PUBLIC_ASSETS
+    for source in sorted(gone):
         (SITE / source.relative_to(ROOT)).unlink(missing_ok=True)
+    for source in sorted(WITHDRAWN - gone):
+        dest = SITE / source.relative_to(ROOT)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest)
+    WITHDRAWN = gone
 
     for tree in ASSET_ROOTS:
         base = SITE / tree.rstrip("/")
@@ -825,6 +990,14 @@ def withdraw_sealed_assets() -> None:
         for d in sorted(base.rglob("*"), key=lambda q: len(q.parts), reverse=True):
             if d.is_dir() and not any(d.iterdir()):
                 d.rmdir()
+
+    # .enc files nothing points at any more. Only reachable under --serve,
+    # where site/ survives between builds.
+    sealed_dir = SITE / SEALED_DIR
+    if sealed_dir.is_dir():
+        for enc in sealed_dir.glob("*.enc"):
+            if enc.name not in LIVE_ENC:
+                enc.unlink()
 
 
 # --------------------------------------------------------------------------
@@ -1074,6 +1247,7 @@ def write_page(dest: Path, title: str, body: str, extras=None) -> None:
     """Render body into the page shell and write it to dest (under SITE)."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(render(title, root_for(dest), body, extras), encoding="utf-8")
+    WRITTEN_PAGES.add(dest)
 
 
 def listing_extras(posts, payload: bool = False) -> list[str]:
@@ -1339,7 +1513,8 @@ def write_404() -> None:
         not_found_body(" data-seal-listing" if decoy else "")
         + (seal_listing(not_found_body(), "/") if decoy else "")
     )
-    (SITE / "404.html").write_text(
+    dest = SITE / "404.html"
+    dest.write_text(
         render(
             f"Not found — {SITE_TITLE}",
             "/",
@@ -1348,6 +1523,7 @@ def write_404() -> None:
         ),
         encoding="utf-8",
     )
+    WRITTEN_PAGES.add(dest)
 
 
 # --------------------------------------------------------------------------
@@ -1368,8 +1544,41 @@ def clear_dir(path: Path) -> None:
             child.unlink()
 
 
+def copy_favicons() -> None:
+    """The favicon set, which is one directory in the source and another in
+    the build depending on the environment."""
+    shutil.copytree(
+        STATIC / ("favicon" if not IS_LOCAL else "favicon_dev"),
+        SITE / STATIC.name / "favicon",
+        dirs_exist_ok=True,
+    )
+    shutil.copy(SITE / STATIC.name / "favicon" / "favicon.ico", SITE / "favicon.ico")
+
+
+def minify_assets() -> None:
+    """Minify .css and .js in place. Production only — a local build serves
+    the sources so a stack trace points at a line that exists."""
+    styles_dir = SITE / STATIC.name / "styles"
+    if styles_dir.exists():
+        for css_file in styles_dir.glob("*.css"):
+            raw_css = css_file.read_text(encoding="utf-8")
+            minified_css = rcssmin.cssmin(raw_css)
+            css_file.write_text(minified_css, encoding="utf-8")
+
+    scripts_dir = SITE / STATIC.name / "scripts"
+    if scripts_dir.exists():
+        for js_file in scripts_dir.glob("*.js"):
+            raw_js = js_file.read_text(encoding="utf-8")
+            minified_js = rjsmin.jsmin(raw_js)
+            if isinstance(minified_js, bytes):
+                minified_js = minified_js.decode("utf-8")
+            else:
+                minified_js = str(minified_js)
+            js_file.write_text(minified_js, encoding="utf-8")
+
+
 def prepare_output() -> None:
-    """Wipe site/ and copy static assets in."""
+    """Wipe site/ and copy static assets in. Used off --serve."""
     clear_dir(SITE)
 
     # Copy static files
@@ -1380,33 +1589,64 @@ def prepare_output() -> None:
         ignore=shutil.ignore_patterns("components", "favicon", "favicon_dev"),
     )
 
-    # Copy favicon folder
-    shutil.copytree(
-        STATIC / ("favicon" if not IS_LOCAL else "favicon_dev"),
-        SITE / STATIC.name / "favicon",
-        dirs_exist_ok=True,
-    )
-    shutil.copy(SITE / STATIC.name / "favicon" / "favicon.ico", SITE / "favicon.ico")
+    copy_favicons()
 
-    # Minify .css and .js files
     if not IS_LOCAL:
-        styles_dir = SITE / STATIC.name / "styles"
-        if styles_dir.exists():
-            for css_file in styles_dir.glob("*.css"):
-                raw_css = css_file.read_text(encoding="utf-8")
-                minified_css = rcssmin.cssmin(raw_css)
-                css_file.write_text(minified_css, encoding="utf-8")
+        minify_assets()
 
-        scripts_dir = SITE / STATIC.name / "scripts"
-        if scripts_dir.exists():
-            for js_file in scripts_dir.glob("*.js"):
-                raw_js = js_file.read_text(encoding="utf-8")
-                minified_js = rjsmin.jsmin(raw_js)
-                if isinstance(minified_js, bytes):
-                    minified_js = minified_js.decode("utf-8")
-                else:
-                    minified_js = str(minified_js)
-                js_file.write_text(minified_js, encoding="utf-8")
+
+def sync_static(changed: set[Path]) -> None:
+    """Mirror just the static files the watcher saw move.
+
+    Stands in for prepare_output() on a --serve rebuild. Walking the tree to
+    work out what changed would cost more than everything else in the build
+    put together — and would be the second walk, since the watcher has just
+    stat()ed every one of these files and knows the answer. This takes that
+    answer rather than re-deriving a worse version of it.
+
+    site/ therefore survives between rebuilds, which has three consequences
+    handled elsewhere: plaintext a sealed post withdrew is restored by
+    withdraw_sealed_assets(); stale .enc files are swept there too; and pages
+    for deleted posts are swept by prune_orphan_pages()."""
+    for source in sorted(changed):
+        try:
+            rel = source.relative_to(STATIC)
+        except ValueError:
+            continue                       # not a static file
+        top = rel.parts[0] if rel.parts else ""
+        if top == "components":
+            continue                       # spliced into posts, never copied
+        if top in ("favicon", "favicon_dev"):
+            copy_favicons()
+            continue
+
+        dest = SITE / STATIC.name / rel
+        if not source.exists():
+            dest.unlink(missing_ok=True)
+            continue
+        if source in WITHDRAWN:
+            continue                       # a shut-in post has pulled this one
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest)
+
+
+def prune_orphan_pages() -> None:
+    """Delete pages the previous build wrote and this one did not.
+
+    site/ is not emptied under --serve, so a deleted post, version or tag
+    would otherwise go on being served indefinitely. Every page is written
+    every build, so the two sets are complete and their difference is exactly
+    the orphans — no walk of site/ required."""
+    orphans = PREV_PAGES - WRITTEN_PAGES
+    if not orphans:
+        return
+    for page in sorted(orphans):
+        page.unlink(missing_ok=True)
+
+    for d in sorted({p.parent for p in orphans}, key=lambda q: len(q.parts), reverse=True):
+        while d != SITE and d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+            d = d.parent
 
 
 def load_posts() -> list[dict]:
@@ -1414,7 +1654,7 @@ def load_posts() -> list[dict]:
     valid_posts = []
 
     for p in POSTS.glob("*.md"):
-        post = parse_post(p)
+        post = parse_post_cached(p)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         valid_posts.append(post)
@@ -1432,7 +1672,7 @@ def load_old_versions() -> dict[str, list[dict]]:
     if not OLD.exists():
         return by_slug
     for p in OLD.glob("*.md"):
-        post = parse_post(p, old=True)
+        post = parse_post_cached(p, old=True)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         post["options"]["old"] = True
@@ -1442,17 +1682,41 @@ def load_old_versions() -> dict[str, list[dict]]:
     return by_slug
 
 
-def main() -> None:
+def prune_parse_cache() -> None:
+    """Drop entries for .md files that have since been deleted."""
+    for key in [k for k in PARSE_CACHE if not Path(k[0]).exists()]:
+        del PARSE_CACHE[key]
+
+
+def main(changed: set[Path] | None = None) -> None:
+    """Write the site. `changed` is the batch of paths a --serve watcher saw;
+    None means start from scratch — wipe site/ and copy the static tree in.
+
+    Every page is written either way. The only thing `changed` decides is how
+    much of static/ has to be touched to get there."""
     global HANDLE_SALT, SEALED_HANDLE, SITE_HAS_SEALED, BUILD_TIME, BUILD_ID
+    global RELOAD_HINT, PREV_PAGES
+    full = changed is None or not SERVE
     HANDLE_SALT = "10ca1" * 6 + "77" if IS_LOCAL else os.urandom(16).hex()
     SEALED_HANDLE = derive_handle(SEAL_PASSWORD, HANDLE_SALT) if SEAL_PASSWORD else None
     BUILD_TIME = datetime.now(timezone.utc)
-    for cache in (ASSET_KEYS, ASSET_NAMES, SEALED_ASSETS, PUBLIC_ASSETS):
+    started = time.perf_counter()
+    PREV_PAGES = set() if full else set(WRITTEN_PAGES)
+    for cache in (SEALED_ASSETS, PUBLIC_ASSETS, LIVE_ENC, WRITTEN_PAGES):
         cache.clear()
+    if full:
+        WITHDRAWN.clear()
+        ASSET_KEYS.clear()
+        ASSET_NAMES.clear()
     with BUILD_LOCK:
-        prepare_output()
+        if full:
+            prepare_output()
+        else:
+            sync_static(changed)
+
         posts = load_posts()
         old_posts = load_old_versions()
+        prune_parse_cache()
         for p in posts:
             p["history"] = old_posts.get(p["slug"], [])
 
@@ -1480,7 +1744,11 @@ def main() -> None:
         write_tag_index(by_tag, by_tag_all)
         write_404()
         withdraw_sealed_assets()   # after every page has declared what it uses
+        if not full:
+            prune_orphan_pages()   # site/ was not emptied; catch what went away
+    elapsed = (time.perf_counter() - started) * 1000
     BUILD_ID = str(time.time_ns())
+    RELOAD_HINT = reload_hint(changed if not full else None)
     with BUILD_DONE:
         BUILD_DONE.notify_all()   # wake any open reload stream
 
@@ -1510,8 +1778,23 @@ def main() -> None:
         f'across {slugs_with_history} {"slug" if slugs_with_history == 1 else "slugs"}, '
         f'{len(by_tag_all)} {"tag" if len(by_tag_all) == 1 else "tags"}'
         f'{f" ({len(by_tag_all) - len(by_tag)} sealed)" if len(by_tag_all) > len(by_tag) else ""}'
-        f': {SITE}/'
+        f': {SITE}/ ({elapsed:.0f} ms)'
     )
+
+
+def reload_hint(changed: set[Path] | None) -> str:
+    """What the client should do about this build.
+
+    A rebuild in which nothing but stylesheets moved can be applied by
+    swapping the <link> hrefs; anything else is a reload. Markup is rendered
+    from the posts either way, so the test is only on what changed — a
+    stylesheet edit cannot alter a page's HTML."""
+    hint: dict[str, object] = {"build": BUILD_ID, "css": []}
+    if changed:
+        styles = STATIC / "styles"
+        if all(p.suffix == ".css" and p.parent == styles and p.exists() for p in changed):
+            hint["css"] = [f"/static/styles/{p.name}" for p in sorted(changed)]
+    return json.dumps(hint)
 
 
 # --------------------------------------------------------------------------
@@ -1550,10 +1833,16 @@ class DevHandler(SimpleHTTPRequestHandler):
     def stream_reloads(self) -> None:
         """Hold the connection open and emit an event on each rebuild.
 
+        Each event carries an id, so a reconnecting EventSource announces the
+        last build it saw in Last-Event-ID and is brought up to date on the
+        spot. Without that, a stream that dropped while the server restarted
+        (an edit to build.py re-execs it) would come back believing whatever
+        was built while it was away was what the tab already had.
+
         Reads BUILD_ID without the lock. A str assignment is atomic under
         CPython, and the worst a torn read could do is delay a reload until
         the next wakeup. Cache-Control is added by end_headers() below."""
-        seen = BUILD_ID
+        seen = self.headers.get("Last-Event-ID") or BUILD_ID
         self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
@@ -1562,14 +1851,14 @@ class DevHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         try:
             while True:
-                with BUILD_DONE:
-                    BUILD_DONE.wait(timeout=self.PING_SECONDS)
                 if BUILD_ID != seen:
                     seen = BUILD_ID
-                    self.wfile.write(f"data: {seen}\n\n".encode())
+                    self.wfile.write(f"id: {seen}\ndata: {RELOAD_HINT}\n\n".encode())
                 else:
                     self.wfile.write(b": ping\n\n")
                 self.wfile.flush()
+                with BUILD_DONE:
+                    BUILD_DONE.wait(timeout=self.PING_SECONDS)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass   # the tab closed; the thread is free to end
 
@@ -1620,16 +1909,40 @@ class DevHandler(SimpleHTTPRequestHandler):
         super().send_error(code, message, explain)
 
 
+SOURCES = ("build.py", "media_ext.py")
+
+
 def watched_files():
-    yield ROOT / "build.py"
-    yield ROOT / "media_ext.py"
+    for name in SOURCES:
+        yield ROOT / name
     for base in (POSTS, STATIC):
         if base.exists():
             yield from (p for p in base.rglob("*") if p.is_file())
 
 
-def snapshot() -> dict:
-    return {str(p): p.stat().st_mtime_ns for p in watched_files() if p.exists()}
+def snapshot() -> dict[Path, int]:
+    return {p: p.stat().st_mtime_ns for p in watched_files() if p.exists()}
+
+
+def diff(prev: dict[Path, int], cur: dict[Path, int]) -> set[Path]:
+    """The paths that appeared, vanished or moved between two sweeps.
+
+    The watcher has to stat every watched file anyway; this is the only extra
+    line needed to keep what it learned, and it saves the build a second walk
+    of the same tree."""
+    return {p for p in prev.keys() | cur.keys() if prev.get(p) != cur.get(p)}
+
+
+def restart() -> None:
+    """Re-exec the interpreter after the generator itself changes.
+
+    Rebuilding in place would run the module already in memory: every edit to
+    build.py or media_ext.py would appear to take effect and none of them
+    would. Open reload streams die with the process; their Last-Event-ID
+    brings the tabs back on reconnect."""
+    print("build source changed; restarting")
+    sys.stdout.flush()
+    os.execv(sys.executable, [sys.executable, *sys.argv])
 
 
 def serve(port: int) -> None:
@@ -1649,12 +1962,15 @@ def serve(port: int) -> None:
         while True:
             time.sleep(0.4)
             cur = snapshot()
-            if cur == prev:
+            changed = diff(prev, cur)
+            if not changed:
                 continue
             prev = cur
+            if any(p.name in SOURCES and p.parent == ROOT for p in changed):
+                restart()
             print(f"\n[{datetime.now().strftime('%H:%M:%S')}] rebuilding...")
             try:
-                main()
+                main(changed)
             except Exception:
                 traceback.print_exc()   # keep serving; fix the post and save again
     except KeyboardInterrupt:

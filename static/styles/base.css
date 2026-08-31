@@ -35,7 +35,7 @@ html {
 body {
 	background: var(--card);
 	color: var(--ink);
-	font-family: "EB Garamond", "EB Garamond Fallback", Georgia, serif;
+	font-family: "EB Garamond", "EB Garamond Fallback", "Frank Ruhl Libre", Georgia, serif;
 	font-size: 1.25rem;
 	line-height: 1.65;
 	max-width: 48rem;           /* the white column */

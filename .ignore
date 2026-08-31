@@ -2,6 +2,7 @@ static/favicon/
 static/fonts/
 static/vendor/
 
+*.webp
 *.webm
 *.gif
 *.png

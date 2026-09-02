@@ -32,6 +32,12 @@ a post's own media needs no path; anything containing '/' is used as
 given. The same rule applies to ?dark= and ?link= siblings, which resolve
 against the main path once it has been resolved.
 
+<slug> is the asset directory the build hands down, not necessarily the
+post's URL slug: a post inside a group passes "<group-slug>/<slug>", so
+the group's media sits together and each post inside still has a folder of
+its own. Nothing here treats that any differently — the name is joined
+into a path, and a path with one more segment in it behaves the same.
+
 A version out of posts/old/ shares the live post's slug, so a bare
 filename there would otherwise follow the media as it stands now. Such a
 version looks first in <slug>/<date>/ and falls back to the shared

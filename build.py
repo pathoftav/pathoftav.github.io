@@ -18,10 +18,15 @@ members: they are sealed only if they say so themselves.
 
 A post's own assets live under static/components/<slug>/ and
 static/media/<slug>/, where a bare filename in an <include> or an image
-finds them without a path. An old version out of posts/old/ shares the
-live slug, so it first looks in a <slug>/<date>/ subdirectory and falls
-back to the shared one — keep a snapshot there only for the versions whose
-assets have since been rewritten. Old versions of a grouped post live in
+finds them without a path. A grouped post nests: its directory is
+<group-slug>/<slug>/, so a group's assets sit together and each post
+inside still has a folder of its own. The group's own index.md uses
+<group-slug>/ — the folder those member directories sit in.
+
+An old version out of posts/old/ shares the live post's asset directory,
+so it first looks in a <date>/ subdirectory of it and falls back to the
+shared one — keep a snapshot there only for the versions whose assets
+have since been rewritten. Old versions of a grouped post live in
 posts/old/<group-slug>/, so slugs only have to be unique within a group.
 
 Post format: if the first line is an H1 ("# Title") it becomes the
@@ -359,13 +364,21 @@ def refresh_lock(post: dict) -> None:
 # --------------------------------------------------------------------------
 
 def parse_post(path: Path, old: bool = False,
-               ident: tuple[date, str] | None = None) -> dict:
+               ident: tuple[date, str] | None = None,
+               group: str | None = None) -> dict:
     """Read one .md file into a post dict: title, date, slug, tags, html,
     options, and the set of files outside the .md that the render depended on.
 
     `ident` overrides the (date, slug) the filename would give. A group's
     index.md needs it: the file is called index.md, but the group is named by
-    its directory, and the slug decides where <include> and media resolve."""
+    its directory.
+
+    `group` is the group the post belongs to, if any, and decides where its
+    assets live: a grouped post's components and media nest under
+    "<group>/<slug>", so a group's assets sit together and each post inside
+    still has a folder of its own. The caller says what the post is and this
+    works out where that puts its assets — composing the path out here would
+    mean deriving the slug twice, in two places free to disagree."""
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         raise ValueError(f"{path}: post is empty")
@@ -380,12 +393,13 @@ def parse_post(path: Path, old: bool = False,
     tags = extract_tags(body_lines)                         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
     d, slug = ident if ident is not None else date_and_slug(path)
+    asset_slug = f"{group}/{slug}" if group else slug        # NOTE: where components/ and media/ are looked for
     version = d.isoformat() if old else ""                  # NOTE: names the snapshot dir an old version prefers
-    body = expand_includes(body, path.name, slug, version, deps)  # NOTE: splices in <include> tags
-    body = body.replace("{slug}", slug)
+    body = expand_includes(body, path.name, asset_slug, version, deps)  # NOTE: splices in <include> tags
+    body = body.replace("{slug}", asset_slug)
     parse_sealed_option(options, path.name)                 # NOTE: mutates options: replaces "sealed" with "is_sealed", overrides locked_options and removes them if present
     parse_locked_option(options, path.name)                 # NOTE: mutates options: replaces "locked" with "is_locked" and "unlock_time"
-    rendered = render_markdown(body, slug, version, options)
+    rendered = render_markdown(body, asset_slug, version, options)
 
     # media resolves inside MediaExtension, which has no way to report back;
     # the rendered HTML is the record of what it chose, and asset_deps() reads
@@ -404,20 +418,21 @@ def parse_post(path: Path, old: bool = False,
 
 
 def parse_post_cached(path: Path, old: bool = False,
-                      ident: tuple[date, str] | None = None) -> dict:
+                      ident: tuple[date, str] | None = None,
+                      group: str | None = None) -> dict:
     """parse_post() memoised on the .md's mtime and its dependencies'.
 
     Bypassed entirely off --serve: a one-shot build has nothing to reuse."""
     if not SERVE:
-        return parse_post(path, old, ident)
+        return parse_post(path, old, ident, group)
 
-    key = (str(path), old, ident)
+    key = (str(path), old, ident, group)
     stamp = path.stat().st_mtime_ns
     hit = PARSE_CACHE.get(key)
     if hit is not None and hit[0] == stamp and deps_unchanged(hit[1]):
         post = clone_post(hit[2])
     else:
-        post = parse_post(path, old, ident)
+        post = parse_post(path, old, ident, group)
         PARSE_CACHE[key] = (stamp, dep_stamps(post["deps"]), post)
         post = clone_post(post)
     refresh_lock(post)
@@ -498,6 +513,10 @@ def expand_includes(text: str, source: str, slug: str, version: str,
     A bare `source` resolves under static/components/<slug>/; anything with a
     slash resolves against ROOT. {site_root}/ and {slug} are substituted first.
 
+    `slug` here is the post's asset directory, which for a grouped post is
+    "<group-slug>/<slug>" — a name with a slash in it, which every path built
+    from it takes in its stride.
+
     An old version passes its date as `version` and prefers a snapshot in
     static/components/<slug>/<version>/, falling back to the shared directory
     when there isn't one — so a figure can be frozen for the versions that
@@ -553,7 +572,8 @@ def render_markdown(body: str, slug: str, version: str, options: dict) -> str:
 
     slug and version reach MediaExtension, which resolves bare media
     filenames under static/media/<slug>/ and lets an old version prefer a
-    snapshot in <slug>/<version>/."""
+    snapshot in <slug>/<version>/. As in expand_includes, slug is the post's
+    asset directory — "<group-slug>/<slug>" for a grouped post."""
     md = markdown.Markdown(
         extensions=[
             # Structural Block Parsers
@@ -1813,9 +1833,10 @@ def load_groups() -> list[dict]:
     resolve under components/<group-slug>/ and media/<group-slug>/ rather
     than under an "index" that means nothing.
 
-    Members are ordinary posts. They keep their own slug — so their assets
-    resolve exactly as a top-level post's do — and gain the group they belong
-    to, which decides where their page and their history are written."""
+    Members are ordinary posts, told which group they are in. That one fact
+    decides all three of the things that differ: where their page is written,
+    where their history lives, and that their assets nest under
+    components/<group-slug>/<slug>/ and media/<group-slug>/<slug>/."""
     groups: list[dict] = []
     if not POSTS.exists():
         return groups
@@ -1851,7 +1872,7 @@ def load_groups() -> list[dict]:
         for m in sorted(d.glob("*.md")):
             if m.name == GROUP_META:
                 continue
-            post = parse_post_cached(m)
+            post = parse_post_cached(m, group=gslug)
             if post["options"].get("draft", False) and not IS_LOCAL:
                 continue
             post["group"] = gslug
@@ -1885,7 +1906,9 @@ def load_old_versions() -> dict[tuple[str | None, str], list[dict]]:
             sources += [(d.name, p) for p in sorted(d.glob("*.md"))]
 
     for group, p in sources:
-        post = parse_post_cached(p, old=True)
+        # same group as the live post, so a bare filename resolves in the same
+        # directory and finds the <date>/ snapshot kept for this version
+        post = parse_post_cached(p, old=True, group=group)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         post["options"]["old"] = True

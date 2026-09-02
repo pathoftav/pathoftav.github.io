@@ -8,12 +8,21 @@ Layout:
     static/   files copied verbatim into the build
     site/     generated output — deploy this directory anywhere static
 
+A subdirectory of posts/ is a group: the posts inside it are collected
+onto a page of their own instead of appearing individually in the index,
+and the index carries one row for the group. The directory is named like
+a post (YYYY-MM-DD-slug), and an optional index.md inside it supplies the
+group's title, body and OPTIONS line — so a group can be pinned, sealed
+or locked exactly as a post can. Sealing a group says nothing about its
+members: they are sealed only if they say so themselves.
+
 A post's own assets live under static/components/<slug>/ and
 static/media/<slug>/, where a bare filename in an <include> or an image
 finds them without a path. An old version out of posts/old/ shares the
 live slug, so it first looks in a <slug>/<date>/ subdirectory and falls
 back to the shared one — keep a snapshot there only for the versions whose
-assets have since been rewritten.
+assets have since been rewritten. Old versions of a grouped post live in
+posts/old/<group-slug>/, so slugs only have to be unique within a group.
 
 Post format: if the first line is an H1 ("# Title") it becomes the
 post title; otherwise the first line is taken as the title verbatim.
@@ -73,6 +82,8 @@ STATIC = ROOT / "static"
 SITE = ROOT / "site"
 INDEX = "index.html" if IS_LOCAL else ""    # set to "" in serve() if --serve
 EXT = ".html" if IS_LOCAL else ""           # set to "" in serve() if --serve
+
+GROUP_META = "index.md"     # optional title/body/OPTIONS for a group directory
 
 SITE_TITLE = "Sublunary Musings"
 SITE_SUBTITLE = "philosophy, magic, and other errata"
@@ -305,7 +316,7 @@ SLOT_RE = re.compile(r'\{\{\s*(\w+)\s*\}\}')
 # for an old version, through a snapshot directory; media resolves inside
 # MediaExtension. The post's own mtime is silent about both.
 
-PARSE_CACHE: dict[tuple[str, bool], tuple[int, dict[str, int | None], dict]] = {}
+PARSE_CACHE: dict[tuple, tuple[int, dict[str, int | None], dict]] = {}
 _HANDLE_CACHE: dict[tuple[str, str], str] = {}
 
 
@@ -323,8 +334,9 @@ def deps_unchanged(stamps: dict[str, int | None]) -> bool:
 
 def clone_post(post: dict) -> dict:
     """A copy safe for the caller to annotate. Only options is mutated
-    downstream (history, the "old" flag, the lock refresh), so only options
-    needs its own dict; html and tags are read-only after parsing."""
+    downstream (history, the "old" flag, the lock refresh, the group a post
+    belongs to), so only options needs its own dict; html and tags are
+    read-only after parsing."""
     clone = dict(post)
     clone["options"] = dict(post["options"])
     return clone
@@ -346,9 +358,14 @@ def refresh_lock(post: dict) -> None:
 # parsing
 # --------------------------------------------------------------------------
 
-def parse_post(path: Path, old: bool = False) -> dict:
+def parse_post(path: Path, old: bool = False,
+               ident: tuple[date, str] | None = None) -> dict:
     """Read one .md file into a post dict: title, date, slug, tags, html,
-    options, and the set of files outside the .md that the render depended on."""
+    options, and the set of files outside the .md that the render depended on.
+
+    `ident` overrides the (date, slug) the filename would give. A group's
+    index.md needs it: the file is called index.md, but the group is named by
+    its directory, and the slug decides where <include> and media resolve."""
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         raise ValueError(f"{path}: post is empty")
@@ -362,7 +379,7 @@ def parse_post(path: Path, old: bool = False) -> dict:
     options = extract_options(body_lines)                   # NOTE: mutates body_lines: pops the OPTIONS line
     tags = extract_tags(body_lines)                         # NOTE: mutates body_lines: pops the tag line
     body = "\n".join(body_lines).strip()
-    d, slug = date_and_slug(path)
+    d, slug = ident if ident is not None else date_and_slug(path)
     version = d.isoformat() if old else ""                  # NOTE: names the snapshot dir an old version prefers
     body = expand_includes(body, path.name, slug, version, deps)  # NOTE: splices in <include> tags
     body = body.replace("{slug}", slug)
@@ -386,20 +403,21 @@ def parse_post(path: Path, old: bool = False) -> dict:
     }
 
 
-def parse_post_cached(path: Path, old: bool = False) -> dict:
+def parse_post_cached(path: Path, old: bool = False,
+                      ident: tuple[date, str] | None = None) -> dict:
     """parse_post() memoised on the .md's mtime and its dependencies'.
 
     Bypassed entirely off --serve: a one-shot build has nothing to reuse."""
     if not SERVE:
-        return parse_post(path, old)
+        return parse_post(path, old, ident)
 
-    key = (str(path), old)
+    key = (str(path), old, ident)
     stamp = path.stat().st_mtime_ns
     hit = PARSE_CACHE.get(key)
     if hit is not None and hit[0] == stamp and deps_unchanged(hit[1]):
         post = clone_post(hit[2])
     else:
-        post = parse_post(path, old)
+        post = parse_post(path, old, ident)
         PARSE_CACHE[key] = (stamp, dep_stamps(post["deps"]), post)
         post = clone_post(post)
     refresh_lock(post)
@@ -412,6 +430,9 @@ def extract_options(body_lines: list[str]) -> dict:
 
     The options line must be in a specific format at the very bottom of the file:
     <!-- [OPTIONS]: { "draft": true, "math": true } -->
+
+    A group's index.md takes the same line, and every option below means for
+    the group page what it means for a post page.
 
     List of options
         "pin":      int    pin post to top of listings; larger numbers rank higher
@@ -457,7 +478,10 @@ def extract_tags(body_lines: list[str]) -> list[str]:
 
 def date_and_slug(path: Path) -> tuple[date, str]:
     """Derive (date, slug) from the filename: a YYYY-MM-DD- prefix wins,
-    otherwise fall back to the file's mtime."""
+    otherwise fall back to the file's mtime.
+
+    Works on a group directory too — a directory has no suffix, so its stem
+    is its whole name."""
     m = DATE_RE.match(path.stem)
     if m:
         return date.fromisoformat(m.group(1)), path.stem[len(m.group(0)):]
@@ -1028,8 +1052,30 @@ def badge(kind: str, label: str | None = None) -> str:
     return f'<span class="badge badge-{kind}">{label or kind.upper()}</span>'
 
 
-def post_list_items(posts, slug_prefix: str) -> str:
-    """The dotted-leader <li> rows used by the index and by tag pages.
+def entry_url(entry: dict) -> str:
+    """Where an index row points, as a {site_root}-anchored path.
+
+    A post is a file and takes EXT; a group is a directory and takes INDEX.
+    Anchored rather than relative because the same row is emitted from the
+    front page, from a tag page and from inside a group, and those sit at
+    three different depths — {site_root} is resolved per page by render(),
+    or by seal_listing() before the row is encrypted."""
+    tail = f"/{INDEX}" if entry.get("is_group", False) else EXT
+    return f'{{site_root}}/{entry["url"]}{tail}'
+
+
+def history_url(group: str | None, slug: str) -> str:
+    """Where a post's old versions are published.
+
+    Kept beside the post rather than in one global pile, so that "../../<slug>"
+    reaches the current version from either depth and so that a grouped post's
+    slug only has to be unique within its group."""
+    return f"posts/{group}/old/{slug}" if group else f"posts/old/{slug}"
+
+
+def post_list_items(posts) -> str:
+    """The dotted-leader <li> rows used by the index, by tag pages and by
+    group pages.
 
     A sealed row carries data-unlock so lock.js can drop the badge without
     waiting for the next build."""
@@ -1044,7 +1090,7 @@ def post_list_items(posts, slug_prefix: str) -> str:
         if p["options"].get("is_sealed", False):
             badges += badge("sealed")
         return (
-            f'<li{unlock}><a href="{slug_prefix}{p["slug"]}{EXT}">{html.escape(p["title"])}</a>'
+            f'<li{unlock}><a href="{entry_url(p)}">{html.escape(p["title"])}</a>'
             '<span class="leader"></span>'
             f'{badges}'
             f'<time datetime="{p["date"].isoformat()}">{p["date"].strftime(DATE_FMT)}</time></li>'
@@ -1084,6 +1130,21 @@ def sort_posts(posts: list[dict]) -> list[dict]:
 def has_sealed_rows(public: list, full: list) -> bool:
     """Whether a listing's fuller form actually holds anything more."""
     return len(full) > len(public)
+
+
+def public_rows(entries: list[dict]) -> list[dict]:
+    """The rows anyone may see: everything not marked unlisted."""
+    return [e for e in entries if not e["options"].get("unlisted", False)]
+
+
+def withheld_rows(entries: list[dict]) -> list[dict]:
+    """The rows the phrase puts back.
+
+    Only those held back *because* they are sealed. A post marked unlisted on
+    its own account stays unlisted, phrase or no."""
+    return [e for e in entries
+            if e["options"].get("is_sealed", False)
+            and e["options"].get("unlisted", False)]
 
 
 def tag_row(tag: str, n: int, sealed: bool = False) -> str:
@@ -1128,6 +1189,7 @@ def post_article_classes(post: dict) -> list[str]:
     if not post["options"].get("dropcap", True) : classes.append("no-dropcap")
     if post["options"].get("is_locked", False)  : classes.append("locked")
     if post["options"].get("is_sealed", False)  : classes.append("sealed")
+    if post.get("is_group", False)              : classes.append("group")
     return classes
 
 
@@ -1149,9 +1211,9 @@ def post_badges(post: dict) -> list[str]:
 
 
 def render_article(post: dict, *, nav: str = "", root: str = "") -> str:
-    """The <article> block shared by post pages and old version pages:
-    header (title + badges), date, rendered HTML, tag footer, then a caller
-    -supplied nav appended after </article>.
+    """The <article> block shared by post pages, old version pages and group
+    pages: header (title + badges), date, rendered HTML, tag footer, then a
+    caller-supplied nav appended after </article>.
 
     The tag footer is a <footer> inside the article and is sealed along with
     the body; `nav` is a sibling of the article and stays in the clear.
@@ -1163,7 +1225,9 @@ def render_article(post: dict, *, nav: str = "", root: str = "") -> str:
 
     A phrase-sealed post does the same, swapping the notice for a field of
     runes and the clock-derived key for a PBKDF2 one; sealed.js takes it
-    from there."""
+    from there. A group page passes its member listing in as its body, so a
+    sealed group is a rune field like any other sealed post and the list of
+    members lives inside the payload."""
     classes = post_article_classes(post)
     class_attr = f' class="{" ".join(classes)}"' if classes else ""
 
@@ -1273,15 +1337,18 @@ def listing_extras(posts, payload: bool = False) -> list[str]:
 
 def write_index(listed, revealed) -> None:
     """The front page, and behind the phrase the same page with the sealed
-    posts folded back into their places by date."""
+    posts folded back into their places by date.
+
+    Rows here are top-level posts and groups. A grouped post is not one of
+    them — it is reached through its group, which carries a row of its own."""
     dest = SITE / "index.html"
     payload = carries_payload(listed, revealed)
     attr = " data-seal-listing" if payload else ""
 
-    body = f'<ul class="toc"{attr}>\n' + post_list_items(listed, "posts/") + "\n</ul>\n"
+    body = f'<ul class="toc"{attr}>\n' + post_list_items(listed) + "\n</ul>\n"
     if payload:
         body += seal_listing(
-            '<ul class="toc">\n' + post_list_items(revealed, "posts/") + "\n</ul>\n",
+            '<ul class="toc">\n' + post_list_items(revealed) + "\n</ul>\n",
             root_for(dest),
         )
 
@@ -1294,16 +1361,23 @@ def write_index(listed, revealed) -> None:
 
 
 def write_posts(posts) -> None:
+    """Every post with a page of its own — top-level posts and group members
+    alike. The two differ only in where the page lands and what the back link
+    points at: a grouped post goes back to its group, a top-level one to the
+    index."""
     for p in posts:
-        back = f'<a href="../{INDEX}">&larr; all posts</a>'
+        if p.get("group"):
+            back = (f'<a href="./{INDEX}">&larr; {html.escape(p["group_title"])}</a>')
+        else:
+            back = f'<a href="../{INDEX}">&larr; all posts</a>'
         hist = ""
         if p["history"]:
             n = len(p["history"])
-            hist = (f'<a href="{{site_root}}/posts/old/{p["slug"]}/{INDEX}">'
+            hist = (f'<a href="{{site_root}}/{history_url(p.get("group"), p["slug"])}/{INDEX}">'
                     f'{n} earlier version{"" if n == 1 else "s"} &rarr;</a>')
         nav = f'<nav class="post-foot">{back}{hist}</nav>'
 
-        dest = SITE / "posts" / f"{p['slug']}.html"
+        dest = SITE / f'{p["url"]}.html'
         body = render_article(p, nav=nav, root=root_for(dest))
         write_page(
             dest,
@@ -1313,18 +1387,75 @@ def write_posts(posts) -> None:
         )
 
 
-def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None:
-    """For each slug with old versions, render every old version and an
+def write_groups(groups) -> None:
+    """A page per group: the index, narrowed to one directory.
+
+    The group's own index.md body (if it has one) sits above the list, and
+    everything a post page can do the group page can do — badges, tags, math,
+    a lock, a seal. Sealing the group seals this page and the list with it;
+    the members are untouched and stay exactly as sealed or as open as they
+    each asked to be.
+
+    Left unsealed, this is an ordinary listing: public rows in the clear and
+    the fuller list behind the phrase, decoy included, so a group holding
+    something back cannot be told from one that isn't."""
+    for group in groups:
+        dest = SITE / group["url"] / "index.html"
+        root = root_for(dest)
+        sealed = group["options"].get("is_sealed", False)
+
+        members = group["members"]
+        public = public_rows(members)
+        full = sort_posts(public + withheld_rows(members))
+
+        # a sealed group has no second form to hide: the whole page is already
+        # behind the phrase, so the list it carries is the full one.
+        payload = not sealed and carries_payload(public, full)
+        attr = " data-seal-listing" if payload else ""
+        shown = full if sealed else public
+
+        listing = f'<ul class="toc"{attr}>\n{post_list_items(shown)}\n</ul>\n'
+        if payload:
+            listing += seal_listing(
+                '<ul class="toc">\n' + post_list_items(full) + "\n</ul>\n",
+                root,
+            )
+
+        page = clone_post(group)
+        page["html"] = f'{group["html"]}\n{listing}' if group["html"] else listing
+
+        nav = (f'<nav class="post-foot">'
+               f'<a href="{{site_root}}/{INDEX}">&larr; all posts</a>'
+               f'</nav>')
+        body = render_article(page, nav=nav, root=root)
+
+        write_page(
+            dest,
+            f'{group["title"]} — {SITE_TITLE}',
+            body,
+            extras=list(dict.fromkeys(
+                post_head_extras(group) + listing_extras(shown, payload)
+            ))
+        )
+
+
+def write_old_posts(posts: list[dict], old_posts: dict[tuple, list[dict]]) -> None:
+    """For each post with old versions, render every old version and an
     index linking to them by date. Version pages mirror regular post pages
     (via render_article) but carry an OLD badge, are noindexed via their
     "old" option, and link back to the version list instead of the post
-    index."""
-    live = {p["slug"]: p for p in posts}
-    for slug, versions in old_posts.items():
-        old_dir = SITE / "posts" / "old" / slug
+    index.
+
+    Keyed by (group, slug) rather than slug alone: a grouped post's history
+    lives beside its group, so two groups may each hold a "notes" without
+    their archives colliding."""
+    live = {(p.get("group"), p["slug"]): p for p in posts}
+    for key, versions in old_posts.items():
+        group, slug = key
+        old_dir = SITE / history_url(group, slug)
 
         # prefer the live post's current title; fall back to the latest old post
-        canonical_title = live[slug]["title"] if slug in live else versions[0]["title"]
+        canonical_title = live[key]["title"] if key in live else versions[0]["title"]
 
         # each old version as its own page
         for v in versions:
@@ -1348,7 +1479,7 @@ def write_old_posts(posts: list[dict], old_posts: dict[str, list[dict]]) -> None
             for v in versions
         )
         foot = ""
-        if slug in live:
+        if key in live:
             foot = (f'<nav class="post-foot">'
                     f'<a href="../../{slug}{EXT}">&larr; current version</a>'
                     f'</nav>')
@@ -1383,7 +1514,10 @@ def write_tag_pages(by_tag, by_tag_all) -> None:
     Note that the status line still reads 200. A static host cannot be told
     to answer differently to a reader it cannot identify — for a genuine 404
     the file must not exist, which means naming it from the handle instead
-    and giving up the readable URL."""
+    and giving up the readable URL.
+
+    Tags are flat: a grouped post is listed here exactly as a top-level one
+    is, and a group carrying tags of its own is listed alongside them."""
     for t in sorted(by_tag_all):
         tagged = by_tag.get(t, [])
         full = by_tag_all[t]
@@ -1396,7 +1530,7 @@ def write_tag_pages(by_tag, by_tag_all) -> None:
         opened = (
             f'<h2 class="tag-title" data-seal-title="{html.escape(title)}">'
             f'#{html.escape(t)}</h2>\n'
-            '<ul class="toc">\n' + post_list_items(full, "../posts/") + "\n</ul>\n"
+            '<ul class="toc">\n' + post_list_items(full) + "\n</ul>\n"
             f'<nav class="back"><a href="./{INDEX}">&larr; all tags</a></nav>'
         )
 
@@ -1404,10 +1538,10 @@ def write_tag_pages(by_tag, by_tag_all) -> None:
             body = (
                 f'<h2 class="tag-title">#{html.escape(t)}</h2>\n'
                 f'<ul class="toc"{attr}>\n'
-                + post_list_items(tagged, "../posts/") + "\n</ul>\n"
+                + post_list_items(tagged) + "\n</ul>\n"
                 f'<nav class="back"><a href="./{INDEX}">&larr; all tags</a></nav>'
             )
-            hidden = '<ul class="toc">\n' + post_list_items(full, "../posts/") + "\n</ul>"
+            hidden = '<ul class="toc">\n' + post_list_items(full) + "\n</ul>"
         else:
             body = not_found_body(attr)
             hidden = opened
@@ -1633,8 +1767,8 @@ def sync_static(changed: set[Path]) -> None:
 def prune_orphan_pages() -> None:
     """Delete pages the previous build wrote and this one did not.
 
-    site/ is not emptied under --serve, so a deleted post, version or tag
-    would otherwise go on being served indefinitely. Every page is written
+    site/ is not emptied under --serve, so a deleted post, version, group or
+    tag would otherwise go on being served indefinitely. Every page is written
     every build, so the two sets are complete and their difference is exactly
     the orphans — no walk of site/ required."""
     orphans = PREV_PAGES - WRITTEN_PAGES
@@ -1650,36 +1784,117 @@ def prune_orphan_pages() -> None:
 
 
 def load_posts() -> list[dict]:
-    """Parse every post, newest first."""
+    """Parse every top-level post, newest first. Grouped posts come from
+    load_groups() instead."""
     valid_posts = []
 
     for p in POSTS.glob("*.md"):
         post = parse_post_cached(p)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
+        post["group"] = None
+        post["url"] = f'posts/{post["slug"]}'
         valid_posts.append(post)
 
     return sort_posts(valid_posts)
 
 
-def load_old_versions() -> dict[str, list[dict]]:
-    """Map slug -> its old versions in posts/old/, newest first.
-    A slug appears here only if at least one old version exists.
+def load_groups() -> list[dict]:
+    """Parse every group directory under posts/, newest first, each carrying
+    its members under "members".
+
+    The directory is named like a post — a YYYY-MM-DD- prefix gives the date
+    the group is filed under, and the remainder is its slug and the path its
+    pages are written to. An index.md inside supplies title, body, tags and
+    OPTIONS; without one, the slug is titled and the group is a bare list.
+
+    Because the group is named by its directory, index.md is parsed with that
+    (date, slug) forced: bare <include> and media filenames inside it then
+    resolve under components/<group-slug>/ and media/<group-slug>/ rather
+    than under an "index" that means nothing.
+
+    Members are ordinary posts. They keep their own slug — so their assets
+    resolve exactly as a top-level post's do — and gain the group they belong
+    to, which decides where their page and their history are written."""
+    groups: list[dict] = []
+    if not POSTS.exists():
+        return groups
+
+    for d in sorted(POSTS.iterdir()):
+        if not d.is_dir() or d.name == OLD.name:
+            continue
+
+        ident = date_and_slug(d)
+        gdate, gslug = ident
+        meta = d / GROUP_META
+        if meta.is_file():
+            group = parse_post_cached(meta, ident=ident)
+        else:
+            group = {
+                "title": gslug.replace("-", " ").title(),
+                "date": gdate,
+                "slug": gslug,
+                "tags": [],
+                "html": "",
+                "options": {},
+                "deps": set(),
+            }
+        if group["options"].get("draft", False) and not IS_LOCAL:
+            continue
+
+        group["is_group"] = True
+        group["group"] = None
+        group["url"] = f"posts/{gslug}"
+        group["history"] = []
+
+        members = []
+        for m in sorted(d.glob("*.md")):
+            if m.name == GROUP_META:
+                continue
+            post = parse_post_cached(m)
+            if post["options"].get("draft", False) and not IS_LOCAL:
+                continue
+            post["group"] = gslug
+            post["group_title"] = group["title"]
+            post["url"] = f'posts/{gslug}/{post["slug"]}'
+            members.append(post)
+        group["members"] = sort_posts(members)
+
+        groups.append(group)
+
+    return sort_posts(groups)
+
+
+def load_old_versions() -> dict[tuple[str | None, str], list[dict]]:
+    """Map (group, slug) -> that post's old versions, newest first.
+    A post appears here only if at least one old version exists.
+
+    posts/old/*.md are the histories of top-level posts;
+    posts/old/<group-slug>/*.md are the histories of that group's members, so
+    a slug only has to be unique inside its group.
 
     Parsed with old=True so bare component and media filenames can resolve
     to a per-version snapshot where one has been kept."""
-    by_slug: dict[str, list[dict]] = {}
+    by_key: dict[tuple[str | None, str], list[dict]] = {}
     if not OLD.exists():
-        return by_slug
-    for p in OLD.glob("*.md"):
+        return by_key
+
+    sources: list[tuple[str | None, Path]] = [(None, p) for p in OLD.glob("*.md")]
+    for d in sorted(OLD.iterdir()):
+        if d.is_dir():
+            sources += [(d.name, p) for p in sorted(d.glob("*.md"))]
+
+    for group, p in sources:
         post = parse_post_cached(p, old=True)
         if post["options"].get("draft", False) and not IS_LOCAL:
             continue
         post["options"]["old"] = True
-        by_slug.setdefault(post["slug"], []).append(post)
-    for versions in by_slug.values():
+        post["group"] = group
+        by_key.setdefault((group, post["slug"]), []).append(post)
+
+    for versions in by_key.values():
         versions.sort(key=lambda v: v["date"], reverse=True)
-    return by_slug
+    return by_key
 
 
 def prune_parse_cache() -> None:
@@ -1715,31 +1930,49 @@ def main(changed: set[Path] | None = None) -> None:
             sync_static(changed)
 
         posts = load_posts()
+        groups = load_groups()
+        members = [m for g in groups for m in g["members"]]
+        pages = posts + members        # everything with a page of its own
         old_posts = load_old_versions()
         prune_parse_cache()
-        for p in posts:
-            p["history"] = old_posts.get(p["slug"], [])
+        for p in pages:
+            p["history"] = old_posts.get((p.get("group"), p["slug"]), [])
 
-        # A sealed post is unlisted by default, so it is absent from every
-        # listing above. `revealed` puts those back — and only those: a post
-        # marked unlisted on its own account stays unlisted, phrase or no.
-        listed = [p for p in posts if not p["options"].get("unlisted", False)]
-        withheld = [p for p in posts
-                    if p["options"].get("is_sealed", False)
-                    and p["options"].get("unlisted", False)]
-        revealed = sort_posts(listed + withheld)
+        clash = {g["slug"] for g in groups} & {p["slug"] for p in posts}
+        if clash:
+            print(f"warning: group and top-level post share a slug, so one "
+                  f"buries the other's URL: {sorted(clash)}")
+
+        # The index lists top-level posts and groups; a grouped post is
+        # reached through its group and never appears here on its own.
+        #
+        # A sealed entry is unlisted by default, so it is absent from that
+        # list. `revealed` puts those back — and only those: an entry marked
+        # unlisted on its own account stays unlisted, phrase or no.
+        entries = sort_posts(posts + groups)
+        listed = public_rows(entries)
+        revealed = sort_posts(listed + withheld_rows(entries))
+
+        # Tags are flat and know nothing of groups: every post carries its own
+        # tags wherever it lives, and a group carrying tags is indexed under
+        # them alongside the posts.
+        taggable = sort_posts(pages + groups)
+        tag_public = public_rows(taggable)
+        tag_all = sort_posts(tag_public + withheld_rows(taggable))
 
         # Decoys are pointless on a site with nothing sealed, and a payload on
         # every listing of one would be a claim about the site that is not
         # true. Set before any writer runs; carries_payload() reads it.
-        SITE_HAS_SEALED = any(p["options"].get("is_sealed", False) for p in posts)
+        SITE_HAS_SEALED = any(e["options"].get("is_sealed", False)
+                              for e in pages + groups)
 
-        by_tag = group_by_tag(listed)
-        by_tag_all = group_by_tag(revealed)
+        by_tag = group_by_tag(tag_public)
+        by_tag_all = group_by_tag(tag_all)
 
         write_index(listed, revealed)
-        write_posts(posts)
-        write_old_posts(posts, old_posts)
+        write_posts(pages)
+        write_groups(groups)
+        write_old_posts(pages, old_posts)
         write_tag_pages(by_tag, by_tag_all)
         write_tag_index(by_tag, by_tag_all)
         write_404()
@@ -1752,8 +1985,9 @@ def main(changed: set[Path] | None = None) -> None:
     with BUILD_DONE:
         BUILD_DONE.notify_all()   # wake any open reload stream
 
-    locked = sum(1 for p in posts if p["options"].get("is_locked", False))
-    sealed = sum(1 for p in posts if p["options"].get("is_sealed", False))
+    shut_set = pages + groups
+    locked = sum(1 for p in shut_set if p["options"].get("is_locked", False))
+    sealed = sum(1 for p in shut_set if p["options"].get("is_sealed", False))
     shut = ", ".join(
         part for part in (
             f"{locked} locked" if locked else "",
@@ -1772,8 +2006,10 @@ def main(changed: set[Path] | None = None) -> None:
     old = sum(len(v) for v in old_posts.values())
     slugs_with_history = len(old_posts)
     print(
-        f'built {len(posts)} {"post" if len(posts) == 1 else "posts"}'
+        f'built {len(pages)} {"post" if len(pages) == 1 else "posts"}'
         f'{f" ({shut})" if shut else ""}, '
+        f'{len(groups)} {"group" if len(groups) == 1 else "groups"} '
+        f'holding {len(members)}, '
         f'{old} old {"version" if old == 1 else "versions"} '
         f'across {slugs_with_history} {"slug" if slugs_with_history == 1 else "slugs"}, '
         f'{len(by_tag_all)} {"tag" if len(by_tag_all) == 1 else "tags"}'

@@ -1702,7 +1702,7 @@ def copy_favicons() -> None:
     """The favicon set, which is one directory in the source and another in
     the build depending on the environment."""
     shutil.copytree(
-        STATIC / ("favicon" if not IS_LOCAL else "favicon_dev"),
+        STATIC / ("favicon" if not IS_LOCAL else "favicon-dev"),
         SITE / STATIC.name / "favicon",
         dirs_exist_ok=True,
     )
@@ -1740,7 +1740,7 @@ def prepare_output() -> None:
         STATIC,
         SITE / STATIC.name,
         dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns("components", "favicon", "favicon_dev"),
+        ignore=shutil.ignore_patterns("components", "favicon", "favicon-dev"),
     )
 
     copy_favicons()
@@ -1770,7 +1770,7 @@ def sync_static(changed: set[Path]) -> None:
         top = rel.parts[0] if rel.parts else ""
         if top == "components":
             continue                       # spliced into posts, never copied
-        if top in ("favicon", "favicon_dev"):
+        if top in ("favicon", "favicon-dev"):
             copy_favicons()
             continue
 

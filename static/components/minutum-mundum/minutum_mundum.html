@@ -44,7 +44,18 @@ No angle brackets in comments here: inside an inline SVG they are parsed as tags
 			dominant-baseline: middle;
 		}
 		.minutum-mundum .mm-heb { font-size: 26px; }
-		.minutum-mundum .mm-lat { font-size: 11px; letter-spacing: .06em; }
+		.minutum-mundum .mm-lat { font-size: 11px; letter-spacing: .06em; display: none; }   /* English names: off by default */
+		/* display options, set from the options popup below the figure */
+		.minutum-mundum.mm-show-lat .mm-lat { display: inline; }
+		.minutum-mundum.mm-hide-num .mm-num { display: none; }
+		.minutum-mundum.mm-hide-let #mm-letters { display: none; }
+		/* the upper nine spheres (Malkuth keeps its own layout): with the English names, the number sits
+at the top; without them it moves to the bottom (30 below the centre instead of 30 above) and
+the Hebrew rises a little to balance it. With no numbers, the remaining lines are centred. */
+		.minutum-mundum:not(.mm-show-lat):not(.mm-hide-num) #mm-names > g:nth-child(-n+9) .mm-num { transform: translateY(60px); }
+		.minutum-mundum:not(.mm-show-lat):not(.mm-hide-num) #mm-names > g:nth-child(-n+9) .mm-heb { transform: translateY(-8px); }
+		.minutum-mundum.mm-show-lat.mm-hide-num #mm-names > g:nth-child(-n+9) .mm-heb,
+		.minutum-mundum.mm-show-lat.mm-hide-num #mm-names > g:nth-child(-n+9) .mm-lat { transform: translateY(-10px); }
 		.minutum-mundum .mm-num { font-size: 10px; opacity: .75; }
 		.minutum-mundum .mm-letter { font-size: 16px; }
 		.minutum-mundum .mm-seph { stroke: none; }
@@ -421,7 +432,14 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 		:root:not([data-theme="light"]) .tol-switch { color: #9c958b; --tol-ink: #ece7df; --tol-bg: #171513; --tol-line: #3a3530; }
 	}
 	:root[data-theme="dark"] .tol-switch { color: #9c958b; --tol-ink: #ece7df; --tol-bg: #171513; --tol-line: #3a3530; }
-	.tol-switch .tol-seg { display: inline-flex; flex-wrap: wrap; justify-content: center; border: 1px solid var(--tol-line); border-radius: 7px; overflow: hidden; }
+	.tol-switch .tol-row { align-self: stretch; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
+	.tol-switch .tol-seg { display: inline-flex; flex-wrap: nowrap; border: 1px solid var(--tol-line); border-radius: 7px; overflow: hidden; }
+	/* too narrow for one bar: the buttons come apart into separate rounded buttons that wrap,
+with the options button following Empress */
+	.tol-switch .tol-row.is-wrapped { gap: 6px; }
+	.tol-switch .tol-row.is-wrapped .tol-seg { display: contents; }
+	.tol-switch .tol-row.is-wrapped button { border: 1px solid var(--tol-line); border-radius: 7px; }
+	.tol-switch .tol-row.is-wrapped button[aria-pressed="true"] { border-color: var(--tol-ink); }
 	.tol-switch button {
 		font: inherit; font-size: 12px; letter-spacing: .03em; padding: 6px 11px; border: 0;
 		background: var(--tol-bg); color: inherit; cursor: pointer;
@@ -429,16 +447,64 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 	.tol-switch button + button { border-left: 1px solid var(--tol-line); }
 	.tol-switch button[aria-pressed="true"] { background: var(--tol-ink); color: var(--tol-bg); }
 	.tol-switch button:focus-visible { outline: 2px solid var(--tol-ink); outline-offset: -2px; }
-	.tol-switch .tol-note { font-size: 12px; letter-spacing: .04em; }
+	.tol-switch .tol-note { font-size: 12px; letter-spacing: .04em; text-align: center; }
+	/* display options: a button after Empress that opens a small popup of checkboxes */
+	.tol-switch .tol-opt { position: relative; display: inline-flex; }
+	.tol-switch .tol-row .tol-opt-btn {
+		display: inline-flex; align-items: center; justify-content: center; padding: 6px 8px;
+		border: 1px solid var(--tol-line); border-radius: 7px; background: var(--tol-bg); color: inherit;
+	}
+	.tol-switch .tol-opt-btn:hover, .tol-switch .tol-opt-btn[aria-expanded="true"] { color: var(--tol-ink); border-color: var(--tol-ink); }
+	.tol-switch .tol-opt-btn svg { width: 15px; height: 15px; display: block; }
+	.tol-switch .tol-menu {
+		position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: 170px;
+		padding: 6px; border: 1px solid var(--tol-line); border-radius: 8px; background: var(--tol-bg);
+		box-shadow: 0 8px 24px rgba(0,0,0,.18);
+	}
+	.tol-switch .tol-menu[hidden] { display: none; }
+	.tol-switch .tol-item {
+		display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px;
+		font-size: 12.5px; letter-spacing: .03em; white-space: nowrap; cursor: pointer; user-select: none;
+	}
+	.tol-switch .tol-item:hover { color: var(--tol-ink); background: color-mix(in srgb, var(--tol-line) 35%, transparent); }
+	.tol-switch .tol-item:has(input:checked) { color: var(--tol-ink); }
+	.tol-switch .tol-item input {
+		appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 auto;
+		width: 14px; height: 14px; border: 1px solid var(--tol-line); border-radius: 3px;
+		background: var(--tol-bg); cursor: pointer; display: grid; place-content: center;
+		transition: background .1s, border-color .1s;
+	}
+	.tol-switch .tol-item:hover input { border-color: currentColor; }
+	.tol-switch .tol-item input::after {
+		content: ""; width: 7px; height: 4px; margin-top: -2px;
+		border: solid var(--tol-bg); border-width: 0 0 1.6px 1.6px; transform: rotate(-45deg); opacity: 0;
+	}
+	.tol-switch .tol-item input:checked { background: var(--tol-ink); border-color: var(--tol-ink); }
+	.tol-switch .tol-item input:checked::after { opacity: 1; }
+	.tol-switch .tol-item input:focus-visible { outline: 2px solid var(--tol-ink); outline-offset: 1px; }
 	</style>
 
 	<div class="tol-switch">
-		<div class="tol-seg" role="group" aria-label="Colour scale">
-			<button type="button" data-scale="mm" aria-pressed="true" title="Sephiroth in the Queen Scale, Paths in the King Scale">Minutum Mundum</button>
-			<button type="button" data-scale="king"    aria-pressed="false" title="Atziluth">King</button>
-			<button type="button" data-scale="queen"   aria-pressed="false" title="Briah">Queen</button>
-			<button type="button" data-scale="emperor" aria-pressed="false" title="Yetzirah (also called the Prince Scale)">Emperor</button>
-			<button type="button" data-scale="empress" aria-pressed="false" title="Assiah (also called the Princess Scale)">Empress</button>
+		<div class="tol-row">
+			<div class="tol-seg" role="group" aria-label="Colour scale">
+				<button type="button" data-scale="mm" aria-pressed="true" title="Sephiroth in the Queen Scale, Paths in the King Scale">Minutum Mundum</button>
+				<button type="button" data-scale="king"    aria-pressed="false" title="Atziluth">King</button>
+				<button type="button" data-scale="queen"   aria-pressed="false" title="Briah">Queen</button>
+				<button type="button" data-scale="emperor" aria-pressed="false" title="Yetzirah (also called the Prince Scale)">Emperor</button>
+				<button type="button" data-scale="empress" aria-pressed="false" title="Assiah (also called the Princess Scale)">Empress</button>
+			</div>
+			<span class="tol-opt">
+				<button type="button" class="tol-opt-btn" aria-haspopup="true" aria-expanded="false" aria-controls="tol-menu" title="Display options" aria-label="Display options">
+					<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+						<path d="M2 4h12M2 8h12M2 12h12"/><circle cx="5" cy="4" r="1.7" fill="var(--tol-bg)"/><circle cx="11" cy="8" r="1.7" fill="var(--tol-bg)"/><circle cx="7" cy="12" r="1.7" fill="var(--tol-bg)"/>
+					</svg>
+				</button>
+				<div class="tol-menu" id="tol-menu" role="group" aria-label="Display options" hidden>
+					<label class="tol-item"><input type="checkbox" data-opt="lat">English Names</label>
+					<label class="tol-item"><input type="checkbox" data-opt="num" checked>Sephiroth Numbers</label>
+					<label class="tol-item"><input type="checkbox" data-opt="let" checked>Path Letters</label>
+				</div>
+			</span>
 		</div>
 		<div class="tol-note" aria-live="polite">Sephiroth in the Queen Scale · Paths in the King Scale</div>
 	</div>
@@ -668,6 +734,52 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 	fig.querySelectorAll('.tol-seg button').forEach(function (b) {
 		b.addEventListener('click', function () { apply(b.dataset.scale); });
 	});
+	// display options: English names (off), Sephiroth numbers (on), path letters (on)
+	var opt = fig.querySelector('.tol-opt'), optBtn = opt.querySelector('.tol-opt-btn'), menu = opt.querySelector('.tol-menu');
+	var boxes = {};
+	menu.querySelectorAll('input[data-opt]').forEach(function (b) { boxes[b.dataset.opt] = b; });
+	function applyOpts() {
+		svg.classList.toggle('mm-show-lat', boxes.lat.checked);
+		svg.classList.toggle('mm-hide-num', !boxes.num.checked);
+		svg.classList.toggle('mm-hide-let', !boxes.let.checked);
+	}
+	menu.addEventListener('change', applyOpts);
+	applyOpts();
+
+	function openMenu() {
+		menu.hidden = false; optBtn.setAttribute('aria-expanded', 'true');
+		// keep the popup inside the figure: start at the button's left edge, then pull it back if it overflows
+		menu.style.left = '0px';
+		var f = fig.getBoundingClientRect(), m = menu.getBoundingClientRect();
+		var shift = Math.min(0, f.right - m.right - 4);
+		shift = Math.max(shift, f.left - m.left + 4);
+		menu.style.left = shift + 'px';
+	}
+	function closeMenu() { menu.hidden = true; optBtn.setAttribute('aria-expanded', 'false'); }
+	optBtn.addEventListener('click', function () { menu.hidden ? openMenu() : closeMenu(); });
+	// close on a click or tap anywhere outside, or on Escape
+	document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !opt.contains(e.target)) closeMenu(); });
+	opt.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape' && !menu.hidden) { closeMenu(); optBtn.focus(); }
+	});
+
+	// split the bar into separate buttons when it can't fit on one line with the checkbox
+	var row = fig.querySelector('.tol-row'), seg = row.querySelector('.tol-seg'), chk = row.querySelector('.tol-opt');
+	function fit() {
+		row.classList.remove('is-wrapped');
+		row.classList.toggle('is-wrapped', seg.scrollWidth + 8 + chk.offsetWidth > row.clientWidth);
+	}
+	// re-check only when the row's width changes (switching layouts changes its height, which must
+	// not trigger another check), and at most once per frame
+	var lastW = -1, queued = false;
+	function check() {
+		var w = row.clientWidth;
+		if (w === lastW || queued) return;
+		queued = true;
+		requestAnimationFrame(function () { queued = false; lastW = row.clientWidth; fit(); });
+	}
+	if (window.ResizeObserver) new ResizeObserver(check).observe(row); else window.addEventListener('resize', check);
+	lastW = row.clientWidth; fit();
 	paths.forEach(function (line) {
 		function on()  { if (line._alt) line.setAttribute('stroke', line._alt); }
 		function off() { if (line._alt) line.setAttribute('stroke', line._paint); }

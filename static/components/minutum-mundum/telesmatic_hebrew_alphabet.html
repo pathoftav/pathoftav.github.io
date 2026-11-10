@@ -100,6 +100,7 @@
 		opacity: 0; pointer-events: none; transition: opacity .1s ease;
 	}
 	.otiyot .hl-pop.is-on { opacity: 1; }
+	.otiyot .hl-pop.is-pinned { pointer-events: auto; }   /* a tapped-open popup can be touched without closing */
 	.otiyot .hl-pop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 	.otiyot .hl-pop-head .hl-heb { font-size: 40px; line-height: 1; min-width: 36px; text-align: center; }
 	.otiyot .hl-pop-head b { font-size: 16px; letter-spacing: .03em; }
@@ -461,16 +462,37 @@ data-i indexes into LETTERS in the script below. -->
 			pop.style.left = x + 'px';
 			pop.style.top  = y + 'px';
 		}
-		function hidePop() { pop.classList.remove('is-on'); }
+		var pinned = null;                     // the tile whose popup a tap has left open
+		function hidePop() {
+			pop.classList.remove('is-on', 'is-pinned');
+			if (pinned) { altOff(pinned); pinned = null; }
+		}
 
 		root.querySelectorAll('.hl-tile').forEach(function (tile) {
-			var d = L[+tile.dataset.i];
+			var d = L[+tile.dataset.i], touch = false;
 			tile.setAttribute('aria-label', d.name + ', ' + d.attr + ', path ' + d.path + ', ' + d.trumpName);
-			tile.addEventListener('pointerenter', function () { showPop(tile); altOn(tile); });
-			tile.addEventListener('pointerleave', function () { hidePop(); altOff(tile); });
+			// a mouse shows the popup while it hovers; a finger leaves it to the tap below
+			tile.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') { showPop(tile); altOn(tile); } });
+			tile.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') { hidePop(); altOff(tile); } });
+			tile.addEventListener('pointerdown', function (e) { touch = e.pointerType !== 'mouse'; });
 			tile.addEventListener('focus', function () { showPop(tile); altOn(tile); });
-			tile.addEventListener('blur', function () { hidePop(); altOff(tile); });
-			tile.addEventListener('click', function () { append(d.glyph); });
+			tile.addEventListener('blur', function () { if (pinned !== tile) { hidePop(); altOff(tile); } });
+			tile.addEventListener('click', function () {
+				append(d.glyph);
+				if (touch) {                       // a tap: show this letter's popup and keep it open
+					touch = false;
+					if (pinned && pinned !== tile) altOff(pinned);
+					showPop(tile); altOn(tile);
+					pop.classList.add('is-pinned');
+					pinned = tile;
+				}
+			});
+		});
+		// a tap anywhere but a letter or the open popup puts the popup away
+		document.addEventListener('pointerdown', function (e) {
+			if (e.pointerType === 'mouse' || !pinned) return;
+			if (e.target.closest('.hl-tile') || pop.contains(e.target)) return;
+			hidePop();
 		});
 		root.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePop(); });
 

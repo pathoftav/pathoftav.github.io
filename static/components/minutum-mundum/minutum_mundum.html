@@ -267,118 +267,145 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 
 		<script><![CDATA[
   (function () {
-    var NS  = 'http://www.w3.org/2000/svg';
-    var svg = (document.currentScript && document.currentScript.ownerSVGElement)
-	      || document.querySelector('.minutum-mundum');
-    var tip = svg.querySelector('.mm-tip');
-    var box = tip.querySelector('rect');
-    var lab = tip.querySelector('text');
-    var VB  = svg.viewBox.baseVal;
+	var NS  = 'http://www.w3.org/2000/svg';
+	var svg = (document.currentScript && document.currentScript.ownerSVGElement)
+			  || document.querySelector('.minutum-mundum');
+	var tip = svg.querySelector('.mm-tip');
+	var box = tip.querySelector('rect');
+	var lab = tip.querySelector('text');
+	var VB  = svg.viewBox.baseVal;
 
-    var LINE  = 19;   // line height
-    var PAD_X = 12;   // horizontal padding
-    var PAD_Y = 7;    // vertical padding
-    var GAP   = 14;   // distance between cursor and tooltip edge
-    var VS15  = '︎'; // text-presentation selector: keeps ♈ ♀ etc. from rendering as emoji
+	var LINE  = 19;   // line height
+	var PAD_X = 12;   // horizontal padding
+	var PAD_Y = 7;    // vertical padding
+	var GAP   = 14;   // distance between cursor and tooltip edge
+	var VS15  = '︎'; // text-presentation selector: keeps ♈ ♀ etc. from rendering as emoji
 
-    function textGlyphs(s) {
-      return Array.from(s).map(function (c) { return c === ' ' ? c : c + VS15; }).join('');
-    }
-
-    // each row → [ [className, text], ... ]
-    function pathRows(d) {
-      return [
-	[['mm-tip-head', d.path], ['mm-tip-dim', '  ·  '], ['mm-tip-heb', d.letter], ['', '  ' + d.letterName]],
-	[['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]],
-	[['mm-tip-dim', d.trump + '  ·  '], ['', d.trumpName]]
-      ].concat(colourRow(d));
-    }
-    // set by the colour switch below the figure
-    function colourRow(d) {
-      return d.colourName ? [[['mm-tip-dim', 'Colour  '], ['', d.colourName], ['mm-tip-dim', '  ·  ' + d.colourScale]]] : [];
-    }
-    function sephRows(d) {
-      var sphere = [];
-      if (d.symbol) sphere.push(['mm-tip-sym', textGlyphs(d.symbol) + '  ']);
-      sphere.push(['', d.sphere], ['mm-tip-dim', '  ·  ' + d.sphereEn]);
-      return [
-	[['mm-tip-head', d.seph + '  ' + d.name], ['mm-tip-dim', '  ·  ' + d.meaning]],
-	[['mm-tip-dim', 'God-Name  '],  ['', d.god]],
-	[['mm-tip-dim', 'Archangel  '], ['', d.archangel]],
-	[['mm-tip-dim', 'Choir  '],     ['', d.choir]],
-	sphere
-      ].concat(colourRow(d));
-    }
-    // a Malkuth quarter: Malkuth's rows, then the quarter's element
-    function quarterRows(d, el) {
-      return sephRows(el.parentNode.dataset).concat([
-	[['mm-tip-dim', 'Quarter  '], ['', d.colour + '  '], ['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]]
-      ]);
-    }
-
-    function fill(rows) {
-      while (lab.firstChild) lab.removeChild(lab.firstChild);
-      rows.forEach(function (row, i) {
-	row.forEach(function (seg, j) {
-	  var t = document.createElementNS(NS, 'tspan');
-	  if (j === 0) {                       // each row starts a new centred text chunk
-	    t.setAttribute('x', 0);
-	    t.setAttribute('dy', i === 0 ? 0 : LINE);
-	  }
-	  if (seg[0]) t.setAttribute('class', seg[0]);
-	  t.textContent = seg[1];
-	  lab.appendChild(t);
-	});
-      });
-      return rows.length;
-    }
-
-    function place(x, y, n) {
-      var h  = n * LINE + PAD_Y * 2;
-      lab.setAttribute('y', (-h / 2 + PAD_Y + LINE / 2).toFixed(1));
-      var w  = Math.max(lab.getBBox().width + PAD_X * 2, 56);
-      box.setAttribute('x', (-w / 2).toFixed(1));
-      box.setAttribute('y', (-h / 2).toFixed(1));
-      box.setAttribute('width',  w.toFixed(1));
-      box.setAttribute('height', h.toFixed(1));
-
-      var cx = Math.min(Math.max(x, VB.x + w / 2 + 4), VB.x + VB.width - w / 2 - 4);
-      var cy = y - GAP - h / 2;                          // prefer above the pointer
-      if (cy - h / 2 < VB.y + 4) cy = y + GAP + h / 2;   // flip below near the top edge
-      tip.setAttribute('transform', 'translate(' + cx.toFixed(1) + ',' + cy.toFixed(1) + ')');
-    }
-
-    function hide() { tip.classList.remove('is-on'); }
-
-    function bind(el, rowsFor) {
-      el.setAttribute('tabindex', '0');
-
-      function show(e) {
-	var n = fill(rowsFor(el.dataset, el));
-	var x, y;
-	if (e && e.clientX != null) {
-	  var p = new DOMPoint(e.clientX, e.clientY)
-		    .matrixTransform(svg.getScreenCTM().inverse());
-	  x = p.x; y = p.y;
-	} else {                               // keyboard focus: centre of the shape
-	  var b = el.getBBox();
-	  x = b.x + b.width / 2;
-	  y = b.y + b.height / 2;
+	function textGlyphs(s) {
+	  return Array.from(s).map(function (c) { return c === ' ' ? c : c + VS15; }).join('');
 	}
-	place(x, y, n);
-	tip.classList.add('is-on');
-      }
 
-      el.addEventListener('pointerenter', show);
-      el.addEventListener('pointermove',  show);
-      el.addEventListener('pointerleave', hide);
-      el.addEventListener('focus', show);
-      el.addEventListener('blur',  hide);
-    }
+	// each row → [ [className, text], ... ]
+	function pathRows(d) {
+	  return [
+		[['mm-tip-head', d.path], ['mm-tip-dim', '  ·  '], ['mm-tip-heb', d.letter], ['', '  ' + d.letterName]],
+		[['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]],
+		[['mm-tip-dim', d.trump + '  ·  '], ['', d.trumpName]]
+	  ].concat(colourRow(d));
+	}
+	// set by the colour switch below the figure
+	function colourRow(d) {
+	  return d.colourName ? [[['mm-tip-dim', 'Colour  '], ['', d.colourName], ['mm-tip-dim', '  ·  ' + d.colourScale]]] : [];
+	}
+	function sephRows(d) {
+	  var sphere = [];
+	  if (d.symbol) sphere.push(['mm-tip-sym', textGlyphs(d.symbol) + '  ']);
+	  sphere.push(['', d.sphere], ['mm-tip-dim', '  ·  ' + d.sphereEn]);
+	  return [
+		[['mm-tip-head', d.seph + '  ' + d.name], ['mm-tip-dim', '  ·  ' + d.meaning]],
+		[['mm-tip-dim', 'God-Name  '],  ['', d.god]],
+		[['mm-tip-dim', 'Archangel  '], ['', d.archangel]],
+		[['mm-tip-dim', 'Choir  '],     ['', d.choir]],
+		sphere
+	  ].concat(colourRow(d));
+	}
+	// a Malkuth quarter: Malkuth's rows, then the quarter's element
+	function quarterRows(d, el) {
+	  return sephRows(el.parentNode.dataset).concat([
+		[['mm-tip-dim', 'Quarter  '], ['', d.colour + '  '], ['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]]
+	  ]);
+	}
 
-    svg.querySelectorAll('#mm-paths .mm-path').forEach(function (el) { bind(el, pathRows); });
-    svg.querySelectorAll('#mm-sephiroth circle.mm-seph').forEach(function (el) { bind(el, sephRows); });
-    svg.querySelectorAll('#mm-malkuth .mm-quarter').forEach(function (el) { bind(el, quarterRows); });
+	function fill(rows) {
+	  while (lab.firstChild) lab.removeChild(lab.firstChild);
+	  rows.forEach(function (row, i) {
+		row.forEach(function (seg, j) {
+		  var t = document.createElementNS(NS, 'tspan');
+		  if (j === 0) {                       // each row starts a new centred text chunk
+			t.setAttribute('x', 0);
+			t.setAttribute('dy', i === 0 ? 0 : LINE);
+		  }
+		  if (seg[0]) t.setAttribute('class', seg[0]);
+		  t.textContent = seg[1];
+		  lab.appendChild(t);
+		});
+	  });
+	  return rows.length;
+	}
+
+	function place(x, y, n) {
+	  var h  = n * LINE + PAD_Y * 2;
+	  lab.setAttribute('y', (-h / 2 + PAD_Y + LINE / 2).toFixed(1));
+	  var w  = Math.max(lab.getBBox().width + PAD_X * 2, 56);
+	  box.setAttribute('x', (-w / 2).toFixed(1));
+	  box.setAttribute('y', (-h / 2).toFixed(1));
+	  box.setAttribute('width',  w.toFixed(1));
+	  box.setAttribute('height', h.toFixed(1));
+
+	  var cx = Math.min(Math.max(x, VB.x + w / 2 + 4), VB.x + VB.width - w / 2 - 4);
+	  var cy = y - GAP - h / 2;                          // prefer above the pointer
+	  if (cy - h / 2 < VB.y + 4) cy = y + GAP + h / 2;   // flip below near the top edge
+	  tip.setAttribute('transform', 'translate(' + cx.toFixed(1) + ',' + cy.toFixed(1) + ')');
+	}
+
+	var pinned = null;                     // the element a tap has opened
+	function hide() { tip.classList.remove('is-on'); pinned = null; }
+
+	function bind(el, rowsFor) {
+	  el.setAttribute('tabindex', '0');
+
+	  function show(e) {
+		var n = fill(rowsFor(el.dataset, el));
+		var x, y;
+		if (e && e.clientX != null) {
+		  var p = new DOMPoint(e.clientX, e.clientY)
+					.matrixTransform(svg.getScreenCTM().inverse());
+		  x = p.x; y = p.y;
+		} else {                               // keyboard focus: centre of the shape
+		  var b = el.getBBox();
+		  x = b.x + b.width / 2;
+		  y = b.y + b.height / 2;
+		}
+		place(x, y, n);
+		tip.classList.add('is-on');
+	  }
+
+	  // a mouse shows the label while it hovers; a finger is handled by the tap below
+	  var touch = false;
+	  el.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') show(e); });
+	  el.addEventListener('pointermove',  function (e) { if (e.pointerType === 'mouse') show(e); });
+	  el.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hide(); });
+	  el.addEventListener('pointerdown',  function (e) { touch = e.pointerType !== 'mouse'; });
+	  el.addEventListener('pointercancel', function () { touch = false; });
+	  el.addEventListener('focus', function () { if (!touch) show(); });      // keyboard
+	  el.addEventListener('blur', function (e) {
+		var to = e.relatedTarget;                // focus moving to another labelled element: let it take over
+		if (to && svg.contains(to) && to.hasAttribute('tabindex')) return;
+		hide();
+	  });
+	  // a tap opens the label at the finger; tapping the same element again closes it
+	  el.addEventListener('click', function (e) {
+		if (!touch) return;
+		touch = false;
+		if (pinned === el) { hide(); el.blur(); return; }
+		show(e);
+		pinned = el;
+	  });
+	}
+
+	svg.querySelectorAll('#mm-paths .mm-path').forEach(function (el) { bind(el, pathRows); });
+	svg.querySelectorAll('#mm-sephiroth circle.mm-seph').forEach(function (el) { bind(el, sephRows); });
+	svg.querySelectorAll('#mm-malkuth .mm-quarter').forEach(function (el) { bind(el, quarterRows); });
+
+	// touch: a tapped path or sphere keeps its label; tapping anywhere else
+	// (the background, or off the figure) puts the label away and releases the focus
+	document.addEventListener('pointerdown', function (e) {
+	  if (e.pointerType === 'mouse') return;
+	  if (svg.contains(e.target) && e.target.closest('[tabindex]')) return;
+	  hide();
+	  var a = document.activeElement;
+	  if (a && svg.contains(a)) a.blur();
+	});
   })();
   ]]></script>
 	</svg>
@@ -424,8 +451,8 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 	var note = fig.querySelector('.tol-note');
 
 	/* A colour is { n: name, b: base hex, f: [fleck hexes], r: ray hex }. All four scales from 777.
-     Flecked colours are drawn as dots; rayed ones as a sunburst on the Sephiroth
-     and as fine diagonal rays along the Paths. */
+	 Flecked colours are drawn as dots; rayed ones as a sunburst on the Sephiroth
+	 and as fine diagonal rays along the Paths. */
 	function c(n, b)        { return { n: n, b: b }; }
 	function f(n, b)        { return { n: n, b: b, f: [].slice.call(arguments, 2) }; }
 	function r(n, b, ray)   { return { n: n, b: b, r: ray }; }
@@ -644,8 +671,8 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 	paths.forEach(function (line) {
 		function on()  { if (line._alt) line.setAttribute('stroke', line._alt); }
 		function off() { if (line._alt) line.setAttribute('stroke', line._paint); }
-		line.addEventListener('pointerenter', on);
-		line.addEventListener('pointerleave', off);
+		line.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') on(); });
+		line.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') off(); });
 		line.addEventListener('focus', on);
 		line.addEventListener('blur', off);
 	});

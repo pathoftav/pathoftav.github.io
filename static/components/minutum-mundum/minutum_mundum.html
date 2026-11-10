@@ -1,0 +1,230 @@
+<figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 1130" class="minutum-mundum" role="img" aria-labelledby="mm-title mm-desc">
+  <!-- <title id="mm-title">Minutum Mundum</title> -->
+  <desc id="mm-desc">The Golden Dawn Tree of Life: the ten Sephiroth in Queen Scale colours and the twenty-two Paths in King Scale colours.</desc>
+
+  <style>
+    .minutum-mundum {
+      --mm-ink: #14110f;
+      --mm-line: #2a2622;
+      --mm-bg: #fbf9f5;
+      --mm-tip-bg: #14110f;
+      --mm-tip-fg: #fbf9f5;
+      width: 100%;
+      max-width: 460px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    @media (prefers-color-scheme: dark) {
+      .minutum-mundum {
+        --mm-ink: #ece7df;
+        --mm-line: #b9b2a8;
+        --mm-bg: #17151300;
+        --mm-tip-bg: #e9e4dc;
+        --mm-tip-fg: #171513;
+      }
+    }
+    .minutum-mundum text {
+      font-family: "Frank Ruehl CLM", "David Libre", "Noto Serif Hebrew", "Noto Sans Hebrew", Georgia, "Times New Roman", serif;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+    .minutum-mundum .mm-heb { font-size: 26px; }
+    .minutum-mundum .mm-lat { font-size: 11px; letter-spacing: .06em; }
+    .minutum-mundum .mm-num { font-size: 10px; opacity: .75; }
+    .minutum-mundum .mm-letter { font-size: 16px; }
+    .minutum-mundum .mm-seph { stroke: none; }
+    .minutum-mundum .mm-path { stroke-width: 15; }
+    .minutum-mundum .mm-path:focus { outline: none; }
+    .minutum-mundum .mm-path:focus-visible { outline: 2px solid var(--mm-line); outline-offset: 2px; }
+
+    /* hover label */
+    .minutum-mundum .mm-tip { opacity: 0; pointer-events: none; transition: opacity .1s ease; }
+    .minutum-mundum .mm-tip.is-on { opacity: 1; }
+    .minutum-mundum .mm-tip rect { fill: var(--mm-tip-bg); }
+    .minutum-mundum .mm-tip text { fill: var(--mm-tip-fg); font-size: 13px; letter-spacing: .04em; }
+  </style>
+
+  <!-- ============ PATHS — King Scale ============ -->
+  <g id="mm-paths" class="mm-path-group">
+    <line class="mm-path" x1="230" y1="90"  x2="370" y2="210" stroke="#f6f2a6" data-name="11 Aleph"  aria-label="Path 11, Aleph, Air, bright pale yellow"/>
+    <line class="mm-path" x1="230" y1="90"  x2="90"  y2="210" stroke="#f2d024" data-name="12 Beth"   aria-label="Path 12, Beth, Mercury, yellow"/>
+    <line class="mm-path" x1="230" y1="90"  x2="230" y2="570" stroke="#2a6fd6" data-name="13 Gimel"  aria-label="Path 13, Gimel, Moon, blue"/>
+    <line class="mm-path" x1="370" y1="210" x2="90"  y2="210" stroke="#0f9b5a" data-name="14 Daleth" aria-label="Path 14, Daleth, Venus, emerald green"/>
+    <line class="mm-path" x1="370" y1="210" x2="230" y2="570" stroke="#d42222" data-name="15 Heh"    aria-label="Path 15, Heh, Aries, scarlet"/>
+    <line class="mm-path" x1="370" y1="210" x2="370" y2="450" stroke="#e04e10" data-name="16 Vav"    aria-label="Path 16, Vav, Taurus, red orange"/>
+    <line class="mm-path" x1="90"  y1="210" x2="230" y2="570" stroke="#f08a1e" data-name="17 Zayin"  aria-label="Path 17, Zayin, Gemini, orange"/>
+    <line class="mm-path" x1="90"  y1="210" x2="90"  y2="450" stroke="#ffbf3f" data-name="18 Cheth"  aria-label="Path 18, Cheth, Cancer, amber"/>
+    <line class="mm-path" x1="370" y1="450" x2="90"  y2="450" stroke="#d8dc28" data-name="19 Teth"   aria-label="Path 19, Teth, Leo, greenish yellow"/>
+    <line class="mm-path" x1="370" y1="450" x2="230" y2="570" stroke="#8fc22b" data-name="20 Yod"    aria-label="Path 20, Yod, Virgo, yellowish green"/>
+    <line class="mm-path" x1="370" y1="450" x2="370" y2="690" stroke="#6b2fa0" data-name="21 Kaph"   aria-label="Path 21, Kaph, Jupiter, violet"/>
+    <line class="mm-path" x1="90"  y1="450" x2="230" y2="570" stroke="#0f9b5a" data-name="22 Lamed"  aria-label="Path 22, Lamed, Libra, emerald green"/>
+    <line class="mm-path" x1="90"  y1="450" x2="90"  y2="690" stroke="#10328c" data-name="23 Mem"    aria-label="Path 23, Mem, Water, deep blue"/>
+    <line class="mm-path" x1="230" y1="570" x2="370" y2="690" stroke="#12726b" data-name="24 Nun"    aria-label="Path 24, Nun, Scorpio, green blue"/>
+    <line class="mm-path" x1="230" y1="570" x2="230" y2="810" stroke="#2a6fd6" data-name="25 Samekh" aria-label="Path 25, Samekh, Sagittarius, blue"/>
+    <line class="mm-path" x1="230" y1="570" x2="90"  y2="690" stroke="#3a2a8c" data-name="26 Ayin"   aria-label="Path 26, Ayin, Capricorn, indigo"/>
+    <line class="mm-path" x1="370" y1="690" x2="90"  y2="690" stroke="#d42222" data-name="27 Peh"    aria-label="Path 27, Peh, Mars, scarlet"/>
+    <line class="mm-path" x1="370" y1="690" x2="230" y2="810" stroke="#6b2fa0" data-name="28 Tzaddi" aria-label="Path 28, Tzaddi, Aquarius, violet"/>
+    <line class="mm-path" x1="370" y1="690" x2="230" y2="1010" stroke="#b01050" data-name="29 Qoph"  aria-label="Path 29, Qoph, Pisces, crimson"/>
+    <line class="mm-path" x1="90"  y1="690" x2="230" y2="810" stroke="#f08a1e" data-name="30 Resh"   aria-label="Path 30, Resh, Sun, orange"/>
+    <line class="mm-path" x1="90"  y1="690" x2="230" y2="1010" stroke="#ff4a0f" data-name="31 Shin"  aria-label="Path 31, Shin, Fire, glowing orange scarlet"/>
+    <line class="mm-path" x1="230" y1="810" x2="230" y2="1010" stroke="#3a2a8c" data-name="32 Tav"   aria-label="Path 32, Tav, Saturn, indigo"/>
+  </g>
+
+  <!-- ============ SEPHIROTH — Queen Scale ============ -->
+  <g id="mm-sephiroth">
+    <circle class="mm-seph" cx="230" cy="90"  r="54" fill="#ffffff" aria-label="1 Kether, white brilliance"/>
+    <circle class="mm-seph" cx="370" cy="210" r="54" fill="#9a9a9a" aria-label="2 Chokmah, grey"/>
+    <circle class="mm-seph" cx="90"  cy="210" r="54" fill="#0b0b0b" aria-label="3 Binah, black"/>
+    <circle class="mm-seph" cx="370" cy="450" r="54" fill="#1e52c8" aria-label="4 Chesed, blue"/>
+    <circle class="mm-seph" cx="90"  cy="450" r="54" fill="#c81e1e" aria-label="5 Geburah, scarlet red"/>
+    <circle class="mm-seph" cx="230" cy="570" r="54" fill="#f2d024" aria-label="6 Tiphareth, yellow"/>
+    <circle class="mm-seph" cx="370" cy="690" r="54" fill="#0f9b5a" aria-label="7 Netzach, emerald"/>
+    <circle class="mm-seph" cx="90"  cy="690" r="54" fill="#e8811c" aria-label="8 Hod, orange"/>
+    <circle class="mm-seph" cx="230" cy="810" r="54" fill="#6b2fa0" aria-label="9 Yesod, violet"/>
+
+    <!-- 10 — Malkuth — citrine, olive, russet, black -->
+    <g id="mm-malkuth" aria-label="10 Malkuth, citrine, olive, russet, black">
+      <path d="M 230 1010 L 189 969 A 58 58 0 0 1 271 969 Z" fill="#b2a429"/>
+      <path d="M 230 1010 L 271 969 A 58 58 0 0 1 271 1051 Z" fill="#8a4a2e"/>
+      <path d="M 230 1010 L 271 1051 A 58 58 0 0 1 189 1051 Z" fill="#0b0b0b"/>
+      <path d="M 230 1010 L 189 1051 A 58 58 0 0 1 189 969 Z" fill="#5c6e38"/>
+    </g>
+  </g>
+
+  <!-- ============ HEBREW LETTERS OF THE PATHS ============ -->
+  <g id="mm-letters">
+    <text class="mm-letter" x="300" y="150" fill="#14110f">א</text>
+    <text class="mm-letter" x="160" y="150" fill="#14110f">ב</text>
+    <text class="mm-letter" x="230" y="330" fill="#f7f4ee">ג</text>
+    <text class="mm-letter" x="230" y="210" fill="#14110f">ד</text>
+    <text class="mm-letter" x="300" y="390" fill="#f7f4ee">ה</text>
+    <text class="mm-letter" x="370" y="330" fill="#14110f">ו</text>
+    <text class="mm-letter" x="160" y="390" fill="#14110f">ז</text>
+    <text class="mm-letter" x="90" y="330" fill="#14110f">ח</text>
+    <text class="mm-letter" x="230" y="450" fill="#14110f">ט</text>
+    <text class="mm-letter" x="300" y="510" fill="#14110f">י</text>
+    <text class="mm-letter" x="370" y="570" fill="#f7f4ee">כ</text>
+    <text class="mm-letter" x="160" y="510" fill="#14110f">ל</text>
+    <text class="mm-letter" x="90" y="570" fill="#f7f4ee">מ</text>
+    <text class="mm-letter" x="300" y="630" fill="#f7f4ee">נ</text>
+    <text class="mm-letter" x="230" y="645" fill="#f7f4ee">ס</text>
+    <text class="mm-letter" x="160" y="630" fill="#f7f4ee">ע</text>
+    <text class="mm-letter" x="230" y="690" fill="#f7f4ee">פ</text>
+    <text class="mm-letter" x="300" y="750" fill="#f7f4ee">צ</text>
+    <text class="mm-letter" x="300" y="850" fill="#f7f4ee">ק</text>
+    <text class="mm-letter" x="160" y="750" fill="#14110f">ר</text>
+    <text class="mm-letter" x="160" y="850" fill="#14110f">ש</text>
+    <text class="mm-letter" x="230" y="910" fill="#f7f4ee">ת</text>
+  </g>
+
+  <!-- ============ SEPHIROTH NAMES ============ -->
+  <g id="mm-names">
+    <g fill="#14110f">
+      <text class="mm-num" x="230" y="60">1</text>
+      <text class="mm-heb" x="230" y="94" direction="rtl">כתר</text>
+      <text class="mm-lat" x="230" y="116">KETHER</text>
+    </g>
+    <g fill="#14110f">
+      <text class="mm-num" x="370" y="180">2</text>
+      <text class="mm-heb" x="370" y="214" direction="rtl">חכמה</text>
+      <text class="mm-lat" x="370" y="236">CHOKMAH</text>
+    </g>
+    <g fill="#f2efe9">
+      <text class="mm-num" x="90" y="180">3</text>
+      <text class="mm-heb" x="90" y="214" direction="rtl">בינה</text>
+      <text class="mm-lat" x="90" y="236">BINAH</text>
+    </g>
+    <g fill="#f2efe9">
+      <text class="mm-num" x="370" y="420">4</text>
+      <text class="mm-heb" x="370" y="454" direction="rtl">חסד</text>
+      <text class="mm-lat" x="370" y="476">CHESED</text>
+    </g>
+    <g fill="#f7ece9">
+      <text class="mm-num" x="90" y="420">5</text>
+      <text class="mm-heb" x="90" y="454" direction="rtl">גבורה</text>
+      <text class="mm-lat" x="90" y="476">GEBURAH</text>
+    </g>
+    <g fill="#14110f">
+      <text class="mm-num" x="230" y="540">6</text>
+      <text class="mm-heb" x="230" y="574" direction="rtl">תפארת</text>
+      <text class="mm-lat" x="230" y="596">TIPHARETH</text>
+    </g>
+    <g fill="#f0fbf4">
+      <text class="mm-num" x="370" y="660">7</text>
+      <text class="mm-heb" x="370" y="694" direction="rtl">נצח</text>
+      <text class="mm-lat" x="370" y="716">NETZACH</text>
+    </g>
+    <g fill="#1d1206">
+      <text class="mm-num" x="90" y="660">8</text>
+      <text class="mm-heb" x="90" y="694" direction="rtl">הוד</text>
+      <text class="mm-lat" x="90" y="716">HOD</text>
+    </g>
+    <g fill="#f3ecfa">
+      <text class="mm-num" x="230" y="780">9</text>
+      <text class="mm-heb" x="230" y="814" direction="rtl">יסוד</text>
+      <text class="mm-lat" x="230" y="836">YESOD</text>
+    </g>
+    <g fill="var(--mm-ink)">
+      <!-- <text class="mm-num" x="230" y="1084">10</text> -->
+      <!-- <text class="mm-heb" x="230" y="1106" direction="rtl">מלכות</text> -->
+      <text class="mm-num" x="230" y="1028">10</text>
+      <text class="mm-heb" x="230" y="1050" direction="rtl">מלכות</text>
+    </g>
+  </g>
+
+  <!-- ============ HOVER LABEL (painted last, so it sits on top) ============ -->
+  <g class="mm-tip" aria-hidden="true">
+    <rect x="-40" y="-13" width="80" height="26" rx="6"/>
+    <text y="0"></text>
+  </g>
+
+  <script><![CDATA[
+  (function () {
+    var svg = (document.currentScript && document.currentScript.ownerSVGElement)
+              || document.querySelector('.minutum-mundum');
+    var tip = svg.querySelector('.mm-tip');
+    var box = tip.querySelector('rect');
+    var lab = tip.querySelector('text');
+    var VW  = svg.viewBox.baseVal.width;
+
+    function place(x, y) {
+      var w  = Math.max(lab.getComputedTextLength() + 22, 56);
+      var cx = Math.min(Math.max(x, w / 2 + 4), VW - w / 2 - 4);
+      box.setAttribute('x', -w / 2);
+      box.setAttribute('width', w);
+      tip.setAttribute('transform', 'translate(' + cx.toFixed(1) + ',' + (y - 26).toFixed(1) + ')');
+    }
+
+    function hide() { tip.classList.remove('is-on'); }
+
+    svg.querySelectorAll('#mm-paths .mm-path').forEach(function (el) {
+      el.setAttribute('tabindex', '0');
+
+      function show(e) {
+        lab.textContent = el.dataset.name;
+        var x, y;
+        if (e && e.clientX != null) {
+          var p = new DOMPoint(e.clientX, e.clientY)
+                    .matrixTransform(svg.getScreenCTM().inverse());
+          x = p.x; y = p.y;
+        } else {
+          x = (+el.getAttribute('x1') + +el.getAttribute('x2')) / 2;
+          y = (+el.getAttribute('y1') + +el.getAttribute('y2')) / 2;
+        }
+        place(x, y);
+        tip.classList.add('is-on');
+      }
+
+      el.addEventListener('pointerenter', show);
+      el.addEventListener('pointermove',  show);
+      el.addEventListener('pointerleave', hide);
+      el.addEventListener('focus', show);
+      el.addEventListener('blur',  hide);
+    });
+  })();
+  ]]></script>
+</svg>
+</figure>
+

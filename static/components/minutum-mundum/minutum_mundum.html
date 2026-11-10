@@ -1,220 +1,372 @@
 <figure>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 1130" class="minutum-mundum" role="img" aria-labelledby="mm-title mm-desc">
-  <!-- <title id="mm-title">Minutum Mundum</title> -->
-  <desc id="mm-desc">The Golden Dawn Tree of Life: the ten Sephiroth in Queen Scale colours and the twenty-two Paths in King Scale colours.</desc>
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 1130" class="minutum-mundum" role="img" aria-labelledby="mm-title mm-desc">
+		<!-- <title id="mm-title">Minutum Mundum</title> -->
+		<desc id="mm-desc">The Golden Dawn Tree of Life: the ten Sephiroth in Queen Scale colours and the twenty-two Paths in King Scale colours.</desc>
 
-  <style>
-    .minutum-mundum {
-      --mm-ink: #14110f;
-      --mm-line: #2a2622;
-      --mm-bg: #fbf9f5;
-      --mm-tip-bg: #14110f;
-      --mm-tip-fg: #fbf9f5;
-      width: 100%;
-      max-width: 460px;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-    }
-    @media (prefers-color-scheme: dark) {
-      .minutum-mundum {
-        --mm-ink: #ece7df;
-        --mm-line: #b9b2a8;
-        --mm-bg: #17151300;
-        --mm-tip-bg: #e9e4dc;
-        --mm-tip-fg: #171513;
-      }
-    }
-    .minutum-mundum text {
-      font-family: "Frank Ruehl CLM", "David Libre", "Noto Serif Hebrew", "Noto Sans Hebrew", Georgia, "Times New Roman", serif;
-      text-anchor: middle;
-      dominant-baseline: middle;
-    }
-    .minutum-mundum .mm-heb { font-size: 26px; }
-    .minutum-mundum .mm-lat { font-size: 11px; letter-spacing: .06em; }
-    .minutum-mundum .mm-num { font-size: 10px; opacity: .75; }
-    .minutum-mundum .mm-letter { font-size: 16px; }
-    .minutum-mundum .mm-seph { stroke: none; }
-    .minutum-mundum .mm-path { stroke-width: 15; }
-    .minutum-mundum .mm-path:focus { outline: none; }
-    .minutum-mundum .mm-path:focus-visible { outline: 2px solid var(--mm-line); outline-offset: 2px; }
+		<style>
+		.minutum-mundum {
+			--mm-ink: #14110f;
+			--mm-line: #2a2622;
+			--mm-bg: #fbf9f5;
+			--mm-tip-bg: #ffffff;
+			--mm-tip-fg: #14110f;
+			--mm-tip-edge: #d8d2c8;
+			width: 100%;
+			max-width: 460px;
+			height: auto;
+			display: block;
+			margin: 0 auto;
+		}
+		/* dark colours: follow the OS unless the site's theme toggle has set data-theme on the root
+element (data-theme="light" overrides a dark OS; data-theme="dark" overrides a light one).
+No angle brackets in comments here: inside an inline SVG they are parsed as tags. */
+		@media (prefers-color-scheme: dark) {
+			:root:not([data-theme="light"]) .minutum-mundum {
+				--mm-ink: #ece7df;
+				--mm-line: #b9b2a8;
+				--mm-bg: #17151300;
+				--mm-tip-bg: #0e0c0b;
+				--mm-tip-fg: #ece7df;
+				--mm-tip-edge: #3a3530;
+			}
+		}
+		:root[data-theme="dark"] .minutum-mundum {
+			--mm-ink: #ece7df;
+			--mm-line: #b9b2a8;
+			--mm-bg: #17151300;
+			--mm-tip-bg: #0e0c0b;
+			--mm-tip-fg: #ece7df;
+			--mm-tip-edge: #3a3530;
+		}
+		.minutum-mundum text {
+			font-family: "Frank Ruehl CLM", "David Libre", "Noto Serif Hebrew", "Noto Sans Hebrew", Georgia, "Times New Roman", serif;
+			text-anchor: middle;
+			dominant-baseline: middle;
+		}
+		.minutum-mundum .mm-heb { font-size: 26px; }
+		.minutum-mundum .mm-lat { font-size: 11px; letter-spacing: .06em; }
+		.minutum-mundum .mm-num { font-size: 10px; opacity: .75; }
+		.minutum-mundum .mm-letter { font-size: 16px; }
+		.minutum-mundum .mm-seph { stroke: none; }
+		.minutum-mundum .mm-path { stroke-width: 15; }
+		.minutum-mundum .mm-path:focus,
+		.minutum-mundum .mm-seph:focus,
+		.minutum-mundum .mm-quarter:focus { outline: none; }
+		.minutum-mundum .mm-path:focus-visible,
+		.minutum-mundum .mm-seph:focus-visible,
+		.minutum-mundum .mm-quarter:focus-visible { outline: 2px solid var(--mm-line); outline-offset: 2px; }
+		/* labels sit on top of paths and Malkuth; let the pointer fall through to them */
+		.minutum-mundum #mm-letters,
+		.minutum-mundum #mm-names { pointer-events: none; }
 
-    /* hover label */
-    .minutum-mundum .mm-tip { opacity: 0; pointer-events: none; transition: opacity .1s ease; }
-    .minutum-mundum .mm-tip.is-on { opacity: 1; }
-    .minutum-mundum .mm-tip rect { fill: var(--mm-tip-bg); }
-    .minutum-mundum .mm-tip text { fill: var(--mm-tip-fg); font-size: 13px; letter-spacing: .04em; }
-  </style>
+		/* hover label */
+		.minutum-mundum .mm-tip { opacity: 0; pointer-events: none; transition: opacity .1s ease; }
+		.minutum-mundum .mm-tip.is-on { opacity: 1; }
+		.minutum-mundum .mm-tip rect { fill: var(--mm-tip-bg); stroke: var(--mm-tip-edge); stroke-width: 1; }
+		.minutum-mundum .mm-tip text { fill: var(--mm-tip-fg); font-size: 13px; letter-spacing: .04em; }
+		.minutum-mundum .mm-tip .mm-tip-head { font-weight: 600; }
+		.minutum-mundum .mm-tip .mm-tip-heb  { font-size: 15px; letter-spacing: 0; }
+		.minutum-mundum .mm-tip .mm-tip-sym  {
+			font-family: "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", "Symbola", sans-serif;
+			font-size: 15px; letter-spacing: .1em;
+		}
+		.minutum-mundum .mm-tip .mm-tip-dim  { opacity: .7; }
+		</style>
 
-  <!-- ============ PATHS — King Scale ============ -->
-  <g id="mm-paths" class="mm-path-group">
-    <line class="mm-path" x1="230" y1="90"  x2="370" y2="210" stroke="#f6f2a6" data-name="11 Aleph"  aria-label="Path 11, Aleph, Air, bright pale yellow"/>
-    <line class="mm-path" x1="230" y1="90"  x2="90"  y2="210" stroke="#f2d024" data-name="12 Beth"   aria-label="Path 12, Beth, Mercury, yellow"/>
-    <line class="mm-path" x1="230" y1="90"  x2="230" y2="570" stroke="#2a6fd6" data-name="13 Gimel"  aria-label="Path 13, Gimel, Moon, blue"/>
-    <line class="mm-path" x1="370" y1="210" x2="90"  y2="210" stroke="#0f9b5a" data-name="14 Daleth" aria-label="Path 14, Daleth, Venus, emerald green"/>
-    <line class="mm-path" x1="370" y1="210" x2="230" y2="570" stroke="#d42222" data-name="15 Heh"    aria-label="Path 15, Heh, Aries, scarlet"/>
-    <line class="mm-path" x1="370" y1="210" x2="370" y2="450" stroke="#e04e10" data-name="16 Vav"    aria-label="Path 16, Vav, Taurus, red orange"/>
-    <line class="mm-path" x1="90"  y1="210" x2="230" y2="570" stroke="#f08a1e" data-name="17 Zayin"  aria-label="Path 17, Zayin, Gemini, orange"/>
-    <line class="mm-path" x1="90"  y1="210" x2="90"  y2="450" stroke="#ffbf3f" data-name="18 Cheth"  aria-label="Path 18, Cheth, Cancer, amber"/>
-    <line class="mm-path" x1="370" y1="450" x2="90"  y2="450" stroke="#d8dc28" data-name="19 Teth"   aria-label="Path 19, Teth, Leo, greenish yellow"/>
-    <line class="mm-path" x1="370" y1="450" x2="230" y2="570" stroke="#8fc22b" data-name="20 Yod"    aria-label="Path 20, Yod, Virgo, yellowish green"/>
-    <line class="mm-path" x1="370" y1="450" x2="370" y2="690" stroke="#6b2fa0" data-name="21 Kaph"   aria-label="Path 21, Kaph, Jupiter, violet"/>
-    <line class="mm-path" x1="90"  y1="450" x2="230" y2="570" stroke="#0f9b5a" data-name="22 Lamed"  aria-label="Path 22, Lamed, Libra, emerald green"/>
-    <line class="mm-path" x1="90"  y1="450" x2="90"  y2="690" stroke="#10328c" data-name="23 Mem"    aria-label="Path 23, Mem, Water, deep blue"/>
-    <line class="mm-path" x1="230" y1="570" x2="370" y2="690" stroke="#12726b" data-name="24 Nun"    aria-label="Path 24, Nun, Scorpio, green blue"/>
-    <line class="mm-path" x1="230" y1="570" x2="230" y2="810" stroke="#2a6fd6" data-name="25 Samekh" aria-label="Path 25, Samekh, Sagittarius, blue"/>
-    <line class="mm-path" x1="230" y1="570" x2="90"  y2="690" stroke="#3a2a8c" data-name="26 Ayin"   aria-label="Path 26, Ayin, Capricorn, indigo"/>
-    <line class="mm-path" x1="370" y1="690" x2="90"  y2="690" stroke="#d42222" data-name="27 Peh"    aria-label="Path 27, Peh, Mars, scarlet"/>
-    <line class="mm-path" x1="370" y1="690" x2="230" y2="810" stroke="#6b2fa0" data-name="28 Tzaddi" aria-label="Path 28, Tzaddi, Aquarius, violet"/>
-    <line class="mm-path" x1="370" y1="690" x2="230" y2="1010" stroke="#b01050" data-name="29 Qoph"  aria-label="Path 29, Qoph, Pisces, crimson"/>
-    <line class="mm-path" x1="90"  y1="690" x2="230" y2="810" stroke="#f08a1e" data-name="30 Resh"   aria-label="Path 30, Resh, Sun, orange"/>
-    <line class="mm-path" x1="90"  y1="690" x2="230" y2="1010" stroke="#ff4a0f" data-name="31 Shin"  aria-label="Path 31, Shin, Fire, glowing orange scarlet"/>
-    <line class="mm-path" x1="230" y1="810" x2="230" y2="1010" stroke="#3a2a8c" data-name="32 Tav"   aria-label="Path 32, Tav, Saturn, indigo"/>
-  </g>
+		<!-- ============ PATHS — King Scale ============
+data-path        path number
+data-letter      Hebrew letter
+data-letter-name transliterated letter name
+data-symbol      astrological / elemental glyph(s), space-separated
+data-attr        name of the attribution
+data-trump       tarot trump number (Roman)
+data-trump-name  tarot trump title (Golden Dawn ordering: VIII Strength, XI Justice)
+-->
+		<g id="mm-paths" class="mm-path-group">
+			<line class="mm-path" x1="230" y1="90"  x2="370" y2="210" stroke="#f6f2a6" data-path="11" data-letter="א" data-letter-name="Aleph"  data-symbol="🜁"   data-attr="Air"            data-trump="0"     data-trump-name="The Fool"            aria-label="Path 11, Aleph, Air, tarot 0 The Fool, bright pale yellow"/>
+			<line class="mm-path" x1="230" y1="90"  x2="90"  y2="210" stroke="#f2d024" data-path="12" data-letter="ב" data-letter-name="Beth"   data-symbol="☿"   data-attr="Mercury"        data-trump="I"     data-trump-name="The Magician"        aria-label="Path 12, Beth, Mercury, tarot I The Magician, yellow"/>
+			<line class="mm-path" x1="230" y1="90"  x2="230" y2="570" stroke="#2a6fd6" data-path="13" data-letter="ג" data-letter-name="Gimel"  data-symbol="☽"   data-attr="Moon"           data-trump="II"    data-trump-name="The High Priestess"  aria-label="Path 13, Gimel, Moon, tarot II The High Priestess, blue"/>
+			<line class="mm-path" x1="370" y1="210" x2="90"  y2="210" stroke="#0f9b5a" data-path="14" data-letter="ד" data-letter-name="Daleth" data-symbol="♀"   data-attr="Venus"          data-trump="III"   data-trump-name="The Empress"         aria-label="Path 14, Daleth, Venus, tarot III The Empress, emerald green"/>
+			<line class="mm-path" x1="370" y1="210" x2="230" y2="570" stroke="#d42222" data-path="15" data-letter="ה" data-letter-name="Heh"    data-symbol="♈"   data-attr="Aries"          data-trump="IV"    data-trump-name="The Emperor"         aria-label="Path 15, Heh, Aries, tarot IV The Emperor, scarlet"/>
+			<line class="mm-path" x1="370" y1="210" x2="370" y2="450" stroke="#e04e10" data-path="16" data-letter="ו" data-letter-name="Vav"    data-symbol="♉"   data-attr="Taurus"         data-trump="V"     data-trump-name="The Hierophant"      aria-label="Path 16, Vav, Taurus, tarot V The Hierophant, red orange"/>
+			<line class="mm-path" x1="90"  y1="210" x2="230" y2="570" stroke="#f08a1e" data-path="17" data-letter="ז" data-letter-name="Zayin"  data-symbol="♊"   data-attr="Gemini"         data-trump="VI"    data-trump-name="The Lovers"          aria-label="Path 17, Zayin, Gemini, tarot VI The Lovers, orange"/>
+			<line class="mm-path" x1="90"  y1="210" x2="90"  y2="450" stroke="#ffbf3f" data-path="18" data-letter="ח" data-letter-name="Cheth"  data-symbol="♋"   data-attr="Cancer"         data-trump="VII"   data-trump-name="The Chariot"         aria-label="Path 18, Cheth, Cancer, tarot VII The Chariot, amber"/>
+			<line class="mm-path" x1="370" y1="450" x2="90"  y2="450" stroke="#d8dc28" data-path="19" data-letter="ט" data-letter-name="Teth"   data-symbol="♌"   data-attr="Leo"            data-trump="VIII"  data-trump-name="Strength"            aria-label="Path 19, Teth, Leo, tarot VIII Strength, greenish yellow"/>
+			<line class="mm-path" x1="370" y1="450" x2="230" y2="570" stroke="#8fc22b" data-path="20" data-letter="י" data-letter-name="Yod"    data-symbol="♍"   data-attr="Virgo"          data-trump="IX"    data-trump-name="The Hermit"          aria-label="Path 20, Yod, Virgo, tarot IX The Hermit, yellowish green"/>
+			<line class="mm-path" x1="370" y1="450" x2="370" y2="690" stroke="#6b2fa0" data-path="21" data-letter="כ" data-letter-name="Kaph"   data-symbol="♃"   data-attr="Jupiter"        data-trump="X"     data-trump-name="Wheel of Fortune"    aria-label="Path 21, Kaph, Jupiter, tarot X Wheel of Fortune, violet"/>
+			<line class="mm-path" x1="90"  y1="450" x2="230" y2="570" stroke="#0f9b5a" data-path="22" data-letter="ל" data-letter-name="Lamed"  data-symbol="♎"   data-attr="Libra"          data-trump="XI"    data-trump-name="Justice"             aria-label="Path 22, Lamed, Libra, tarot XI Justice, emerald green"/>
+			<line class="mm-path" x1="90"  y1="450" x2="90"  y2="690" stroke="#10328c" data-path="23" data-letter="מ" data-letter-name="Mem"    data-symbol="🜄"   data-attr="Water"          data-trump="XII"   data-trump-name="The Hanged Man"      aria-label="Path 23, Mem, Water, tarot XII The Hanged Man, deep blue"/>
+			<line class="mm-path" x1="230" y1="570" x2="370" y2="690" stroke="#12726b" data-path="24" data-letter="נ" data-letter-name="Nun"    data-symbol="♏"   data-attr="Scorpio"        data-trump="XIII"  data-trump-name="Death"               aria-label="Path 24, Nun, Scorpio, tarot XIII Death, green blue"/>
+			<line class="mm-path" x1="230" y1="570" x2="230" y2="810" stroke="#2a6fd6" data-path="25" data-letter="ס" data-letter-name="Samekh" data-symbol="♐"   data-attr="Sagittarius"    data-trump="XIV"   data-trump-name="Temperance"          aria-label="Path 25, Samekh, Sagittarius, tarot XIV Temperance, blue"/>
+			<line class="mm-path" x1="230" y1="570" x2="90"  y2="690" stroke="#3a2a8c" data-path="26" data-letter="ע" data-letter-name="Ayin"   data-symbol="♑"   data-attr="Capricorn"      data-trump="XV"    data-trump-name="The Devil"           aria-label="Path 26, Ayin, Capricorn, tarot XV The Devil, indigo"/>
+			<line class="mm-path" x1="370" y1="690" x2="90"  y2="690" stroke="#d42222" data-path="27" data-letter="פ" data-letter-name="Peh"    data-symbol="♂"   data-attr="Mars"           data-trump="XVI"   data-trump-name="The Tower"           aria-label="Path 27, Peh, Mars, tarot XVI The Tower, scarlet"/>
+			<line class="mm-path" x1="370" y1="690" x2="230" y2="810" stroke="#6b2fa0" data-path="28" data-letter="צ" data-letter-name="Tzaddi" data-symbol="♒"   data-attr="Aquarius"       data-trump="XVII"  data-trump-name="The Star"            aria-label="Path 28, Tzaddi, Aquarius, tarot XVII The Star, violet"/>
+			<line class="mm-path" x1="370" y1="690" x2="230" y2="1010" stroke="#b01050" data-path="29" data-letter="ק" data-letter-name="Qoph"  data-symbol="♓"   data-attr="Pisces"         data-trump="XVIII" data-trump-name="The Moon"            aria-label="Path 29, Qoph, Pisces, tarot XVIII The Moon, crimson"/>
+			<line class="mm-path" x1="90"  y1="690" x2="230" y2="810" stroke="#f08a1e" data-path="30" data-letter="ר" data-letter-name="Resh"   data-symbol="☉"   data-attr="Sun"            data-trump="XIX"   data-trump-name="The Sun"             aria-label="Path 30, Resh, Sun, tarot XIX The Sun, orange"/>
+			<line class="mm-path" x1="90"  y1="690" x2="230" y2="1010" stroke="#ff4a0f" data-path="31" data-letter="ש" data-letter-name="Shin" data-symbol="🜂"   data-attr="Fire"           data-trump="XX"    data-trump-name="Judgement"           aria-label="Path 31, Shin, Fire, tarot XX Judgement, glowing orange scarlet"/>
+			<line class="mm-path" x1="230" y1="810" x2="230" y2="1010" stroke="#3a2a8c" data-path="32" data-letter="ת" data-letter-name="Tav"  data-symbol="♄"   data-attr="Saturn"         data-trump="XXI"   data-trump-name="The Universe"        aria-label="Path 32, Tav, Saturn, tarot XXI The Universe, indigo"/>
+		</g>
 
-  <!-- ============ SEPHIROTH — Queen Scale ============ -->
-  <g id="mm-sephiroth">
-    <circle class="mm-seph" cx="230" cy="90"  r="54" fill="#ffffff" aria-label="1 Kether, white brilliance"/>
-    <circle class="mm-seph" cx="370" cy="210" r="54" fill="#9a9a9a" aria-label="2 Chokmah, grey"/>
-    <circle class="mm-seph" cx="90"  cy="210" r="54" fill="#0b0b0b" aria-label="3 Binah, black"/>
-    <circle class="mm-seph" cx="370" cy="450" r="54" fill="#1e52c8" aria-label="4 Chesed, blue"/>
-    <circle class="mm-seph" cx="90"  cy="450" r="54" fill="#c81e1e" aria-label="5 Geburah, scarlet red"/>
-    <circle class="mm-seph" cx="230" cy="570" r="54" fill="#f2d024" aria-label="6 Tiphareth, yellow"/>
-    <circle class="mm-seph" cx="370" cy="690" r="54" fill="#0f9b5a" aria-label="7 Netzach, emerald"/>
-    <circle class="mm-seph" cx="90"  cy="690" r="54" fill="#e8811c" aria-label="8 Hod, orange"/>
-    <circle class="mm-seph" cx="230" cy="810" r="54" fill="#6b2fa0" aria-label="9 Yesod, violet"/>
+		<!-- ============ SEPHIROTH — Queen Scale ============ -->
+		<!-- data-seph / data-name / data-meaning   number, name, English meaning
+data-god        Divine Name (Atziluth)
+data-archangel  Archangel (Briah)
+data-choir      Order of Angels (Yetzirah)
+data-sphere     Mundane chakra (Assiah), with data-sphere-en and optional data-symbol
+Archangels follow the Golden Dawn / 777 tables: Raphael to Tiphareth, Michael to Hod. -->
+		<g id="mm-sephiroth">
+			<circle class="mm-seph" cx="230" cy="90"  r="54" fill="#ffffff"
+				data-seph="1" data-name="Kether" data-meaning="The Crown"
+				data-god="Eheieh" data-archangel="Metatron" data-choir="Chayoth ha-Qadesh"
+				data-symbol="" data-sphere="Rashith ha-Gilgalim" data-sphere-en="Primum Mobile"
+				aria-label="1 Kether, the Crown, white brilliance; Eheieh, Metatron, Chayoth ha-Qadesh, Primum Mobile"/>
+			<circle class="mm-seph" cx="370" cy="210" r="54" fill="#9a9a9a"
+				data-seph="2" data-name="Chokmah" data-meaning="Wisdom"
+				data-god="Yah" data-archangel="Ratziel" data-choir="Auphanim"
+				data-symbol="" data-sphere="Masloth" data-sphere-en="Sphere of the Zodiac"
+				aria-label="2 Chokmah, Wisdom, grey; Yah, Ratziel, Auphanim, Sphere of the Zodiac"/>
+			<circle class="mm-seph" cx="90"  cy="210" r="54" fill="#0b0b0b"
+				data-seph="3" data-name="Binah" data-meaning="Understanding"
+				data-god="YHVH Elohim" data-archangel="Tzaphqiel" data-choir="Aralim"
+				data-symbol="♄" data-sphere="Shabbathai" data-sphere-en="Saturn"
+				aria-label="3 Binah, Understanding, black; YHVH Elohim, Tzaphqiel, Aralim, Saturn"/>
+			<circle class="mm-seph" cx="370" cy="450" r="54" fill="#1e52c8"
+				data-seph="4" data-name="Chesed" data-meaning="Mercy"
+				data-god="El" data-archangel="Tzadqiel" data-choir="Chashmalim"
+				data-symbol="♃" data-sphere="Tzedeq" data-sphere-en="Jupiter"
+				aria-label="4 Chesed, Mercy, blue; El, Tzadqiel, Chashmalim, Jupiter"/>
+			<circle class="mm-seph" cx="90"  cy="450" r="54" fill="#c81e1e"
+				data-seph="5" data-name="Geburah" data-meaning="Severity"
+				data-god="Elohim Gibor" data-archangel="Khamael" data-choir="Seraphim"
+				data-symbol="♂" data-sphere="Madim" data-sphere-en="Mars"
+				aria-label="5 Geburah, Severity, scarlet red; Elohim Gibor, Khamael, Seraphim, Mars"/>
+			<circle class="mm-seph" cx="230" cy="570" r="54" fill="#f2d024"
+				data-seph="6" data-name="Tiphareth" data-meaning="Beauty"
+				data-god="YHVH Eloah va-Daath" data-archangel="Raphael" data-choir="Malachim"
+				data-symbol="☉" data-sphere="Shemesh" data-sphere-en="Sun"
+				aria-label="6 Tiphareth, Beauty, yellow; YHVH Eloah va-Daath, Raphael, Malachim, Sun"/>
+			<circle class="mm-seph" cx="370" cy="690" r="54" fill="#0f9b5a"
+				data-seph="7" data-name="Netzach" data-meaning="Victory"
+				data-god="YHVH Tzabaoth" data-archangel="Haniel" data-choir="Elohim"
+				data-symbol="♀" data-sphere="Nogah" data-sphere-en="Venus"
+				aria-label="7 Netzach, Victory, emerald; YHVH Tzabaoth, Haniel, Elohim, Venus"/>
+			<circle class="mm-seph" cx="90"  cy="690" r="54" fill="#e8811c"
+				data-seph="8" data-name="Hod" data-meaning="Splendour"
+				data-god="Elohim Tzabaoth" data-archangel="Michael" data-choir="Beni Elohim"
+				data-symbol="☿" data-sphere="Kokab" data-sphere-en="Mercury"
+				aria-label="8 Hod, Splendour, orange; Elohim Tzabaoth, Michael, Beni Elohim, Mercury"/>
+			<circle class="mm-seph" cx="230" cy="810" r="54" fill="#6b2fa0"
+				data-seph="9" data-name="Yesod" data-meaning="Foundation"
+				data-god="Shaddai El Chai" data-archangel="Gabriel" data-choir="Kerubim"
+				data-symbol="☽" data-sphere="Levanah" data-sphere-en="Moon"
+				aria-label="9 Yesod, Foundation, violet; Shaddai El Chai, Gabriel, Kerubim, Moon"/>
 
-    <!-- 10 — Malkuth — citrine, olive, russet, black -->
-    <g id="mm-malkuth" aria-label="10 Malkuth, citrine, olive, russet, black">
-      <path d="M 230 1010 L 189 969 A 58 58 0 0 1 271 969 Z" fill="#b2a429"/>
-      <path d="M 230 1010 L 271 969 A 58 58 0 0 1 271 1051 Z" fill="#8a4a2e"/>
-      <path d="M 230 1010 L 271 1051 A 58 58 0 0 1 189 1051 Z" fill="#0b0b0b"/>
-      <path d="M 230 1010 L 189 1051 A 58 58 0 0 1 189 969 Z" fill="#5c6e38"/>
-    </g>
-  </g>
+			<!-- 10 — Malkuth — citrine, olive, russet, black
+The four quarters are the four elements; Earth (black) has its seat here,
+not on a path. Spirit has no node: in the Golden Dawn it is the Portal,
+the threshold above the four elemental grades.
+Malkuth's own data lives on the group; each quarter adds its element. -->
+			<g id="mm-malkuth"
+				data-seph="10" data-name="Malkuth" data-meaning="The Kingdom"
+				data-god="Adonai ha-Aretz" data-archangel="Sandalphon" data-choir="Ashim"
+				data-symbol="" data-sphere="Cholem Yesodoth" data-sphere-en="Sphere of the Elements"
+				aria-label="10 Malkuth, the Kingdom, citrine Air, russet Fire, black Earth, olive Water; Adonai ha-Aretz, Sandalphon, Ashim, Sphere of the Elements">
+				<path class="mm-quarter" d="M 230 1010 L 189 969 A 58 58 0 0 1 271 969 Z"   fill="#b2a429" data-colour="Citrine" data-symbol="🜁" data-attr="Air"   aria-label="Malkuth, citrine, Air"/>
+				<path class="mm-quarter" d="M 230 1010 L 271 969 A 58 58 0 0 1 271 1051 Z"  fill="#8a4a2e" data-colour="Russet"  data-symbol="🜂" data-attr="Fire"  aria-label="Malkuth, russet, Fire"/>
+				<path class="mm-quarter" d="M 230 1010 L 271 1051 A 58 58 0 0 1 189 1051 Z" fill="#0b0b0b" data-colour="Black"   data-symbol="🜃" data-attr="Earth" aria-label="Malkuth, black, Earth"/>
+				<path class="mm-quarter" d="M 230 1010 L 189 1051 A 58 58 0 0 1 189 969 Z"  fill="#5c6e38" data-colour="Olive"   data-symbol="🜄" data-attr="Water" aria-label="Malkuth, olive, Water"/>
+			</g>
+		</g>
 
-  <!-- ============ HEBREW LETTERS OF THE PATHS ============ -->
-  <g id="mm-letters">
-    <text class="mm-letter" x="300" y="150" fill="#14110f">א</text>
-    <text class="mm-letter" x="160" y="150" fill="#14110f">ב</text>
-    <text class="mm-letter" x="230" y="330" fill="#f7f4ee">ג</text>
-    <text class="mm-letter" x="230" y="210" fill="#14110f">ד</text>
-    <text class="mm-letter" x="300" y="390" fill="#f7f4ee">ה</text>
-    <text class="mm-letter" x="370" y="330" fill="#14110f">ו</text>
-    <text class="mm-letter" x="160" y="390" fill="#14110f">ז</text>
-    <text class="mm-letter" x="90" y="330" fill="#14110f">ח</text>
-    <text class="mm-letter" x="230" y="450" fill="#14110f">ט</text>
-    <text class="mm-letter" x="300" y="510" fill="#14110f">י</text>
-    <text class="mm-letter" x="370" y="570" fill="#f7f4ee">כ</text>
-    <text class="mm-letter" x="160" y="510" fill="#14110f">ל</text>
-    <text class="mm-letter" x="90" y="570" fill="#f7f4ee">מ</text>
-    <text class="mm-letter" x="300" y="630" fill="#f7f4ee">נ</text>
-    <text class="mm-letter" x="230" y="645" fill="#f7f4ee">ס</text>
-    <text class="mm-letter" x="160" y="630" fill="#f7f4ee">ע</text>
-    <text class="mm-letter" x="230" y="690" fill="#f7f4ee">פ</text>
-    <text class="mm-letter" x="300" y="750" fill="#f7f4ee">צ</text>
-    <text class="mm-letter" x="300" y="850" fill="#f7f4ee">ק</text>
-    <text class="mm-letter" x="160" y="750" fill="#14110f">ר</text>
-    <text class="mm-letter" x="160" y="850" fill="#14110f">ש</text>
-    <text class="mm-letter" x="230" y="910" fill="#f7f4ee">ת</text>
-  </g>
+		<!-- ============ HEBREW LETTERS OF THE PATHS ============ -->
+		<g id="mm-letters">
+			<text class="mm-letter" x="300" y="150" fill="#14110f">א</text>
+			<text class="mm-letter" x="160" y="150" fill="#14110f">ב</text>
+			<text class="mm-letter" x="230" y="330" fill="#f7f4ee">ג</text>
+			<text class="mm-letter" x="230" y="210" fill="#14110f">ד</text>
+			<text class="mm-letter" x="300" y="390" fill="#f7f4ee">ה</text>
+			<text class="mm-letter" x="370" y="330" fill="#14110f">ו</text>
+			<text class="mm-letter" x="160" y="390" fill="#14110f">ז</text>
+			<text class="mm-letter" x="90" y="330" fill="#14110f">ח</text>
+			<text class="mm-letter" x="230" y="450" fill="#14110f">ט</text>
+			<text class="mm-letter" x="300" y="510" fill="#14110f">י</text>
+			<text class="mm-letter" x="370" y="570" fill="#f7f4ee">כ</text>
+			<text class="mm-letter" x="160" y="510" fill="#14110f">ל</text>
+			<text class="mm-letter" x="90" y="570" fill="#f7f4ee">מ</text>
+			<text class="mm-letter" x="300" y="630" fill="#f7f4ee">נ</text>
+			<text class="mm-letter" x="230" y="645" fill="#f7f4ee">ס</text>
+			<text class="mm-letter" x="160" y="630" fill="#f7f4ee">ע</text>
+			<text class="mm-letter" x="230" y="690" fill="#f7f4ee">פ</text>
+			<text class="mm-letter" x="300" y="750" fill="#f7f4ee">צ</text>
+			<text class="mm-letter" x="300" y="850" fill="#f7f4ee">ק</text>
+			<text class="mm-letter" x="160" y="750" fill="#14110f">ר</text>
+			<text class="mm-letter" x="160" y="850" fill="#14110f">ש</text>
+			<text class="mm-letter" x="230" y="910" fill="#f7f4ee">ת</text>
+		</g>
 
-  <!-- ============ SEPHIROTH NAMES ============ -->
-  <g id="mm-names">
-    <g fill="#14110f">
-      <text class="mm-num" x="230" y="60">1</text>
-      <text class="mm-heb" x="230" y="94" direction="rtl">כתר</text>
-      <text class="mm-lat" x="230" y="116">KETHER</text>
-    </g>
-    <g fill="#14110f">
-      <text class="mm-num" x="370" y="180">2</text>
-      <text class="mm-heb" x="370" y="214" direction="rtl">חכמה</text>
-      <text class="mm-lat" x="370" y="236">CHOKMAH</text>
-    </g>
-    <g fill="#f2efe9">
-      <text class="mm-num" x="90" y="180">3</text>
-      <text class="mm-heb" x="90" y="214" direction="rtl">בינה</text>
-      <text class="mm-lat" x="90" y="236">BINAH</text>
-    </g>
-    <g fill="#f2efe9">
-      <text class="mm-num" x="370" y="420">4</text>
-      <text class="mm-heb" x="370" y="454" direction="rtl">חסד</text>
-      <text class="mm-lat" x="370" y="476">CHESED</text>
-    </g>
-    <g fill="#f7ece9">
-      <text class="mm-num" x="90" y="420">5</text>
-      <text class="mm-heb" x="90" y="454" direction="rtl">גבורה</text>
-      <text class="mm-lat" x="90" y="476">GEBURAH</text>
-    </g>
-    <g fill="#14110f">
-      <text class="mm-num" x="230" y="540">6</text>
-      <text class="mm-heb" x="230" y="574" direction="rtl">תפארת</text>
-      <text class="mm-lat" x="230" y="596">TIPHARETH</text>
-    </g>
-    <g fill="#f0fbf4">
-      <text class="mm-num" x="370" y="660">7</text>
-      <text class="mm-heb" x="370" y="694" direction="rtl">נצח</text>
-      <text class="mm-lat" x="370" y="716">NETZACH</text>
-    </g>
-    <g fill="#1d1206">
-      <text class="mm-num" x="90" y="660">8</text>
-      <text class="mm-heb" x="90" y="694" direction="rtl">הוד</text>
-      <text class="mm-lat" x="90" y="716">HOD</text>
-    </g>
-    <g fill="#f3ecfa">
-      <text class="mm-num" x="230" y="780">9</text>
-      <text class="mm-heb" x="230" y="814" direction="rtl">יסוד</text>
-      <text class="mm-lat" x="230" y="836">YESOD</text>
-    </g>
-    <g fill="var(--mm-ink)">
-      <!-- <text class="mm-num" x="230" y="1084">10</text> -->
-      <!-- <text class="mm-heb" x="230" y="1106" direction="rtl">מלכות</text> -->
-      <text class="mm-num" x="230" y="1028">10</text>
-      <text class="mm-heb" x="230" y="1050" direction="rtl">מלכות</text>
-    </g>
-  </g>
+		<!-- ============ SEPHIROTH NAMES ============ -->
+		<g id="mm-names">
+			<g fill="#14110f">
+				<text class="mm-num" x="230" y="60">1</text>
+				<text class="mm-heb" x="230" y="94" direction="rtl">כתר</text>
+				<text class="mm-lat" x="230" y="116">KETHER</text>
+			</g>
+			<g fill="#14110f">
+				<text class="mm-num" x="370" y="180">2</text>
+				<text class="mm-heb" x="370" y="214" direction="rtl">חכמה</text>
+				<text class="mm-lat" x="370" y="236">CHOKMAH</text>
+			</g>
+			<g fill="#f2efe9">
+				<text class="mm-num" x="90" y="180">3</text>
+				<text class="mm-heb" x="90" y="214" direction="rtl">בינה</text>
+				<text class="mm-lat" x="90" y="236">BINAH</text>
+			</g>
+			<g fill="#f2efe9">
+				<text class="mm-num" x="370" y="420">4</text>
+				<text class="mm-heb" x="370" y="454" direction="rtl">חסד</text>
+				<text class="mm-lat" x="370" y="476">CHESED</text>
+			</g>
+			<g fill="#f7ece9">
+				<text class="mm-num" x="90" y="420">5</text>
+				<text class="mm-heb" x="90" y="454" direction="rtl">גבורה</text>
+				<text class="mm-lat" x="90" y="476">GEBURAH</text>
+			</g>
+			<g fill="#14110f">
+				<text class="mm-num" x="230" y="540">6</text>
+				<text class="mm-heb" x="230" y="574" direction="rtl">תפארת</text>
+				<text class="mm-lat" x="230" y="596">TIPHARETH</text>
+			</g>
+			<g fill="#f0fbf4">
+				<text class="mm-num" x="370" y="660">7</text>
+				<text class="mm-heb" x="370" y="694" direction="rtl">נצח</text>
+				<text class="mm-lat" x="370" y="716">NETZACH</text>
+			</g>
+			<g fill="#1d1206">
+				<text class="mm-num" x="90" y="660">8</text>
+				<text class="mm-heb" x="90" y="694" direction="rtl">הוד</text>
+				<text class="mm-lat" x="90" y="716">HOD</text>
+			</g>
+			<g fill="#f3ecfa">
+				<text class="mm-num" x="230" y="780">9</text>
+				<text class="mm-heb" x="230" y="814" direction="rtl">יסוד</text>
+				<text class="mm-lat" x="230" y="836">YESOD</text>
+			</g>
+			<g fill="var(--mm-ink)">
+				<!-- <text class="mm-num" x="230" y="1084">10</text> -->
+				<!-- <text class="mm-heb" x="230" y="1106" direction="rtl">מלכות</text> -->
+				<text class="mm-num" x="230" y="1028">10</text>
+				<text class="mm-heb" x="230" y="1050" direction="rtl">מלכות</text>
+			</g>
+		</g>
 
-  <!-- ============ HOVER LABEL (painted last, so it sits on top) ============ -->
-  <g class="mm-tip" aria-hidden="true">
-    <rect x="-40" y="-13" width="80" height="26" rx="6"/>
-    <text y="0"></text>
-  </g>
+		<!-- ============ HOVER LABEL (painted last, so it sits on top) ============ -->
+		<g class="mm-tip" aria-hidden="true">
+			<rect x="-40" y="-13" width="80" height="26" rx="6"/>
+			<text y="0"></text>
+		</g>
 
-  <script><![CDATA[
+		<script><![CDATA[
   (function () {
+    var NS  = 'http://www.w3.org/2000/svg';
     var svg = (document.currentScript && document.currentScript.ownerSVGElement)
-              || document.querySelector('.minutum-mundum');
+	      || document.querySelector('.minutum-mundum');
     var tip = svg.querySelector('.mm-tip');
     var box = tip.querySelector('rect');
     var lab = tip.querySelector('text');
-    var VW  = svg.viewBox.baseVal.width;
+    var VB  = svg.viewBox.baseVal;
 
-    function place(x, y) {
-      var w  = Math.max(lab.getComputedTextLength() + 22, 56);
-      var cx = Math.min(Math.max(x, w / 2 + 4), VW - w / 2 - 4);
-      box.setAttribute('x', -w / 2);
-      box.setAttribute('width', w);
-      tip.setAttribute('transform', 'translate(' + cx.toFixed(1) + ',' + (y - 26).toFixed(1) + ')');
+    var LINE  = 19;   // line height
+    var PAD_X = 12;   // horizontal padding
+    var PAD_Y = 7;    // vertical padding
+    var GAP   = 14;   // distance between cursor and tooltip edge
+    var VS15  = '︎'; // text-presentation selector: keeps ♈ ♀ etc. from rendering as emoji
+
+    function textGlyphs(s) {
+      return Array.from(s).map(function (c) { return c === ' ' ? c : c + VS15; }).join('');
+    }
+
+    // each row → [ [className, text], ... ]
+    function pathRows(d) {
+      return [
+	[['mm-tip-head', d.path], ['mm-tip-dim', '  ·  '], ['mm-tip-heb', d.letter], ['', '  ' + d.letterName]],
+	[['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]],
+	[['mm-tip-dim', d.trump + '  ·  '], ['', d.trumpName]]
+      ].concat(colourRow(d));
+    }
+    // set by the colour switch below the figure
+    function colourRow(d) {
+      return d.colourName ? [[['mm-tip-dim', 'Colour  '], ['', d.colourName], ['mm-tip-dim', '  ·  ' + d.colourScale]]] : [];
+    }
+    function sephRows(d) {
+      var sphere = [];
+      if (d.symbol) sphere.push(['mm-tip-sym', textGlyphs(d.symbol) + '  ']);
+      sphere.push(['', d.sphere], ['mm-tip-dim', '  ·  ' + d.sphereEn]);
+      return [
+	[['mm-tip-head', d.seph + '  ' + d.name], ['mm-tip-dim', '  ·  ' + d.meaning]],
+	[['mm-tip-dim', 'God-Name  '],  ['', d.god]],
+	[['mm-tip-dim', 'Archangel  '], ['', d.archangel]],
+	[['mm-tip-dim', 'Choir  '],     ['', d.choir]],
+	sphere
+      ].concat(colourRow(d));
+    }
+    // a Malkuth quarter: Malkuth's rows, then the quarter's element
+    function quarterRows(d, el) {
+      return sephRows(el.parentNode.dataset).concat([
+	[['mm-tip-dim', 'Quarter  '], ['', d.colour + '  '], ['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]]
+      ]);
+    }
+
+    function fill(rows) {
+      while (lab.firstChild) lab.removeChild(lab.firstChild);
+      rows.forEach(function (row, i) {
+	row.forEach(function (seg, j) {
+	  var t = document.createElementNS(NS, 'tspan');
+	  if (j === 0) {                       // each row starts a new centred text chunk
+	    t.setAttribute('x', 0);
+	    t.setAttribute('dy', i === 0 ? 0 : LINE);
+	  }
+	  if (seg[0]) t.setAttribute('class', seg[0]);
+	  t.textContent = seg[1];
+	  lab.appendChild(t);
+	});
+      });
+      return rows.length;
+    }
+
+    function place(x, y, n) {
+      var h  = n * LINE + PAD_Y * 2;
+      lab.setAttribute('y', (-h / 2 + PAD_Y + LINE / 2).toFixed(1));
+      var w  = Math.max(lab.getBBox().width + PAD_X * 2, 56);
+      box.setAttribute('x', (-w / 2).toFixed(1));
+      box.setAttribute('y', (-h / 2).toFixed(1));
+      box.setAttribute('width',  w.toFixed(1));
+      box.setAttribute('height', h.toFixed(1));
+
+      var cx = Math.min(Math.max(x, VB.x + w / 2 + 4), VB.x + VB.width - w / 2 - 4);
+      var cy = y - GAP - h / 2;                          // prefer above the pointer
+      if (cy - h / 2 < VB.y + 4) cy = y + GAP + h / 2;   // flip below near the top edge
+      tip.setAttribute('transform', 'translate(' + cx.toFixed(1) + ',' + cy.toFixed(1) + ')');
     }
 
     function hide() { tip.classList.remove('is-on'); }
 
-    svg.querySelectorAll('#mm-paths .mm-path').forEach(function (el) {
+    function bind(el, rowsFor) {
       el.setAttribute('tabindex', '0');
 
       function show(e) {
-        lab.textContent = el.dataset.name;
-        var x, y;
-        if (e && e.clientX != null) {
-          var p = new DOMPoint(e.clientX, e.clientY)
-                    .matrixTransform(svg.getScreenCTM().inverse());
-          x = p.x; y = p.y;
-        } else {
-          x = (+el.getAttribute('x1') + +el.getAttribute('x2')) / 2;
-          y = (+el.getAttribute('y1') + +el.getAttribute('y2')) / 2;
-        }
-        place(x, y);
-        tip.classList.add('is-on');
+	var n = fill(rowsFor(el.dataset, el));
+	var x, y;
+	if (e && e.clientX != null) {
+	  var p = new DOMPoint(e.clientX, e.clientY)
+		    .matrixTransform(svg.getScreenCTM().inverse());
+	  x = p.x; y = p.y;
+	} else {                               // keyboard focus: centre of the shape
+	  var b = el.getBBox();
+	  x = b.x + b.width / 2;
+	  y = b.y + b.height / 2;
+	}
+	place(x, y, n);
+	tip.classList.add('is-on');
       }
 
       el.addEventListener('pointerenter', show);
@@ -222,9 +374,283 @@
       el.addEventListener('pointerleave', hide);
       el.addEventListener('focus', show);
       el.addEventListener('blur',  hide);
-    });
+    }
+
+    svg.querySelectorAll('#mm-paths .mm-path').forEach(function (el) { bind(el, pathRows); });
+    svg.querySelectorAll('#mm-sephiroth circle.mm-seph').forEach(function (el) { bind(el, sephRows); });
+    svg.querySelectorAll('#mm-malkuth .mm-quarter').forEach(function (el) { bind(el, quarterRows); });
   })();
   ]]></script>
-</svg>
+	</svg>
+
+	<style>
+	.tol-switch {
+		display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 14px auto 0;
+		font-family: Georgia, "Times New Roman", serif; color: #6b645c;
+		--tol-ink: #14110f; --tol-bg: #fbf9f5; --tol-line: #d8d2c8;
+	}
+	/* dark: follow the OS unless the site's theme toggle has set data-theme on <html> */
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) .tol-switch { color: #9c958b; --tol-ink: #ece7df; --tol-bg: #171513; --tol-line: #3a3530; }
+	}
+	:root[data-theme="dark"] .tol-switch { color: #9c958b; --tol-ink: #ece7df; --tol-bg: #171513; --tol-line: #3a3530; }
+	.tol-switch .tol-seg { display: inline-flex; flex-wrap: wrap; justify-content: center; border: 1px solid var(--tol-line); border-radius: 7px; overflow: hidden; }
+	.tol-switch button {
+		font: inherit; font-size: 12px; letter-spacing: .03em; padding: 6px 11px; border: 0;
+		background: var(--tol-bg); color: inherit; cursor: pointer;
+	}
+	.tol-switch button + button { border-left: 1px solid var(--tol-line); }
+	.tol-switch button[aria-pressed="true"] { background: var(--tol-ink); color: var(--tol-bg); }
+	.tol-switch button:focus-visible { outline: 2px solid var(--tol-ink); outline-offset: -2px; }
+	.tol-switch .tol-note { font-size: 12px; letter-spacing: .04em; }
+	</style>
+
+	<div class="tol-switch">
+		<div class="tol-seg" role="group" aria-label="Colour scale">
+			<button type="button" data-scale="mm" aria-pressed="true" title="Sephiroth in the Queen Scale, Paths in the King Scale">Minutum Mundum</button>
+			<button type="button" data-scale="king"    aria-pressed="false" title="Atziluth">King</button>
+			<button type="button" data-scale="queen"   aria-pressed="false" title="Briah">Queen</button>
+			<button type="button" data-scale="emperor" aria-pressed="false" title="Yetzirah (also called the Prince Scale)">Emperor</button>
+			<button type="button" data-scale="empress" aria-pressed="false" title="Assiah (also called the Princess Scale)">Empress</button>
+		</div>
+		<div class="tol-note" aria-live="polite">Sephiroth in the Queen Scale · Paths in the King Scale</div>
+	</div>
+
+	<script>
+(function () {
+	var fig  = (document.currentScript && document.currentScript.closest('figure')) || document.querySelector('figure');
+	var svg  = fig.querySelector('svg.minutum-mundum');
+	var NS   = 'http://www.w3.org/2000/svg';
+	var note = fig.querySelector('.tol-note');
+
+	/* A colour is { n: name, b: base hex, f: [fleck hexes], r: ray hex }. All four scales from 777.
+     Flecked colours are drawn as dots; rayed ones as a sunburst on the Sephiroth
+     and as fine diagonal rays along the Paths. */
+	function c(n, b)        { return { n: n, b: b }; }
+	function f(n, b)        { return { n: n, b: b, f: [].slice.call(arguments, 2) }; }
+	function r(n, b, ray)   { return { n: n, b: b, r: ray }; }
+	// 777 sometimes offers two colours ("X or Y"): the second is shown while the Path is hovered
+	function alt(first, second) { first.alt = second; return first; }
+
+	var GOLD = '#f2c230';
+
+	/* ---------- Sephiroth 1–9 (Malkuth is handled by its quarters) ---------- */
+	var SEPH = {
+		king: [
+			c('Brilliance','#ffffff'), c('Soft pure blue','#6fa8dc'), c('Crimson','#b01030'),
+			c('Deep violet','#4b1f7a'), c('Orange','#e8811c'), c('Clear rose pink','#f4a7b9'),
+			c('Amber','#ffbf3f'), c('Violet purple','#7b3fa0'), c('Indigo','#3a2a8c')
+		],
+		queen: [
+			c('White brilliance','#ffffff'), c('Grey','#9a9a9a'), c('Black','#0b0b0b'),
+			c('Blue','#1e52c8'), c('Scarlet red','#c81e1e'), c('Yellow (gold)','#f2d024'),
+			c('Emerald','#0f9b5a'), c('Orange','#e8811c'), c('Violet','#6b2fa0')
+		],
+		emperor: [
+			c('White brilliance','#ffffff'), c('Blue pearl grey, like mother-of-pearl','#b9c4cf'), c('Dark brown','#4a2e1c'),
+			c('Deep purple','#4a1a6b'), c('Bright scarlet','#e8201e'), c('Rich salmon','#f08a6e'),
+			c('Bright yellow green','#9acd32'), c('Red-russet','#a33f22'), c('Very dark purple','#2e0f40')
+		],
+		empress: [
+			f('White flecked gold','#fbfbfb', GOLD), f('White flecked red, blue and yellow','#fbfbfb','#d42222','#2a6fd6','#f2d024'),
+			f('Grey flecked pink','#8c8c8c','#f4a7b9'), f('Deep azure flecked yellow','#1f4fa8','#f2d024'),
+			f('Red flecked black','#c81e1e','#0b0b0b'), c('Gold amber','#e6a817'),
+			f('Olive flecked gold','#5c6e38', GOLD), f('Yellowish brown flecked white','#a07a2c','#ffffff'),
+			f('Citrine flecked azure','#b2a429','#3a8fe0')
+		]
+	};
+
+	/* ---------- Malkuth: [name, [citrine/Air, russet/Fire, black/Earth, olive/Water] quarters] ---------- */
+	var Q = ['#b2a429', '#8a4a2e', '#0b0b0b', '#5c6e38'];
+	var MALKUTH = {
+		king:    ['Yellow', [c('Yellow','#f2d024'), c('Yellow','#f2d024'), c('Yellow','#f2d024'), c('Yellow','#f2d024')]],
+		queen:   ['Citrine, olive, russet and black', [c('Citrine',Q[0]), c('Russet',Q[1]), c('Black',Q[2]), c('Olive',Q[3])]],
+		emperor: ['Citrine, olive, russet and black, flecked gold',
+			[f('Citrine flecked gold',Q[0],GOLD), f('Russet flecked gold',Q[1],GOLD), f('Black flecked gold',Q[2],GOLD), f('Olive flecked gold',Q[3],GOLD)]],
+		empress: ['Black rayed yellow', 'rays']   // one sunburst across the whole disc
+	};
+
+	/* ---------- Paths 11–32 ---------- */
+	var SKY = '#7cbfe8';
+	var PATH = {
+		king: [
+			c('Bright pale yellow','#f6f2a6'), c('Yellow','#f2d024'), c('Blue','#2a6fd6'), c('Emerald green','#0f9b5a'),
+			c('Scarlet','#d42222'), c('Red orange','#e04e10'), c('Orange','#f08a1e'), c('Amber','#ffbf3f'),
+			c('Greenish yellow','#d8dc28'), c('Yellowish green','#8fc22b'), c('Violet','#6b2fa0'), c('Emerald green','#0f9b5a'),
+			c('Deep blue','#10328c'), c('Green blue','#12726b'), c('Blue','#2a6fd6'), c('Indigo','#3a2a8c'),
+			c('Scarlet','#d42222'), c('Violet','#6b2fa0'), c('Crimson (ultra violet)','#b01050'), c('Orange','#f08a1e'),
+			c('Glowing orange scarlet','#ff4a0f'), c('Indigo','#3a2a8c')
+		],
+		queen: [
+			c('Sky blue',SKY), c('Purple','#6a2c8c'), c('Silver','#c3c7cc'), c('Sky blue',SKY),
+			c('Red','#c8201e'), c('Deep indigo','#2a1f6b'), c('Pale mauve','#c9a9d2'), c('Maroon','#6e1424'),
+			c('Deep purple','#4a1a6b'), c('Slate grey','#6b7480'), c('Blue','#1e52c8'), c('Blue','#1e52c8'),
+			c('Sea green','#2e8b7a'), c('Dull brown','#6b5236'), c('Yellow','#f2d024'), c('Black','#0b0b0b'),
+			c('Red','#c8201e'), c('Sky blue',SKY), f('Buff, flecked silver-white','#d9c08c','#f4f4f4'), c('Gold yellow','#e6b422'),
+			c('Vermilion','#e34234'), c('Black','#0b0b0b')
+		],
+		emperor: [
+			c('Blue emerald green','#1aa38a'), c('Grey','#8c8c8c'), c('Cold pale blue','#b8d4e8'), c('Early spring green','#9fd46a'),
+			c('Brilliant flame','#ff5a1f'), c('Deep warm olive','#5f5a1e'), c('New yellow leather','#d2a54f'), c('Rich bright russet','#a8461f'),
+			c('Grey','#8c8c8c'), c('Green grey','#7f8b78'), c('Rich purple','#5b1f86'), c('Deep blue-green','#0f5c5c'),
+			c('Deep olive-green','#45531c'), c('Very dark brown','#3a2616'), c('Green','#2e9e3e'), c('Blue black','#12162e'),
+			c('Venetian red','#c80815'), c('Bluish mauve','#9a86c2'), c('Light translucent pinkish brown','#c9a395'), c('Rich amber','#e08a00'),
+			f('Scarlet, flecked gold','#d42222', GOLD), c('Blue black','#12162e')
+		],
+		empress: [
+			f('Emerald flecked gold','#0f9b5a', GOLD), r('Indigo rayed violet','#3a2a8c','#8a4fc4'), r('Silver rayed sky-blue','#c3c7cc',SKY),
+			alt(r('Bright rose or cerise, rayed pale green','#f2577f','#b6e3a8'), r('','#de3163','#b6e3a8')),
+			c('Glowing red','#e8231a'), c('Rich brown','#6b3a1e'), c('Reddish grey inclined to mauve','#9c8088'), c('Dark greenish brown','#4a4326'),
+			c('Reddish amber','#d6741c'), c('Plum colour','#7a2d55'), r('Bright blue rayed yellow','#1f6fe0','#f2d024'), c('Pale green','#a8d8a0'),
+			f('White flecked purple','#f6f4f0','#6a2c8c'), c('Livid indigo brown (like a black beetle)','#2b2433'), c('Dark vivid blue','#1a2fa8'),
+			c('Cold dark grey near black','#26282b'), alt(r('Bright red, rayed azure or emerald','#e3241b','#3a8fe0'), r('','#e3241b','#0f9b5a')), c('White tinged purple','#ece4f2'),
+			c('Stone colour','#9e9585'), r('Amber rayed red','#ffbf3f','#d42222'), f('Vermilion flecked crimson and emerald','#e34234','#b01050','#0f9b5a'),
+			r('Black rayed blue','#0b0b0b','#2a6fd6')
+		]
+	};
+
+	var SCALE_NAME = { king: 'King', queen: 'Queen', emperor: 'Emperor', empress: 'Empress' };
+	var NOTE = {
+		mm:      'Sephiroth in the Queen Scale · Paths in the King Scale',
+		king:    'King Scale · Atziluth',
+		queen:   'Queen Scale · Briah',
+		emperor: 'Emperor Scale · Yetzirah',
+		empress: 'Empress Scale · Assiah'
+	};
+
+	/* ---------- SVG paint servers for flecked / rayed colours ---------- */
+	var defs = svg.querySelector('defs') || svg.insertBefore(document.createElementNS(NS, 'defs'), svg.firstChild);
+	var made = {};
+	function el(tag, attrs, parent) {
+		var e = document.createElementNS(NS, tag);
+		for (var k in attrs) e.setAttribute(k, attrs[k]);
+		if (parent) parent.appendChild(e);
+		return e;
+	}
+	function flecks(col) {
+		var id = 'tol-f-' + (col.b + col.f.join('')).replace(/#/g, '');
+		if (!made[id]) {
+			var pat = el('pattern', { id: id, width: 9, height: 9, patternUnits: 'userSpaceOnUse' }, defs);
+			el('rect', { width: 9, height: 9, fill: col.b }, pat);
+			var spots = [[2, 2], [6.5, 6.5], [6.5, 2], [2, 6.5]];
+			col.f.forEach(function (h, i) { el('circle', { cx: spots[i][0], cy: spots[i][1], r: 1.3, fill: h }, pat); });
+			made[id] = 1;
+		}
+		return 'url(#' + id + ')';
+	}
+	function sunburst(col, cx, cy, R) {          // rays from the centre of a Sephirah
+		var id = 'tol-s-' + (col.b + col.r).replace(/#/g, '') + '-' + cx + '-' + cy;
+		if (!made[id]) {
+			var pat = el('pattern', { id: id, x: cx - R, y: cy - R, width: 2 * R, height: 2 * R, patternUnits: 'userSpaceOnUse' }, defs);
+			el('rect', { width: 2 * R, height: 2 * R, fill: col.b }, pat);
+			for (var i = 0; i < 16; i++) {
+				var a = i * Math.PI / 8, w = .07;
+				var p = [R, R, R + 2 * R * Math.cos(a - w), R + 2 * R * Math.sin(a - w), R + 2 * R * Math.cos(a + w), R + 2 * R * Math.sin(a + w)];
+				el('polygon', { points: p.join(' '), fill: col.r }, pat);
+			}
+			made[id] = 1;
+		}
+		return 'url(#' + id + ')';
+	}
+	function streaks(col) {                      // rays along a Path
+		var id = 'tol-r-' + (col.b + col.r).replace(/#/g, '');
+		if (!made[id]) {
+			var pat = el('pattern', { id: id, width: 7, height: 7, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(35)' }, defs);
+			el('rect', { width: 7, height: 7, fill: col.b }, pat);
+			el('rect', { width: 1.6, height: 7, fill: col.r }, pat);
+			made[id] = 1;
+		}
+		return 'url(#' + id + ')';
+	}
+
+	function inkFor(hex) {
+		var lum = [1, 3, 5].map(function (k) {
+			var v = parseInt(hex.substr(k, 2), 16) / 255;
+			return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4);
+		});
+		return .2126 * lum[0] + .7152 * lum[1] + .0722 * lum[2] > .2 ? '#14110f' : '#f7f4ee';
+	}
+	function setInk(node, col) {                 // text colour, with a halo on patterned grounds
+		var ink = inkFor(col.b);
+		node.setAttribute('fill', ink);
+		if (col.f || col.r) {
+			node.style.paintOrder = 'stroke';
+			node.style.stroke = ink === '#14110f' ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.8)';
+			node.style.strokeWidth = '3px';
+			node.style.strokeLinejoin = 'round';
+		} else {
+			node.style.stroke = '';
+		}
+	}
+
+	var circles  = svg.querySelectorAll('#mm-sephiroth circle.mm-seph');
+	var quarters = svg.querySelectorAll('#mm-malkuth .mm-quarter');
+	var malkuth  = svg.querySelector('#mm-malkuth');
+	var paths    = svg.querySelectorAll('#mm-paths .mm-path');
+	var letters  = svg.querySelectorAll('#mm-letters text');
+	var names    = svg.querySelectorAll('#mm-names > g');
+
+	// remember the hand-picked text colours of the original figure for the default view
+	[].forEach.call(names,   function (n) { n.dataset.origFill = n.getAttribute('fill'); });
+	[].forEach.call(letters, function (n) { n.dataset.origFill = n.getAttribute('fill'); });
+	function ink(node, col, mode) {
+		if (mode === 'mm') { node.setAttribute('fill', node.dataset.origFill); node.style.stroke = ''; }
+		else setInk(node, col);
+	}
+
+	function apply(mode) {
+		var sScale = mode === 'mm' ? 'queen' : mode;
+		var pScale = mode === 'mm' ? 'king'  : mode;
+
+		circles.forEach(function (circle, i) {
+			var col = SEPH[sScale][i];
+			var cx = +circle.getAttribute('cx'), cy = +circle.getAttribute('cy'), R = +circle.getAttribute('r');
+			circle.setAttribute('fill', col.r ? sunburst(col, cx, cy, R) : col.f ? flecks(col) : col.b);
+			circle.dataset.colourName = col.n;
+			circle.dataset.colourScale = SCALE_NAME[sScale];
+			ink(names[i], col, mode);
+		});
+
+		var m = MALKUTH[sScale];
+		var disc = { n: m[0], b: '#0b0b0b', r: '#f2d024' };
+		quarters.forEach(function (q, i) {
+			if (m[1] === 'rays') { q.setAttribute('fill', sunburst(disc, 230, 1010, 58)); return; }
+			var col = m[1][i];
+			q.setAttribute('fill', col.f ? flecks(col) : col.b);
+		});
+		malkuth.dataset.colourName = m[0];
+		malkuth.dataset.colourScale = SCALE_NAME[sScale];
+
+		paths.forEach(function (line, i) {
+			var col = PATH[pScale][i];
+			var paint = function (k) { return k.r ? streaks(k) : k.f ? flecks(k) : k.b; };
+			line._paint = paint(col);
+			line._alt   = col.alt ? paint(col.alt) : null;
+			line.setAttribute('stroke', line._paint);
+			line.dataset.colourName = col.n;
+			line.dataset.colourScale = SCALE_NAME[pScale];
+			ink(letters[i], col, mode);
+		});
+
+		fig.querySelectorAll('.tol-seg button').forEach(function (b) {
+			b.setAttribute('aria-pressed', b.dataset.scale === mode ? 'true' : 'false');
+		});
+		note.textContent = NOTE[mode];
+	}
+
+	fig.querySelectorAll('.tol-seg button').forEach(function (b) {
+		b.addEventListener('click', function () { apply(b.dataset.scale); });
+	});
+	paths.forEach(function (line) {
+		function on()  { if (line._alt) line.setAttribute('stroke', line._alt); }
+		function off() { if (line._alt) line.setAttribute('stroke', line._paint); }
+		line.addEventListener('pointerenter', on);
+		line.addEventListener('pointerleave', off);
+		line.addEventListener('focus', on);
+		line.addEventListener('blur', off);
+	});
+	apply('mm');
+})();
+	</script>
 </figure>
 

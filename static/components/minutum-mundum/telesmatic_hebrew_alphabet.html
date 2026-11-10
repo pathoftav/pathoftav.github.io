@@ -1,0 +1,683 @@
+<figure class="otiyot" aria-labelledby="hl-cap">
+	<style>
+	.otiyot {
+		--hl-ink: #14110f;
+		--hl-dim: #6b645c;
+		--hl-line: #d8d2c8;
+		--hl-bg: #fbf9f5;
+		--hl-card: #ffffff;
+		--hl-pop-bg: #ffffff;
+		--hl-pop-fg: #14110f;
+		--hl-pop-dim: #6b645c;
+		position: relative;
+		max-width: 640px;
+		margin: 0 auto;
+		color: var(--hl-ink);
+		font-family: Georgia, "Times New Roman", serif;
+	}
+	/* dark colours: follow the OS unless the site's theme toggle has set data-theme on <html>
+(data-theme="light" overrides a dark OS; data-theme="dark" overrides a light one) */
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) .otiyot {
+			--hl-ink: #ece7df;
+			--hl-dim: #9c958b;
+			--hl-line: #3a3530;
+			--hl-bg: #171513;
+			--hl-card: #1f1c19;
+			--hl-pop-bg: #0e0c0b;
+			--hl-pop-fg: #ece7df;
+			--hl-pop-dim: #9c958b;
+		}
+	}
+	:root[data-theme="dark"] .otiyot {
+		--hl-ink: #ece7df;
+		--hl-dim: #9c958b;
+		--hl-line: #3a3530;
+		--hl-bg: #171513;
+		--hl-card: #1f1c19;
+		--hl-pop-bg: #0e0c0b;
+		--hl-pop-fg: #ece7df;
+		--hl-pop-dim: #9c958b;
+	}
+	.otiyot .hl-heb {
+		font-family: "Frank Ruehl CLM", "David Libre", "Noto Serif Hebrew", "Noto Sans Hebrew", "Times New Roman", serif;
+	}
+	.otiyot .hl-sym {
+		font-family: "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", "Symbola", sans-serif;
+	}
+
+	/* ---------- colour scale selector ---------- */
+	.otiyot .hl-scale {
+		display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 0 16px;
+		font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--hl-dim);
+	}
+	.otiyot .hl-seg { display: inline-flex; border: 1px solid var(--hl-line); border-radius: 7px; overflow: hidden; }
+	.otiyot .hl-seg button {
+		font: inherit; font-size: 12px; letter-spacing: .04em; text-transform: none;
+		padding: 6px 12px; border: 0; background: var(--hl-bg); color: var(--hl-dim); cursor: pointer;
+	}
+	.otiyot .hl-seg button + button { border-left: 1px solid var(--hl-line); }
+	.otiyot .hl-seg button[aria-pressed="true"] { background: var(--hl-ink); color: var(--hl-bg); }
+	.otiyot .hl-seg button:focus-visible { outline: 2px solid var(--hl-ink); outline-offset: -2px; }
+
+
+	/* ---------- grid ---------- */
+	.otiyot .hl-group { margin: 0 0 18px; }
+	.otiyot .hl-group h3 {
+		font-size: 12px; font-weight: normal; letter-spacing: .14em; text-transform: uppercase;
+		color: var(--hl-dim); margin: 0 0 8px; text-align: center;
+	}
+	.otiyot .hl-group h3 .hl-heb { letter-spacing: 0; font-size: 14px; text-transform: none; }
+	.otiyot .hl-row {
+		display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+		direction: rtl;                       /* read the alphabet right to left */
+	}
+	.otiyot .hl-row-alpha { max-width: 510px; margin: 0 auto; }   /* six to a row */
+	.otiyot .hl-tile {
+		position: relative; width: 78px; height: 86px; padding: 0; border: 0; border-radius: 8px;
+		cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+		direction: ltr; font: inherit; color: inherit;
+		box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+		transition: transform .12s ease, box-shadow .12s ease;
+	}
+	.otiyot .hl-tile:hover, .otiyot .hl-tile:focus-visible {
+		transform: translateY(-2px);
+		box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.18);
+		outline: none;
+	}
+	.otiyot .hl-tile:focus-visible { box-shadow: 0 0 0 2px var(--hl-bg), 0 0 0 4px var(--hl-ink); }
+	.otiyot .hl-tile .hl-glyph { font-size: 38px; line-height: 1; margin-top: 4px; }
+	.otiyot .hl-tile .hl-name  { font-size: 11px; letter-spacing: .06em; margin-top: 6px; }
+	.otiyot .hl-tile .hl-path  { position: absolute; top: 5px; left: 7px; font-size: 9px; opacity: .7; }
+	.otiyot .hl-tile .hl-attr  { position: absolute; top: 4px; right: 7px; font-size: 11px; opacity: .85; }
+
+	/* ---------- popup ---------- */
+	.otiyot .hl-pop {
+		position: absolute; z-index: 10; width: 320px; max-width: calc(100% - 8px);
+		background: var(--hl-pop-bg); color: var(--hl-pop-fg);
+		border: 1px solid var(--hl-line); border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.4;
+		box-shadow: 0 8px 24px rgba(0,0,0,.25);
+		opacity: 0; pointer-events: none; transition: opacity .1s ease;
+	}
+	.otiyot .hl-pop.is-on { opacity: 1; }
+	.otiyot .hl-pop-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+	.otiyot .hl-pop-head .hl-heb { font-size: 40px; line-height: 1; min-width: 36px; text-align: center; }
+	.otiyot .hl-pop-head b { font-size: 16px; letter-spacing: .03em; }
+	.otiyot .hl-pop .hl-dim { color: var(--hl-pop-dim); }
+	.otiyot .hl-pop dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+	.otiyot .hl-pop dt { color: var(--hl-pop-dim); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+	.otiyot .hl-pop dd { margin: 0; }
+	.otiyot .hl-sw {
+		display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 5px;
+		box-shadow: 0 0 0 1px rgba(128,128,128,.45);
+	}
+	.otiyot .hl-pop-tel { margin-top: 10px; padding-top: 9px; border-top: 1px solid rgba(128,128,128,.35); }
+	.otiyot .hl-pop-tel q { font-style: italic; quotes: "\201C" "\201D"; }
+	.otiyot .hl-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--hl-pop-dim); margin-bottom: 3px; }
+
+	/* ---------- telesmatic builder ---------- */
+	.otiyot .hl-builder {
+		margin-top: 22px; padding: 16px; border: 1px solid var(--hl-line); border-radius: 10px; background: var(--hl-card);
+	}
+	.otiyot .hl-builder h3 { margin: 0 0 4px; font-size: 16px; font-weight: normal; letter-spacing: .04em; }
+	.otiyot .hl-builder p.hl-hint { margin: 0 0 10px; font-size: 13px; color: var(--hl-dim); }
+	.otiyot .hl-input-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+	.otiyot .hl-input {
+		flex: 1 1 200px; font-size: 26px; padding: 4px 10px; border: 1px solid var(--hl-line); border-radius: 6px;
+		background: var(--hl-bg); color: var(--hl-ink); text-align: right;
+	}
+	.otiyot .hl-btn {
+		font: inherit; font-size: 12px; padding: 6px 10px; border: 1px solid var(--hl-line); border-radius: 6px;
+		background: var(--hl-bg); color: var(--hl-ink); cursor: pointer;
+	}
+	.otiyot .hl-btn:hover { border-color: var(--hl-dim); }
+	.otiyot .hl-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; font-size: 12px; color: var(--hl-dim); align-items: center; }
+	.otiyot .hl-sw-alt { cursor: pointer; box-shadow: 0 0 0 1px rgba(128,128,128,.45), 0 0 0 3px transparent; transition: box-shadow .1s; }
+	.otiyot .hl-sw-alt:hover, .otiyot .hl-sw-alt:focus-visible { outline: none; box-shadow: 0 0 0 1px rgba(128,128,128,.45), 0 0 0 3px var(--hl-line); }
+	/* the -EL/-YAH switch: pushed to the far right of the Examples row, keeping a gap when it wraps */
+	.otiyot .hl-toggle {
+		margin-left: auto; padding-left: 14px; display: inline-flex; align-items: center; gap: 5px;
+		font-size: 12px; letter-spacing: .04em; color: var(--hl-dim); cursor: pointer; white-space: nowrap; user-select: none;
+	}
+	.otiyot .hl-toggle:hover { color: var(--hl-ink); }
+	.otiyot .hl-toggle input {
+		appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 auto;
+		width: 14px; height: 14px; border: 1px solid var(--hl-line); border-radius: 3px;
+		background: var(--hl-bg); cursor: pointer; display: grid; place-content: center;
+		transition: background .1s, border-color .1s;
+	}
+	.otiyot .hl-toggle:hover input { border-color: var(--hl-dim); }
+	.otiyot .hl-toggle input::after {
+		content: ""; width: 7px; height: 4px; margin-top: -2px;
+		border: solid var(--hl-bg); border-width: 0 0 1.6px 1.6px; transform: rotate(-45deg); opacity: 0;
+	}
+	.otiyot .hl-toggle input:checked { background: var(--hl-ink); border-color: var(--hl-ink); }
+	.otiyot .hl-toggle input:checked::after { opacity: 1; }
+	.otiyot .hl-toggle input:focus-visible { outline: 2px solid var(--hl-ink); outline-offset: 1px; }
+	.otiyot .hl-toggle:has(input:checked) { color: var(--hl-ink); }
+	.otiyot .hl-out { margin-top: 14px; display: none; gap: 14px; }
+	.otiyot .hl-out.is-on { display: flex; }
+	.otiyot .hl-figure { display: flex; gap: 3px; flex: 0 0 auto; }
+	.otiyot .hl-strip { display: flex; flex-direction: column; width: 18px; border-radius: 9px 9px 3px 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--hl-line); }
+	.otiyot .hl-strip div { flex: 1 1 0; }
+	.otiyot .hl-strip-cap { font-size: 9px; color: var(--hl-dim); text-align: center; writing-mode: vertical-rl; transform: rotate(180deg); }
+	.otiyot .hl-parts { flex: 1 1 auto; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.4; }
+	.otiyot .hl-parts li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 8px; padding: 6px 0; border-bottom: 1px dashed var(--hl-line); }
+	.otiyot .hl-parts li:last-child { border-bottom: 0; }
+	.otiyot .hl-parts .hl-heb { font-size: 26px; line-height: 1; text-align: center; grid-row: span 2; }
+	.otiyot .hl-parts .hl-zone { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--hl-dim); }
+	.otiyot .hl-parts .hl-word-break { display: block; font-size: 11px; color: var(--hl-dim); text-align: center; padding: 2px 0; border-bottom: 0; letter-spacing: .1em; }
+	.otiyot .hl-summary { margin-top: 12px; font-size: 13px; line-height: 1.5; }
+	.otiyot .hl-summary p { margin: 0 0 6px; }
+
+	/* ---------- notes ---------- */
+	.otiyot details { margin-top: 14px; font-size: 13px; line-height: 1.55; }
+	.otiyot summary { cursor: pointer; color: var(--hl-dim); letter-spacing: .04em; }
+	.otiyot details ol, .otiyot details ul { padding-left: 20px; }
+	.otiyot figcaption { margin-top: 12px; font-size: 12px; color: var(--hl-dim); text-align: center; }
+	</style>
+
+	<!-- ============ THE TWENTY-TWO LETTERS ============
+Inline colours are the King Scale (shown if scripts are off); the script recolours
+tiles for the chosen scale. Each row reads right to left.
+data-i indexes into LETTERS in the script below. -->
+	<div class="hl-group hl-alpha" hidden>
+		<h3>The Twenty-Two Letters · <span class="hl-heb">אותיות</span></h3>
+		<div class="hl-row hl-row-alpha"></div>
+	</div>
+
+	<div class="hl-group hl-by-class">
+		<h3>Three Mothers · <span class="hl-heb">אמות</span></h3>
+		<div class="hl-row">
+			<button class="hl-tile" data-i="0"  style="background:#f6f2a6;color:#14110f"><span class="hl-path">11</span><span class="hl-attr hl-sym">🜁&#xFE0E;</span><span class="hl-glyph hl-heb">א</span><span class="hl-name">ALEPH</span></button>
+			<button class="hl-tile" data-i="12" style="background:#10328c;color:#f7f4ee"><span class="hl-path">23</span><span class="hl-attr hl-sym">🜄&#xFE0E;</span><span class="hl-glyph hl-heb">מ</span><span class="hl-name">MEM</span></button>
+			<button class="hl-tile" data-i="20" style="background:#ff4a0f;color:#14110f"><span class="hl-path">31</span><span class="hl-attr hl-sym">🜂&#xFE0E;</span><span class="hl-glyph hl-heb">ש</span><span class="hl-name">SHIN</span></button>
+		</div>
+	</div>
+
+	<div class="hl-group hl-by-class">
+		<h3>Seven Doubles · <span class="hl-heb">כפולות</span></h3>
+		<div class="hl-row">
+			<button class="hl-tile" data-i="1"  style="background:#f2d024;color:#14110f"><span class="hl-path">12</span><span class="hl-attr hl-sym">☿&#xFE0E;</span><span class="hl-glyph hl-heb">ב</span><span class="hl-name">BETH</span></button>
+			<button class="hl-tile" data-i="2"  style="background:#2a6fd6;color:#f7f4ee"><span class="hl-path">13</span><span class="hl-attr hl-sym">☽&#xFE0E;</span><span class="hl-glyph hl-heb">ג</span><span class="hl-name">GIMEL</span></button>
+			<button class="hl-tile" data-i="3"  style="background:#0f9b5a;color:#14110f"><span class="hl-path">14</span><span class="hl-attr hl-sym">♀&#xFE0E;</span><span class="hl-glyph hl-heb">ד</span><span class="hl-name">DALETH</span></button>
+			<button class="hl-tile" data-i="10" style="background:#6b2fa0;color:#f7f4ee"><span class="hl-path">21</span><span class="hl-attr hl-sym">♃&#xFE0E;</span><span class="hl-glyph hl-heb">כ</span><span class="hl-name">KAPH</span></button>
+			<button class="hl-tile" data-i="16" style="background:#d42222;color:#f7f4ee"><span class="hl-path">27</span><span class="hl-attr hl-sym">♂&#xFE0E;</span><span class="hl-glyph hl-heb">פ</span><span class="hl-name">PEH</span></button>
+			<button class="hl-tile" data-i="19" style="background:#f08a1e;color:#14110f"><span class="hl-path">30</span><span class="hl-attr hl-sym">☉&#xFE0E;</span><span class="hl-glyph hl-heb">ר</span><span class="hl-name">RESH</span></button>
+			<button class="hl-tile" data-i="21" style="background:#3a2a8c;color:#f7f4ee"><span class="hl-path">32</span><span class="hl-attr hl-sym">♄&#xFE0E;</span><span class="hl-glyph hl-heb">ת</span><span class="hl-name">TAV</span></button>
+		</div>
+	</div>
+
+	<div class="hl-group hl-by-class">
+		<h3>Twelve Simples · <span class="hl-heb">פשוטות</span></h3>
+		<div class="hl-row">
+			<button class="hl-tile" data-i="4"  style="background:#d42222;color:#f7f4ee"><span class="hl-path">15</span><span class="hl-attr hl-sym">♈&#xFE0E;</span><span class="hl-glyph hl-heb">ה</span><span class="hl-name">HEH</span></button>
+			<button class="hl-tile" data-i="5"  style="background:#e04e10;color:#14110f"><span class="hl-path">16</span><span class="hl-attr hl-sym">♉&#xFE0E;</span><span class="hl-glyph hl-heb">ו</span><span class="hl-name">VAV</span></button>
+			<button class="hl-tile" data-i="6"  style="background:#f08a1e;color:#14110f"><span class="hl-path">17</span><span class="hl-attr hl-sym">♊&#xFE0E;</span><span class="hl-glyph hl-heb">ז</span><span class="hl-name">ZAYIN</span></button>
+			<button class="hl-tile" data-i="7"  style="background:#ffbf3f;color:#14110f"><span class="hl-path">18</span><span class="hl-attr hl-sym">♋&#xFE0E;</span><span class="hl-glyph hl-heb">ח</span><span class="hl-name">CHETH</span></button>
+			<button class="hl-tile" data-i="8"  style="background:#d8dc28;color:#14110f"><span class="hl-path">19</span><span class="hl-attr hl-sym">♌&#xFE0E;</span><span class="hl-glyph hl-heb">ט</span><span class="hl-name">TETH</span></button>
+			<button class="hl-tile" data-i="9"  style="background:#8fc22b;color:#14110f"><span class="hl-path">20</span><span class="hl-attr hl-sym">♍&#xFE0E;</span><span class="hl-glyph hl-heb">י</span><span class="hl-name">YOD</span></button>
+			<button class="hl-tile" data-i="11" style="background:#0f9b5a;color:#14110f"><span class="hl-path">22</span><span class="hl-attr hl-sym">♎&#xFE0E;</span><span class="hl-glyph hl-heb">ל</span><span class="hl-name">LAMED</span></button>
+			<button class="hl-tile" data-i="13" style="background:#12726b;color:#f7f4ee"><span class="hl-path">24</span><span class="hl-attr hl-sym">♏&#xFE0E;</span><span class="hl-glyph hl-heb">נ</span><span class="hl-name">NUN</span></button>
+			<button class="hl-tile" data-i="14" style="background:#2a6fd6;color:#f7f4ee"><span class="hl-path">25</span><span class="hl-attr hl-sym">♐&#xFE0E;</span><span class="hl-glyph hl-heb">ס</span><span class="hl-name">SAMEKH</span></button>
+			<button class="hl-tile" data-i="15" style="background:#3a2a8c;color:#f7f4ee"><span class="hl-path">26</span><span class="hl-attr hl-sym">♑&#xFE0E;</span><span class="hl-glyph hl-heb">ע</span><span class="hl-name">AYIN</span></button>
+			<button class="hl-tile" data-i="17" style="background:#6b2fa0;color:#f7f4ee"><span class="hl-path">28</span><span class="hl-attr hl-sym">♒&#xFE0E;</span><span class="hl-glyph hl-heb">צ</span><span class="hl-name">TZADDI</span></button>
+			<button class="hl-tile" data-i="18" style="background:#b01050;color:#f7f4ee"><span class="hl-path">29</span><span class="hl-attr hl-sym">♓&#xFE0E;</span><span class="hl-glyph hl-heb">ק</span><span class="hl-name">QOPH</span></button>
+		</div>
+	</div>
+
+	<!-- ============ TELESMATIC IMAGE BUILDER ============ -->
+	<section class="hl-builder" aria-label="Telesmatic image builder">
+		<h3>Telesmatic image</h3>
+		<p class="hl-hint">Click letters above, or type a Hebrew name, to lay out its image from head to feet.</p>
+		<div class="hl-input-row">
+			<input class="hl-input hl-heb" type="text" dir="rtl" lang="he" autocomplete="off" spellcheck="false"
+				placeholder="רפאל" aria-label="Hebrew name">
+			<button class="hl-btn" type="button" data-act="space">space</button>
+			<button class="hl-btn" type="button" data-act="back" aria-label="Delete last letter">⌫</button>
+			<button class="hl-btn" type="button" data-act="clear">clear</button>
+		</div>
+		<div class="hl-presets">
+			Examples:
+			<button class="hl-btn" type="button" data-name="רפאל">Raphael</button>
+			<button class="hl-btn" type="button" data-name="גבריאל">Gabriel</button>
+			<button class="hl-btn" type="button" data-name="מיכאל">Michael</button>
+			<button class="hl-btn" type="button" data-name="אוריאל">Auriel</button>
+			<button class="hl-btn" type="button" data-name="אדני הארץ">Adonai ha-Aretz</button>
+			<label class="hl-toggle" title="Read an -EL or -YAH ending as attributes (wings and Justice, or a throne and flaming glory) rather than parts of the body. Golden Dawn Enochian instructions and Crowley; Mathers divides the figure by every letter.">
+				<input type="checkbox" class="hl-suffix" aria-label="Read an -EL or -YAH ending as attributes rather than parts of the body">-EL/-YAH
+			</label>
+		</div>
+		<div class="hl-out" aria-live="polite">
+			<div class="hl-figure">
+				<div class="hl-strip"></div>
+			</div>
+			<div style="flex:1 1 auto;min-width:0">
+				<ol class="hl-parts"></ol>
+				<div class="hl-summary"></div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============ COLOUR SCALE ============ -->
+	<div class="hl-scale" style="margin:16px 0 0">
+		Colours
+		<div class="hl-seg hl-scale-seg" role="group" aria-label="Colour scale">
+			<button type="button" data-scale="king"  aria-pressed="true" title="Atziluth">King</button>
+			<button type="button" data-scale="queen" aria-pressed="false" title="Briah">Queen</button>
+			<button type="button" data-scale="emperor" aria-pressed="false" title="Yetzirah (also called the Prince Scale)">Emperor</button>
+			<button type="button" data-scale="empress" aria-pressed="false" title="Assiah (also called the Princess Scale)">Empress</button>
+		</div>
+	</div>
+	<div class="hl-scale" style="margin:8px 0 0">
+		Order
+		<div class="hl-seg hl-order-seg" role="group" aria-label="Letter order">
+			<button type="button" data-order="alpha" aria-pressed="true">Alphabetical</button>
+			<button type="button" data-order="class" aria-pressed="false" title="Sepher Yetzirah: 3 Mothers, 7 Doubles, 12 Simples">Mothers · Doubles · Simples</button>
+		</div>
+	</div>
+
+	<!-- <details> -->
+	<!--   <summary>How the Golden Dawn builds a telesmatic image</summary> -->
+	<!--   <ol> -->
+	<!--     <li><b>Divide the figure by the letters.</b> Give the image as many parts as the name has letters, starting with the first letter at the top and working downward in order. Each letter colours its part with its own attribution, form and symbols. In the order's worked example, <span class="hl-heb">אדני הארץ</span> (Adonai ha-Aretz), the first word covers head to waist and the second waist to feet.</li> -->
+	<!--     <li><b>Determine the sex by predominance.</b> Count the masculine and feminine letters and let the majority decide, without mixing the sexes in one form. Mathers adds that these genders are only a convenient guide. A second method uses sound: a letter whose sound is <i>prolonged</i> is masculine, and one whose sound is <i>arrested</i> is feminine. Some forms are masculine or feminine by tradition, whatever the letters say.</li> -->
+	<!--     <li><b>Read the endings.</b> A name ending in <span class="hl-heb">אל</span> (-EL) always gives the figure wings and the symbols of Justice: Aleph is Air, Lamed is Libra. A name ending in <span class="hl-heb">יה</span> (-YAH) makes the figure enthroned like a King or Queen, with flaming glory at its feet. Practice differs on whether those two letters also take a band of the body. Mathers' general rule divides the figure by every letter. The order's Enochian instructions build the figure from the angel's own letters, with AL added to the name. Crowley read Raphael (RPAL) as a solar head and a martial body, with AL meaning only "the sword and the balance". The builder's checkbox switches between these readings.</li> -->
+	<!--     <li><b>Place the sigil and name.</b> Write the sigil on the breast and the name on the girdle, with clouds beneath the feet.</li> -->
+	<!--     <li><b>Keep it pure.</b> The image should be beautiful and free of coarseness. Impure or vulgar forms are dangerous to the operator.</li> -->
+	<!--     <li><b>Vibrate the name.</b> Formulate the letters in white brilliance, then pronounce the name as many times as it has letters.</li> -->
+	<!--   </ol> -->
+	<!--   <p>Sources: Mathers, <i>Flying Roll XII: Telesmatic Images and Adonai</i>, and the 5=6 paper on telesmatic figures. Colours are the four scales of 777: King (Atziluth), Queen (Briah), Emperor (Yetzirah) and Empress (Assiah). Where 777 offers two colours, as for Daleth ("bright rose or cerise") and Peh ("rayed azure or emerald") in the Empress Scale, the tile shows the first and switches to the second on hover; some modern tables print these two differently. Directions follow the order of the Sepher Yetzirah (Westcott). The text names the directions for each group but never pairs individual letters with them; the pairing shown is the customary one. Paul Foster Case reversed Lamed and Nun.</p> -->
+	<!-- </details> -->
+	<!---->
+	<!-- <figcaption id="hl-cap">The twenty-two letters <span class="hl-cap-order">in alphabetical order</span>, in <span class="hl-cap-scale">King Scale (Atziluth)</span> colours. Hover a letter for its correspondences.</figcaption> -->
+
+	<div class="hl-pop" role="tooltip" aria-hidden="true"></div>
+
+	<script>
+	(function () {
+		var root = (document.currentScript && document.currentScript.closest('.otiyot')) || document.querySelector('.otiyot');
+		var VS15 = '︎';
+
+		/* glyph, name, meaning, value, final value, sound, class, symbol, attribution, path, from–to,
+	   trump, King colour [name, css], Queen colour [name, css], direction, telesmatic, figure sex, sound sex */
+		var SKY = '#7cbfe8';
+		var LETTERS = [
+			['א','Aleph','Ox',1,null,'broad A','Mother','🜁','Air',11,'Kether – Chokmah','0','The Fool',['Bright pale yellow','#f6f2a6'],['Sky blue',SKY],'Above ↔ Below (axis)',
+				'Spiritual. Wings generally, epicene, rather male than female, rather thin type.','E+M','M'],
+			['ב','Beth','House',2,null,'B, Bh','Double','☿','Mercury',12,'Kether – Binah','I','The Magician',['Yellow','#f2d024'],['Purple','#6a2c8c'],'Above',
+				'Active and slight. Male.','M','M'],
+			['ג','Gimel','Camel',3,null,'G, Gh','Double','☽','Moon',13,'Kether – Tiphareth','II','The High Priestess',['Blue','#2a6fd6'],['Silver','#c3c7cc'],'Below',
+				'Grey, beautiful yet changeful. Feminine, rather full face and body.','F','F'],
+			['ד','Daleth','Door',4,null,'D, Dh','Double','♀','Venus',14,'Chokmah – Binah','III','The Empress',['Emerald green','#0f9b5a'],['Sky blue',SKY],'East',
+				'Very beautiful and attractive. Feminine. Rather full face and body.','F','F'],
+			['ה','Heh','Window',5,null,'H','Simple','♈','Aries',15,'Chokmah – Tiphareth','IV','The Emperor',['Scarlet','#d42222'],['Red','#c8201e'],'North-East',
+				'Fierce, strong, rather fiery; feminine.','F','F'],
+			['ו','Vav','Nail, peg',6,null,'U, V, OO','Simple','♉','Taurus',16,'Chokmah – Chesed','V','The Hierophant',['Red orange','#e04e10'],['Deep indigo','#2a1f6b'],'South-East',
+				'Steady and strong. Rather heavy and clumsy, masculine.','M','M'],
+			['ז','Zayin','Sword, weapon',7,null,'Z','Simple','♊','Gemini',17,'Binah – Tiphareth','VI','The Lovers',['Orange','#f08a1e'],['Pale mauve','#c9a9d2'],'East-Above',
+				'Thin, intelligent, masculine.','M','M'],
+			['ח','Cheth','Fence, enclosure',8,null,'Ch (guttural)','Simple','♋','Cancer',18,'Binah – Geburah','VII','The Chariot',['Amber','#ffbf3f'],['Maroon','#6e1424'],'East-Below',
+				'Full face, not much expression, feminine.','F','F'],
+			['ט','Teth','Serpent',9,null,'T','Simple','♌','Leo',19,'Chesed – Geburah','VIII','Strength',['Greenish yellow','#d8dc28'],['Deep purple','#4a1a6b'],'North-Above',
+				'Rather strong and fiery. Feminine.','F','F'],
+			['י','Yod','Hand',10,null,'I, J, Y','Simple','♍','Virgo',20,'Chesed – Tiphareth','IX','The Hermit',['Yellowish green','#8fc22b'],['Slate grey','#6b7480'],'North-Below',
+				'Very white and rather delicate. Feminine.','F','F'],
+			['כ','Kaph','Palm of the hand',20,500,'K, Kh','Double','♃','Jupiter',21,'Chesed – Netzach','X','Wheel of Fortune',['Violet','#6b2fa0'],['Blue','#1e52c8'],'West',
+				'Big and strong, masculine.','M','M'],
+			['ל','Lamed','Ox-goad',30,null,'L','Simple','♎','Libra',22,'Geburah – Tiphareth','XI','Justice',['Emerald green','#0f9b5a'],['Blue','#1e52c8'],'South-West <span class="hl-dim">(Case: North-West)</span>',
+				'Well-proportioned; feminine.','F','F'],
+			['מ','Mem','Water',40,600,'M','Mother','🜄','Water',23,'Geburah – Hod','XII','The Hanged Man',['Deep blue','#10328c'],['Sea green','#2e8b7a'],'East ↔ West (axis)',
+				'Reflective, dream-like, epicene, but female rather than male.','E+F','F'],
+			['נ','Nun','Fish',50,700,'N','Simple','♏','Scorpio',24,'Tiphareth – Netzach','XIII','Death',['Green blue','#12726b'],['Dull brown','#6b5236'],'North-West <span class="hl-dim">(Case: South-West)</span>',
+				'Square determined face, masculine, rather dark.','M','M'],
+			['ס','Samekh','Prop, support',60,null,'S','Simple','♐','Sagittarius',25,'Tiphareth – Yesod','XIV','Temperance',['Blue','#2a6fd6'],['Yellow','#f2d024'],'West-Above',
+				'Thin rather expressive face; masculine.','M','M'],
+			['ע','Ayin','Eye',70,null,'O, Ngh, Au','Simple','♑','Capricorn',26,'Tiphareth – Hod','XV','The Devil',['Indigo','#3a2a8c'],['Black','#0b0b0b'],'West-Below',
+				'Rather mechanical, masculine.','M','M'],
+			['פ','Peh','Mouth',80,800,'P, Ph','Double','♂','Mars',27,'Netzach – Hod','XVI','The Tower',['Scarlet','#d42222'],['Red','#c8201e'],'North',
+				'Fierce, strong, resolute, feminine.','F','F'],
+			['צ','Tzaddi','Fish-hook',90,900,'Tz','Simple','♒','Aquarius',28,'Netzach – Yesod','XVII','The Star',['Violet','#6b2fa0'],['Sky blue',SKY],'South-Above',
+				'Thoughtful, intellectual, feminine.','F','F'],
+			['ק','Qoph','Back of the head',100,null,'Q, Qh','Simple','♓','Pisces',29,'Netzach – Malkuth','XVIII','The Moon',['Crimson','#b01050'],
+				['Buff, flecked silver-white','radial-gradient(#f4f4f4 0.8px, transparent 1.3px) 0 0 / 4px 4px, #d9c08c'],'South-Below',
+				'Rather full face, masculine.','M','M'],
+			['ר','Resh','Head',200,null,'R','Double','☉','Sun',30,'Hod – Yesod','XIX','The Sun',['Orange','#f08a1e'],['Gold yellow','#e6b422'],'South',
+				'Proud and dominant, masculine.','M','M'],
+			['ש','Shin','Tooth',300,null,'Sh, S','Mother','🜂','Fire',31,'Hod – Malkuth','XX','Judgement',['Glowing orange scarlet','#ff4a0f'],['Vermilion','#e34234'],'North ↔ South (axis)',
+				'Fierce, active, epicene, rather male than female.','E+M','M'],
+			['ת','Tav','Cross, mark',400,null,'T, Th','Double','♄','Saturn',32,'Yesod – Malkuth','XXI','The Universe',['Indigo','#3a2a8c'],['Black','#0b0b0b'],'Centre: the Palace of Holiness',
+				'Dark, grey, epicene; male rather than female.','E+M','F']
+		];
+		var L = LETTERS.map(function (a) {
+			return { glyph:a[0], name:a[1], meaning:a[2], value:a[3], final:a[4], sound:a[5], cls:a[6], sym:a[7], attr:a[8],
+				path:a[9], span:a[10], trump:a[11], trumpName:a[12], king:a[13], queen:a[14], dir:a[15],
+				tel:a[16], sexFig:a[17], sexSound:a[18] };
+		});
+		/* Emperor (Yetzirah) and Empress (Assiah) scales, paths 11-32 in alphabet order, from 777.
+	   Where 777 gives two options ("X or Y"), the entry carries a third element: the second
+	   option, shown when the tile is hovered and as a second swatch in the popup and builder.
+	   Flecked and rayed colours are drawn as dots and sunbursts over the base colour. */
+		function fleck(base, f, f2) {
+			return 'radial-gradient(' + f + ' 1px, transparent 1.6px) 0 0 / 6px 6px, ' +
+				(f2 ? 'radial-gradient(' + f2 + ' 1px, transparent 1.6px) 3px 3px / 6px 6px, ' : '') + base;
+		}
+		function rays(base, r) {
+			return 'repeating-conic-gradient(from 0deg at 50% 50%, ' + r + ' 0deg 3deg, ' + base + ' 3deg 36deg)';
+		}
+		var EMPEROR = [
+			['Blue emerald green','#1aa38a'], ['Grey','#8c8c8c'], ['Cold pale blue','#b8d4e8'], ['Early spring green','#9fd46a'],
+			['Brilliant flame','#ff5a1f'], ['Deep warm olive','#5f5a1e'], ['New yellow leather','#d2a54f'], ['Rich bright russet','#a8461f'],
+			['Grey','#8c8c8c'], ['Green grey','#7f8b78'], ['Rich purple','#5b1f86'], ['Deep blue-green','#0f5c5c'],
+			['Deep olive-green','#45531c'], ['Very dark brown','#3a2616'], ['Green','#2e9e3e'], ['Blue black','#12162e'],
+			['Venetian red','#c80815'], ['Bluish mauve','#9a86c2'], ['Light translucent pinkish brown','#c9a395'], ['Rich amber','#e08a00'],
+			['Scarlet, flecked gold', fleck('#d42222', '#f2c230')], ['Blue black','#12162e']
+		];
+		var EMPRESS = [
+			['Emerald flecked gold', fleck('#0f9b5a', '#f2c230')],
+			['Indigo rayed violet', rays('#3a2a8c', '#8a4fc4')],
+			['Silver rayed sky-blue', rays('#c3c7cc', '#7cbfe8')],
+			['Bright rose or cerise, rayed pale green', rays('#f2577f', '#b6e3a8'), rays('#de3163', '#b6e3a8')],
+			['Glowing red','#e8231a'], ['Rich brown','#6b3a1e'], ['Reddish grey inclined to mauve','#9c8088'], ['Dark greenish brown','#4a4326'],
+			['Reddish amber','#d6741c'], ['Plum colour','#7a2d55'],
+			['Bright blue rayed yellow', rays('#1f6fe0', '#f2d024')],
+			['Pale green','#a8d8a0'],
+			['White flecked purple', fleck('#f6f4f0', '#6a2c8c')],
+			['Livid indigo brown (like a black beetle)','#2b2433'], ['Dark vivid blue','#1a2fa8'], ['Cold dark grey near black','#26282b'],
+			['Bright red, rayed azure or emerald', rays('#e3241b', '#3a8fe0'), rays('#e3241b', '#0f9b5a')],
+			['White tinged purple','#ece4f2'], ['Stone colour','#9e9585'],
+			['Amber rayed red', rays('#ffbf3f', '#d42222')],
+			['Vermilion flecked crimson and emerald', fleck('#e34234', '#b01050', '#0f9b5a')],
+			['Black rayed blue', rays('#0b0b0b', '#2a6fd6')]
+		];
+		L.forEach(function (d, i) { d.emperor = EMPEROR[i]; d.empress = EMPRESS[i]; });
+
+		var BY_GLYPH = {};
+		L.forEach(function (d, i) { BY_GLYPH[d.glyph] = i; });
+		var scale = 'king';
+		function colourOf(d, s) { s = s || scale; return d[s] || d.king; }
+		function inkFor(css) {                   // dark or light text for a background
+			var hex = (css.match(/#[0-9a-f]{6}/gi) || ['#ffffff']).pop();
+			var lum = [1, 3, 5].map(function (k) {
+				var c = parseInt(hex.substr(k, 2), 16) / 255;
+				return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4);
+			});
+			lum = .2126 * lum[0] + .7152 * lum[1] + .0722 * lum[2];
+			return lum > .2 ? '#14110f' : '#f7f4ee';
+		}
+
+		var FINALS = { 'ך':'כ', 'ם':'מ', 'ן':'נ', 'ף':'פ', 'ץ':'צ' };
+		var FINAL_GLYPH = { 'כ':'ך', 'מ':'ם', 'נ':'ן', 'פ':'ף', 'צ':'ץ' };
+
+		function sym(s) { return '<span class="hl-sym">' + s + VS15 + '</span>'; }
+		function sw(c) {                         // c = [name, css, alternative css?]
+			var one = function (css) { return '<span class="hl-sw" style="background:' + css + '" title="' + c[0] + '"></span>'; };
+			return one(c[1]) + (c[2] ? one(c[2]) : '');
+		}
+		function sexWord(code) {
+			return { 'M':'masculine', 'F':'feminine', 'E+M':'epicene, rather male', 'E+F':'epicene, rather female' }[code];
+		}
+
+		/* ---------- popup ---------- */
+		var pop = root.querySelector('.hl-pop');
+
+		function popHTML(d) {
+			var value = d.value + (d.final ? ' <span class="hl-dim">(final ' + FINAL_GLYPH[d.glyph] + ' = ' + d.final + ')</span>' : '');
+			return '' +
+				'<div class="hl-pop-head"><span class="hl-heb">' + d.glyph + '</span><div>' +
+				'<b>' + d.name + '</b> <span class="hl-dim">·</span> ' + d.meaning + '<br>' +
+				'<span class="hl-dim">Value</span> ' + value + ' <span class="hl-dim">· Sound</span> ' + d.sound +
+				'</div></div>' +
+				'<dl>' +
+				'<dt>Class</dt><dd>' + d.cls + ' letter</dd>' +
+				'<dt>Attribution</dt><dd>' + sym(d.sym) + ' ' + d.attr + '</dd>' +
+				'<dt>Path</dt><dd>' + d.path + ' <span class="hl-dim">·</span> ' + d.span + '</dd>' +
+				'<dt>Tarot</dt><dd>' + d.trump + ' <span class="hl-dim">·</span> ' + d.trumpName + '</dd>' +
+				'<dt>Colour</dt><dd>' + sw(d.king) + d.king[0] + ' <span class="hl-dim">King</span><br>' +
+				sw(d.queen) + d.queen[0] + ' <span class="hl-dim">Queen</span><br>' +
+				sw(d.emperor) + d.emperor[0] + ' <span class="hl-dim">Emperor</span><br>' +
+				sw(d.empress) + d.empress[0] + ' <span class="hl-dim">Empress</span></dd>' +
+				'<dt>Direction</dt><dd>' + d.dir + '</dd>' +
+				'</dl>' +
+				'<div class="hl-pop-tel"><div class="hl-label">Telesmatic</div>' +
+				'<q>' + d.tel + '</q><br>' +
+				'<span class="hl-dim">Figure</span> ' + sexWord(d.sexFig) +
+				' <span class="hl-dim">· Sound</span> ' + (d.sexSound === 'M' ? 'prolonged (masculine)' : 'arrested (feminine)') +
+				'</div>';
+		}
+
+		function showPop(tile) {
+			var d = L[+tile.dataset.i];
+			pop.innerHTML = popHTML(d);
+			pop.classList.add('is-on');
+			var r  = root.getBoundingClientRect();
+			var t  = tile.getBoundingClientRect();
+			var w  = pop.offsetWidth, h = pop.offsetHeight;
+			var x  = t.left - r.left + t.width / 2 - w / 2;
+			x = Math.max(4, Math.min(x, r.width - w - 4));
+			var above = t.top - h - 10;
+			var y = (above >= 4) ? (t.top - r.top - h - 10)        // room above in the viewport
+				: (t.bottom - r.top + 10);        // otherwise below
+			pop.style.left = x + 'px';
+			pop.style.top  = y + 'px';
+		}
+		function hidePop() { pop.classList.remove('is-on'); }
+
+		root.querySelectorAll('.hl-tile').forEach(function (tile) {
+			var d = L[+tile.dataset.i];
+			tile.setAttribute('aria-label', d.name + ', ' + d.attr + ', path ' + d.path + ', ' + d.trumpName);
+			tile.addEventListener('pointerenter', function () { showPop(tile); altOn(tile); });
+			tile.addEventListener('pointerleave', function () { hidePop(); altOff(tile); });
+			tile.addEventListener('focus', function () { showPop(tile); altOn(tile); });
+			tile.addEventListener('blur', function () { hidePop(); altOff(tile); });
+			tile.addEventListener('click', function () { append(d.glyph); });
+		});
+		root.addEventListener('keydown', function (e) { if (e.key === 'Escape') hidePop(); });
+
+		/* ---------- telesmatic builder ---------- */
+		var input   = root.querySelector('.hl-input');
+		var out     = root.querySelector('.hl-out');
+		var parts   = root.querySelector('.hl-parts');
+		var summary = root.querySelector('.hl-summary');
+		var strip   = root.querySelector('.hl-strip');
+		var suffixBox = root.querySelector('.hl-suffix');
+		var rowAlt = {}, lastName = null;            // per-row choice of an "X or Y" colour
+
+		function toggleRow(e) {
+			var t = e.target.closest('.hl-sw-alt');
+			if (!t || (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ')) return;
+			e.preventDefault();
+			var key = scale + ':' + t.dataset.pos;
+			rowAlt[key] = !rowAlt[key];
+			render();
+			var again = parts.querySelector('.hl-sw-alt[data-pos="' + t.dataset.pos + '"]');
+			if (again && e.type === 'keydown') again.focus();
+		}
+		parts.addEventListener('click', toggleRow);
+		parts.addEventListener('keydown', toggleRow);
+
+		// approximate bands of a standing figure, top (0) to bottom (1)
+		var ZONES = [[.12,'Head'],[.20,'Neck'],[.32,'Shoulders & arms'],[.48,'Breast'],
+			[.58,'Waist'],[.72,'Hips'],[.90,'Legs'],[1.01,'Feet']];
+		function zone(f) { for (var i = 0; i < ZONES.length; i++) if (f < ZONES[i][0]) return ZONES[i][1]; return 'Feet'; }
+		function zoneSpan(a, b) {               // the part of the figure from a to b
+			var top = zone(a + 1e-6), bot = zone(b - 1e-6);
+			return top === bot ? top : top + ' to ' + bot.toLowerCase();
+		}
+
+		function words(str) {
+			return str.replace(/[֑-ׇ]/g, '')               // strip vowel points & cantillation
+				.split(/[\s\-־]+/)
+				.map(function (w) {
+					return Array.from(w).map(function (c) { return FINALS[c] || c; })
+						.filter(function (c) { return c in BY_GLYPH; });
+				})
+				.filter(function (w) { return w.length; });
+		}
+
+		function append(g) { input.value += g; render(); }
+
+		function render() {
+			var ws = words(input.value);
+			if (!ws.length) { out.classList.remove('is-on'); return; }
+			out.classList.add('is-on');
+
+			var html = '', bands = '', n = 0;
+			var fig = { M:0, F:0, E:0 }, lean = { M:0, F:0 }, snd = { M:0, F:0 };
+
+			// sex and vibration count use every letter of the name
+			ws.forEach(function (w) {
+				w.forEach(function (g) {
+					var d = L[BY_GLYPH[g]];
+					n++;
+					if (d.sexFig.charAt(0) === 'E') { fig.E++; lean[d.sexFig.slice(2)]++; } else fig[d.sexFig]++;
+					snd[d.sexSound]++;
+				});
+			});
+
+			// -EL / -YAH on the last word; split it off when the toggle is on (and something is left)
+			var lastW  = ws[ws.length - 1];
+			var tail   = lastW.slice(-2).join('');
+			var suffix = tail === 'אל' ? 'EL' : tail === 'יה' ? 'YAH' : null;
+			var split  = suffix && suffixBox.checked && lastW.length > 2;
+			var body   = split ? ws.slice(0, -1).concat([lastW.slice(0, -2)]) : ws;
+
+			// one swatch per row; an "X or Y" colour can be clicked to show its other option (this row only)
+			if (input.value !== lastName) { rowAlt = {}; lastName = input.value; }
+			var pos = 0;
+			function rowCss(c, k) { return c[2] && rowAlt[scale + ':' + k] ? c[2] : c[1]; }
+			function rowSwatch(c, k) {
+				if (!c[2]) return sw(c);
+				return '<span class="hl-sw hl-sw-alt" role="button" tabindex="0" data-pos="' + k + '" style="background:' + rowCss(c, k) +
+					'" title="' + c[0] + ' (click for the other option)"></span>';
+			}
+			function row(d, label, c, k) {
+				return '<li><span class="hl-heb">' + d.glyph + '</span>' +
+					'<span><span class="hl-zone">' + label + '</span> · <b>' + d.name + '</b> · ' + sym(d.sym) + ' ' + d.attr +
+					' <span class="hl-dim">· ' + d.trumpName + '</span></span>' +
+					'<span>' + rowSwatch(c, k) + '<q>' + d.tel + '</q></span></li>';
+			}
+
+			body.forEach(function (w, wi) {
+				if (wi) html += '<li class="hl-word-break">· · ·</li>';
+				w.forEach(function (g, j) {
+					var d    = L[BY_GLYPH[g]];
+					var top  = (wi + j / w.length) / body.length;
+					var grow = 1 / (body.length * w.length);
+					var c    = colourOf(d), k = pos++;
+					bands += '<div style="flex-grow:' + grow + ';background:' + rowCss(c, k) + '" title="' + d.name + ': ' + c[0] + '"></div>';
+					html += row(d, zoneSpan(top, top + grow), c, k);
+				});
+			});
+
+			if (split) {
+				var ROLE = suffix === 'EL'
+					? { 'א': 'Wings', 'ל': 'Sword & balance' }          // Aleph = Air, Lamed = Libra
+					: { 'י': 'Throne', 'ה': 'Flaming glory at the feet' };
+				html += '<li class="hl-word-break">-' + suffix + ' · attributes, not body</li>';
+				lastW.slice(-2).forEach(function (g) {
+					var d = L[BY_GLYPH[g]];
+					html += row(d, ROLE[g], colourOf(d), pos++);
+				});
+			}
+			parts.innerHTML = html;
+			strip.innerHTML = bands;
+
+			function verdict(m, f, tieNote) {
+				return m > f ? 'masculine' : f > m ? 'feminine' : tieNote;
+			}
+			var figLeanM = fig.M + lean.M, figLeanF = fig.F + lean.F;
+			var figVerdict = verdict(fig.M, fig.F,
+				'evenly balanced; the epicene letters lean ' + verdict(figLeanM, figLeanF, 'neither way'));
+
+			var last = ws[ws.length - 1].join('');
+			var ending = '';
+			if (/אל$/.test(last)) ending = '<p><b>-EL ending:</b> give the figure wings and the symbols of Justice (sword and balance).</p>';
+				else if (/יה$/.test(last)) ending = '<p><b>-YAH ending:</b> the figure is enthroned like a King or Queen, with flaming glory at the feet.</p>';
+
+			summary.innerHTML =
+				'<p><b>Sex by the letters:</b> ' + figVerdict +
+					' <span class="hl-dim">(' + fig.M + ' masculine, ' + fig.F + ' feminine, ' + fig.E + ' epicene)</span></p>' +
+					'<p><b>Sex by sound:</b> ' + verdict(snd.M, snd.F, 'evenly balanced') +
+					' <span class="hl-dim">(' + snd.M + ' prolonged, ' + snd.F + ' arrested)</span></p>' +
+					ending +
+					'<p><b>Vibration:</b> pronounce the name ' + n + ' time' + (n === 1 ? '' : 's') + ', once for each letter.</p>' +
+					'<p class="hl-dim">Sigil on the breast, the name on the girdle, clouds beneath the feet.</p>';
+		}
+
+		/* ---------- colour scale ---------- */
+		var CAPTION = { king: 'King Scale (Atziluth)', queen: 'Queen Scale (Briah)',
+			emperor: 'Emperor Scale (Yetzirah)', empress: 'Empress Scale (Assiah)' };
+
+		function paintTile(tile, css) {
+			var ink = inkFor(css);
+			tile.style.background = css;
+			tile.style.color = ink;
+			// flecked and rayed grounds get a soft halo so the letter stays legible
+			tile.style.textShadow = /gradient/.test(css)
+				? (ink === '#14110f' ? '0 0 4px rgba(255,255,255,.85)' : '0 0 4px rgba(0,0,0,.85)') : '';
+		}
+		// "X or Y" colours: show the second option while the tile is hovered or focused
+		function altOn(tile)  { if (tile._c && tile._c[2]) paintTile(tile, tile._c[2]); }
+		function altOff(tile) { if (tile._c && tile._c[2]) paintTile(tile, tile._c[1]); }
+
+		function applyScale(s) {
+			scale = s;
+			root.querySelectorAll('.hl-scale-seg button').forEach(function (b) {
+				b.setAttribute('aria-pressed', b.dataset.scale === s ? 'true' : 'false');
+			});
+			root.querySelectorAll('.hl-tile').forEach(function (tile) {
+				tile._c = colourOf(L[+tile.dataset.i]);
+				paintTile(tile, tile._c[1]);
+			});
+			var capS = root.querySelector('.hl-cap-scale');                  // the caption is optional
+			if (capS) capS.textContent = CAPTION[s];
+			render();
+		}
+		root.querySelectorAll('.hl-scale-seg button').forEach(function (b) {
+			b.addEventListener('click', function () { applyScale(b.dataset.scale); });
+		});
+
+		/* ---------- letter order ---------- */
+		var tiles = [].slice.call(root.querySelectorAll('.hl-tile'));
+		tiles.forEach(function (t) { t._home = t.parentNode; });          // its Sepher Yetzirah row
+		var alphaRow = root.querySelector('.hl-row-alpha');
+		function applyOrder(o) {
+			if (o === 'alpha') {
+				tiles.slice().sort(function (a, b) { return a.dataset.i - b.dataset.i; })
+					.forEach(function (t) { alphaRow.appendChild(t); });
+			} else {
+				tiles.forEach(function (t) { t._home.appendChild(t); });      // original order within each class
+			}
+			root.querySelector('.hl-alpha').hidden = o !== 'alpha';
+			root.querySelectorAll('.hl-by-class').forEach(function (g) { g.hidden = o === 'alpha'; });
+			root.querySelectorAll('.hl-order-seg button').forEach(function (b) {
+				b.setAttribute('aria-pressed', b.dataset.order === o ? 'true' : 'false');
+			});
+			var capO = root.querySelector('.hl-cap-order');                  // the caption is optional
+			if (capO) capO.textContent = o === 'alpha' ? 'in alphabetical order' : 'by Sepher Yetzirah class';
+		}
+		root.querySelectorAll('.hl-order-seg button').forEach(function (b) {
+			b.addEventListener('click', function () { applyOrder(b.dataset.order); });
+		});
+		applyOrder('alpha');
+		applyScale('king');
+
+		input.addEventListener('input', render);
+		suffixBox.addEventListener('change', render);
+		root.querySelectorAll('[data-act]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var a = b.dataset.act;
+				if (a === 'space') input.value += ' ';
+				if (a === 'back')  input.value = Array.from(input.value.replace(/\s+$/, '')).slice(0, -1).join('');
+				if (a === 'clear') input.value = '';
+				render();
+			});
+		});
+		root.querySelectorAll('[data-name]').forEach(function (b) {
+			b.addEventListener('click', function () { input.value = b.dataset.name; render(); });
+		});
+	})();
+	</script>
+</figure>
+

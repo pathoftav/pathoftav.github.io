@@ -1,5 +1,5 @@
 <figure>
-	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 1130" class="minutum-mundum" role="img" aria-labelledby="mm-title mm-desc">
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 14 460 1076" class="minutum-mundum" role="img" aria-labelledby="mm-title mm-desc">
 		<!-- <title id="mm-title">Minutum Mundum</title> -->
 		<desc id="mm-desc">The Golden Dawn Tree of Life: the ten Sephiroth in Queen Scale colours and the twenty-two Paths in King Scale colours.</desc>
 
@@ -48,7 +48,14 @@ No angle brackets in comments here: inside an inline SVG they are parsed as tags
 		/* display options, set from the options popup below the figure */
 		.minutum-mundum.mm-show-lat .mm-lat { display: inline; }
 		.minutum-mundum.mm-hide-num .mm-num { display: none; }
-		.minutum-mundum.mm-hide-let #mm-letters { display: none; }
+		/* path labels (number, letter, symbol, trump), shown and laid out by the options script */
+		.minutum-mundum #mm-letters .is-off { display: none; }
+		.minutum-mundum .mm-pnum   { font-size: 10px; }
+		.minutum-mundum .mm-ptrump { font-size: 10px; letter-spacing: .04em; }
+		.minutum-mundum .mm-psym   {
+			font-family: "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", "Symbola", sans-serif;
+			font-size: 13px;
+		}
 		/* the upper nine spheres (Malkuth keeps its own layout): with the English names, the number sits
 at the top; without them it moves to the bottom (30 below the centre instead of 30 above) and
 the Hebrew rises a little to balance it. With no numbers, the remaining lines are centred. */
@@ -82,6 +89,7 @@ the Hebrew rises a little to balance it. With no numbers, the remaining lines ar
 			font-size: 15px; letter-spacing: .1em;
 		}
 		.minutum-mundum .mm-tip .mm-tip-dim  { opacity: .7; }
+		.minutum-mundum .mm-tip .mm-tip-he   { font-size: 14px; letter-spacing: 0; unicode-bidi: isolate; }
 		</style>
 
 		<!-- ============ PATHS — King Scale ============
@@ -129,46 +137,55 @@ Archangels follow the Golden Dawn / 777 tables: Raphael to Tiphareth, Michael to
 			<circle class="mm-seph" cx="230" cy="90"  r="54" fill="#ffffff"
 				data-seph="1" data-name="Kether" data-meaning="The Crown"
 				data-god="Eheieh" data-archangel="Metatron" data-choir="Chayoth ha-Qadesh"
+				data-god-he="אהיה" data-archangel-he="מטטרון" data-choir-he="חיות הקדש" data-sphere-he="ראשית הגלגלים"
 				data-symbol="" data-sphere="Rashith ha-Gilgalim" data-sphere-en="Primum Mobile"
 				aria-label="1 Kether, the Crown, white brilliance; Eheieh, Metatron, Chayoth ha-Qadesh, Primum Mobile"/>
 			<circle class="mm-seph" cx="370" cy="210" r="54" fill="#9a9a9a"
 				data-seph="2" data-name="Chokmah" data-meaning="Wisdom"
 				data-god="Yah" data-archangel="Ratziel" data-choir="Auphanim"
+				data-god-he="יה" data-archangel-he="רציאל" data-choir-he="אופנים" data-sphere-he="מסלות"
 				data-symbol="" data-sphere="Masloth" data-sphere-en="Sphere of the Zodiac"
 				aria-label="2 Chokmah, Wisdom, grey; Yah, Ratziel, Auphanim, Sphere of the Zodiac"/>
 			<circle class="mm-seph" cx="90"  cy="210" r="54" fill="#0b0b0b"
 				data-seph="3" data-name="Binah" data-meaning="Understanding"
 				data-god="YHVH Elohim" data-archangel="Tzaphqiel" data-choir="Aralim"
+				data-god-he="יהוה אלהים" data-archangel-he="צפקיאל" data-choir-he="אראלים" data-sphere-he="שבתאי"
 				data-symbol="♄" data-sphere="Shabbathai" data-sphere-en="Saturn"
 				aria-label="3 Binah, Understanding, black; YHVH Elohim, Tzaphqiel, Aralim, Saturn"/>
 			<circle class="mm-seph" cx="370" cy="450" r="54" fill="#1e52c8"
 				data-seph="4" data-name="Chesed" data-meaning="Mercy"
 				data-god="El" data-archangel="Tzadqiel" data-choir="Chashmalim"
+				data-god-he="אל" data-archangel-he="צדקיאל" data-choir-he="חשמלים" data-sphere-he="צדק"
 				data-symbol="♃" data-sphere="Tzedeq" data-sphere-en="Jupiter"
 				aria-label="4 Chesed, Mercy, blue; El, Tzadqiel, Chashmalim, Jupiter"/>
 			<circle class="mm-seph" cx="90"  cy="450" r="54" fill="#c81e1e"
 				data-seph="5" data-name="Geburah" data-meaning="Severity"
 				data-god="Elohim Gibor" data-archangel="Khamael" data-choir="Seraphim"
+				data-god-he="אלהים גבור" data-archangel-he="כמאל" data-choir-he="שרפים" data-sphere-he="מאדים"
 				data-symbol="♂" data-sphere="Madim" data-sphere-en="Mars"
 				aria-label="5 Geburah, Severity, scarlet red; Elohim Gibor, Khamael, Seraphim, Mars"/>
 			<circle class="mm-seph" cx="230" cy="570" r="54" fill="#f2d024"
 				data-seph="6" data-name="Tiphareth" data-meaning="Beauty"
 				data-god="YHVH Eloah va-Daath" data-archangel="Raphael" data-choir="Malachim"
+				data-god-he="יהוה אלוה ודעת" data-archangel-he="רפאל" data-choir-he="מלכים" data-sphere-he="שמש"
 				data-symbol="☉" data-sphere="Shemesh" data-sphere-en="Sun"
 				aria-label="6 Tiphareth, Beauty, yellow; YHVH Eloah va-Daath, Raphael, Malachim, Sun"/>
 			<circle class="mm-seph" cx="370" cy="690" r="54" fill="#0f9b5a"
 				data-seph="7" data-name="Netzach" data-meaning="Victory"
 				data-god="YHVH Tzabaoth" data-archangel="Haniel" data-choir="Elohim"
+				data-god-he="יהוה צבאות" data-archangel-he="הניאל" data-choir-he="אלהים" data-sphere-he="נוגה"
 				data-symbol="♀" data-sphere="Nogah" data-sphere-en="Venus"
 				aria-label="7 Netzach, Victory, emerald; YHVH Tzabaoth, Haniel, Elohim, Venus"/>
 			<circle class="mm-seph" cx="90"  cy="690" r="54" fill="#e8811c"
 				data-seph="8" data-name="Hod" data-meaning="Splendour"
 				data-god="Elohim Tzabaoth" data-archangel="Michael" data-choir="Beni Elohim"
+				data-god-he="אלהים צבאות" data-archangel-he="מיכאל" data-choir-he="בני אלהים" data-sphere-he="כוכב"
 				data-symbol="☿" data-sphere="Kokab" data-sphere-en="Mercury"
 				aria-label="8 Hod, Splendour, orange; Elohim Tzabaoth, Michael, Beni Elohim, Mercury"/>
 			<circle class="mm-seph" cx="230" cy="810" r="54" fill="#6b2fa0"
 				data-seph="9" data-name="Yesod" data-meaning="Foundation"
 				data-god="Shaddai El Chai" data-archangel="Gabriel" data-choir="Kerubim"
+				data-god-he="שדי אל חי" data-archangel-he="גבריאל" data-choir-he="כרובים" data-sphere-he="לבנה"
 				data-symbol="☽" data-sphere="Levanah" data-sphere-en="Moon"
 				aria-label="9 Yesod, Foundation, violet; Shaddai El Chai, Gabriel, Kerubim, Moon"/>
 
@@ -180,12 +197,16 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 			<g id="mm-malkuth"
 				data-seph="10" data-name="Malkuth" data-meaning="The Kingdom"
 				data-god="Adonai ha-Aretz" data-archangel="Sandalphon" data-choir="Ashim"
+				data-god-he="אדני הארץ" data-archangel-he="סנדלפון" data-choir-he="אשים" data-sphere-he="חלם יסודות"
 				data-symbol="" data-sphere="Cholem Yesodoth" data-sphere-en="Sphere of the Elements"
 				aria-label="10 Malkuth, the Kingdom, citrine Air, russet Fire, black Earth, olive Water; Adonai ha-Aretz, Sandalphon, Ashim, Sphere of the Elements">
 				<path class="mm-quarter" d="M 230 1010 L 189 969 A 58 58 0 0 1 271 969 Z"   fill="#b2a429" data-colour="Citrine" data-symbol="🜁" data-attr="Air"   aria-label="Malkuth, citrine, Air"/>
 				<path class="mm-quarter" d="M 230 1010 L 271 969 A 58 58 0 0 1 271 1051 Z"  fill="#8a4a2e" data-colour="Russet"  data-symbol="🜂" data-attr="Fire"  aria-label="Malkuth, russet, Fire"/>
 				<path class="mm-quarter" d="M 230 1010 L 271 1051 A 58 58 0 0 1 189 1051 Z" fill="#0b0b0b" data-colour="Black"   data-symbol="🜃" data-attr="Earth" aria-label="Malkuth, black, Earth"/>
 				<path class="mm-quarter" d="M 230 1010 L 189 1051 A 58 58 0 0 1 189 969 Z"  fill="#5c6e38" data-colour="Olive"   data-symbol="🜄" data-attr="Water" aria-label="Malkuth, olive, Water"/>
+				<!-- one whole disc over the quarters, for the scales where Malkuth is a single colour (King, Empress);
+it lets the pointer through to the quarters underneath -->
+				<circle class="mm-malk-disc" cx="230" cy="1010" r="58" display="none" pointer-events="none"/>
 			</g>
 		</g>
 
@@ -262,7 +283,7 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 				<text class="mm-heb" x="230" y="814" direction="rtl">יסוד</text>
 				<text class="mm-lat" x="230" y="836">YESOD</text>
 			</g>
-			<g fill="var(--mm-ink)">
+			<g fill="#f7f4ee">  <!-- sits on Malkuth's black Earth quarter; recoloured for each scale by the script -->
 				<!-- <text class="mm-num" x="230" y="1084">10</text> -->
 				<!-- <text class="mm-heb" x="230" y="1106" direction="rtl">מלכות</text> -->
 				<text class="mm-num" x="230" y="1028">10</text>
@@ -306,48 +327,119 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 	}
 	// set by the colour switch below the figure
 	function colourRow(d) {
-	  return d.colourName ? [[['mm-tip-dim', 'Colour  '], ['', d.colourName], ['mm-tip-dim', '  ·  ' + d.colourScale]]] : [];
+	  if (!d.colourName) return [];
+	  var name = d.colourName, cut = name.length > 30 ? name.lastIndexOf(', ') : -1;
+	  if (cut < 0)
+		return [[['mm-tip-dim mm-tip-lbl', 'Colour  '], ['', name], ['mm-tip-dim', '  ·  ' + d.colourScale]]];
+	  // a long colour list (Malkuth: "Citrine, olive, russet and black, flecked gold") wraps onto a second line,
+	  // lined up under the first
+	  return [[['mm-tip-dim mm-tip-lbl', 'Colour  '], ['', name.slice(0, cut + 1)]],
+			  [['mm-tip-dim mm-tip-lbl', ''], ['', name.slice(cut + 2)], ['mm-tip-dim', '  ·  ' + d.colourScale]]];
 	}
+	// the Hebrew spelling, muted, after the transliteration
+	function he(t) { return ['mm-tip-dim mm-tip-he', t ? '  ' + t : '']; }
 	function sephRows(d) {
-	  var sphere = [];
-	  if (d.symbol) sphere.push(['mm-tip-sym', textGlyphs(d.symbol) + '  ']);
-	  sphere.push(['', d.sphere], ['mm-tip-dim', '  ·  ' + d.sphereEn]);
+	  // labels (muted) are marked mm-tip-lbl: with a Hebrew column they line up in a column of their own.
+	  // The planet row's label is its English name with its symbol, both muted.
+	  var sphere = [['mm-tip-dim mm-tip-lbl', d.sphereEn]];
+	  if (d.symbol) sphere.push(['mm-tip-sym mm-tip-dim mm-tip-lbl', '  ' + textGlyphs(d.symbol)]);
+	  sphere.push(['', d.sphere], he(d.sphereHe));
 	  return [
 		[['mm-tip-head', d.seph + '  ' + d.name], ['mm-tip-dim', '  ·  ' + d.meaning]],
-		[['mm-tip-dim', 'God-Name  '],  ['', d.god]],
-		[['mm-tip-dim', 'Archangel  '], ['', d.archangel]],
-		[['mm-tip-dim', 'Choir  '],     ['', d.choir]],
+		[['mm-tip-dim mm-tip-lbl', 'God-Name'],  ['', d.god],       he(d.godHe)],
+		[['mm-tip-dim mm-tip-lbl', 'Archangel'], ['', d.archangel], he(d.archangelHe)],
+		[['mm-tip-dim mm-tip-lbl', 'Choir'],     ['', d.choir],     he(d.choirHe)],
 		sphere
 	  ].concat(colourRow(d));
 	}
 	// a Malkuth quarter: Malkuth's rows, then the quarter's element
 	function quarterRows(d, el) {
+	  if (el.parentNode.dataset.whole) return sephRows(el.parentNode.dataset);   // whole disc: no quarters to name
 	  return sephRows(el.parentNode.dataset).concat([
-		[['mm-tip-dim', 'Quarter  '], ['', d.colour + '  '], ['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]]
+		[['mm-tip-dim mm-tip-lbl', 'Quarter'], ['', d.colour + '  '], ['mm-tip-sym', textGlyphs(d.symbol)], ['', '  ' + d.attr]]
 	  ]);
 	}
 
+	// With Hebrew spellings (the Sephiroth), the label is set in three columns: the muted labels,
+	// the values lined up after them, and the Hebrew flush right. Headings span the width, flush left.
+	// Without (the Paths), it stays a single centred block.
+	function mkText(anchor) {
+	  var t = document.createElementNS(NS, 'text');
+	  t.style.textAnchor = anchor;
+	  tip.appendChild(t);
+	  return t;
+	}
+	var labLbl = mkText('start'), labVal = mkText('start'), labHe = mkText('end');
+	var lines = [];                            // [tspan, row]: the first tspan of each line, placed by place()
+	var lblParts = {}, valStart = {};          // per row: the label's tspans, and the value's first tspan
+	var LBL_MAX = Infinity;                    // every label sets the column, so all rows line up
+	var cols = false;
+
 	function fill(rows) {
-	  while (lab.firstChild) lab.removeChild(lab.firstChild);
+	  [lab, labLbl, labVal, labHe].forEach(function (t) { while (t.firstChild) t.removeChild(t.firstChild); });
+	  lines = []; lblParts = {}; valStart = {};
+	  cols = rows.some(function (row) {
+		return row.some(function (seg) { return /\bmm-tip-he\b/.test(seg[0] || '') && seg[1]; });
+	  });
 	  rows.forEach(function (row, i) {
-		row.forEach(function (seg, j) {
+		var labelled = cols && row.some(function (seg) { return /\bmm-tip-lbl\b/.test(seg[0] || ''); });
+		var started = {};
+		row.forEach(function (seg) {
+		  var cls = seg[0] || '', into;
+		  if (/\bmm-tip-he\b/.test(cls)) { if (!seg[1]) return; into = labHe; }
+		  else if (labelled) into = /\bmm-tip-lbl\b/.test(cls) ? labLbl : labVal;
+		  else into = lab;
 		  var t = document.createElementNS(NS, 'tspan');
-		  if (j === 0) {                       // each row starts a new centred text chunk
+		  if (cls) t.setAttribute('class', cls);
+		  t.textContent = into === labHe ? seg[1].trim() : seg[1];
+		  var key = into === lab ? 'lab' : into === labLbl ? 'lbl' : into === labVal ? 'val' : 'he';
+		  if (!started[key]) {                 // each line of each column starts a new text chunk
+			started[key] = true;
 			t.setAttribute('x', 0);
-			t.setAttribute('dy', i === 0 ? 0 : LINE);
+			lines.push([t, i]);
+			if (key === 'val') valStart[i] = t;
 		  }
-		  if (seg[0]) t.setAttribute('class', seg[0]);
-		  t.textContent = seg[1];
-		  lab.appendChild(t);
+		  if (key === 'lbl') (lblParts[i] = lblParts[i] || []).push(t);
+		  into.appendChild(t);
 		});
 	  });
+	  lab.style.textAnchor = cols ? 'start' : '';
 	  return rows.length;
 	}
 
 	function place(x, y, n) {
-	  var h  = n * LINE + PAD_Y * 2;
-	  lab.setAttribute('y', (-h / 2 + PAD_Y + LINE / 2).toFixed(1));
-	  var w  = Math.max(lab.getBBox().width + PAD_X * 2, 56);
+	  var h  = n * LINE + PAD_Y * 2, y0 = -h / 2 + PAD_Y + LINE / 2;
+	  lines.forEach(function (l) { l[0].setAttribute('y', (y0 + l[1] * LINE).toFixed(1)); });
+	  var w, left;
+	  if (cols) {
+		var bw = function (t) { return t.firstChild ? t.getBBox().width : 0; };
+		var rowLbl = {}, lblW = 0;
+		Object.keys(lblParts).forEach(function (i) {
+		  rowLbl[i] = lblParts[i].reduce(function (a, t) { return a + t.getComputedTextLength(); }, 0);
+		  if (rowLbl[i] <= LBL_MAX) lblW = Math.max(lblW, rowLbl[i]);
+		});
+		var heW = bw(labHe), headW = bw(lab), body = headW;
+		Object.keys(valStart).forEach(function (i) {
+		  var shift = rowLbl[i] > lblW ? rowLbl[i] - lblW : 0;   // an overlong label pushes only its own value
+		  valStart[i].setAttribute('x', shift.toFixed(1));
+		});
+		var valW = bw(labVal);
+		Object.keys(valStart).forEach(function (i) {
+		  // each row's full width: the label column, then the value (measured from the column start)
+		  var row = valStart[i], end = 0;
+		  for (var t = row; t && (t === row || !t.hasAttribute('x')); t = t.nextSibling) end += t.getComputedTextLength();
+		  body = Math.max(body, lblW + 10 + (+row.getAttribute('x')) + end);
+		});
+		w = Math.max(body + (heW ? 18 + heW : 0) + PAD_X * 2, 56);
+		left = -w / 2 + PAD_X;
+		lab.setAttribute('transform', 'translate(' + left.toFixed(1) + ' 0)');
+		labLbl.setAttribute('transform', 'translate(' + left.toFixed(1) + ' 0)');
+		labVal.setAttribute('transform', 'translate(' + (left + lblW + 10).toFixed(1) + ' 0)');
+		labHe.setAttribute('transform', 'translate(' + (w / 2 - PAD_X).toFixed(1) + ' 0)');
+	  } else {
+		w = Math.max(lab.getBBox().width + PAD_X * 2, 56);
+		lab.removeAttribute('transform');
+	  }
 	  box.setAttribute('x', (-w / 2).toFixed(1));
 	  box.setAttribute('y', (-h / 2).toFixed(1));
 	  box.setAttribute('width',  w.toFixed(1));
@@ -373,9 +465,10 @@ Malkuth's own data lives on the group; each quarter adds its element. -->
 					.matrixTransform(svg.getScreenCTM().inverse());
 		  x = p.x; y = p.y;
 		} else {                               // keyboard focus: centre of the shape
-		  var b = el.getBBox();
-		  x = b.x + b.width / 2;
-		  y = b.y + b.height / 2;
+		  var r = el.getBoundingClientRect();  // on-screen box, so shapes moved by the size sliders are found too
+		  var q = new DOMPoint(r.left + r.width / 2, r.top + r.height / 2)
+					.matrixTransform(svg.getScreenCTM().inverse());
+		  x = q.x; y = q.y;
 		}
 		place(x, y, n);
 		tip.classList.add('is-on');
@@ -462,6 +555,17 @@ with the options button following Empress */
 		box-shadow: 0 8px 24px rgba(0,0,0,.18);
 	}
 	.tol-switch .tol-menu[hidden] { display: none; }
+	.tol-switch .tol-head {
+		padding: 6px 8px 2px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; opacity: .8;
+	}
+	.tol-switch .tol-head + .tol-item { margin-top: 0; }
+	.tol-switch .tol-range {
+		display: grid; grid-template-columns: 46px 1fr 38px; align-items: center; gap: 8px;
+		padding: 5px 8px; font-size: 12.5px; letter-spacing: .03em; color: var(--tol-ink);
+	}
+	.tol-switch .tol-range input { width: 100%; margin: 0; accent-color: var(--tol-ink); cursor: pointer; }
+	.tol-switch .tol-range output { font-size: 11px; text-align: right; opacity: .8; font-variant-numeric: tabular-nums; }
+	.tol-switch .tol-item + .tol-head { margin-top: 4px; border-top: 1px solid var(--tol-line); padding-top: 8px; }
 	.tol-switch .tol-item {
 		display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px;
 		font-size: 12.5px; letter-spacing: .03em; white-space: nowrap; cursor: pointer; user-select: none;
@@ -500,9 +604,18 @@ with the options button following Empress */
 					</svg>
 				</button>
 				<div class="tol-menu" id="tol-menu" role="group" aria-label="Display options" hidden>
+					<div class="tol-head">Sephiroth</div>
 					<label class="tol-item"><input type="checkbox" data-opt="lat">English Names</label>
-					<label class="tol-item"><input type="checkbox" data-opt="num" checked>Sephiroth Numbers</label>
-					<label class="tol-item"><input type="checkbox" data-opt="let" checked>Path Letters</label>
+					<label class="tol-item"><input type="checkbox" data-opt="num" checked>Numbers</label>
+					<label class="tol-item" title="Text on Chesed to Yesod in the flashing (complementary) colour of its sphere"><input type="checkbox" data-opt="flash" checked>Flashing Colours</label>
+					<div class="tol-head">Paths</div>
+					<label class="tol-item"><input type="checkbox" data-opt="pnum">Number</label>
+					<label class="tol-item"><input type="checkbox" data-opt="plet" checked>Hebrew Letter</label>
+					<label class="tol-item"><input type="checkbox" data-opt="psym">Symbol</label>
+					<label class="tol-item"><input type="checkbox" data-opt="ptrump">Tarot Trump</label>
+					<div class="tol-head">Size</div>
+					<label class="tol-range">Width<input type="range" data-size="w" min="60" max="150" step="1" value="100"><output>100%</output></label>
+					<label class="tol-range">Height<input type="range" data-size="h" min="60" max="150" step="1" value="100"><output>100%</output></label>
 				</div>
 			</span>
 		</div>
@@ -663,6 +776,57 @@ with the options button following Empress */
 		});
 		return .2126 * lum[0] + .7152 * lum[1] + .0722 * lum[2] > .2 ? '#14110f' : '#f7f4ee';
 	}
+	/* ---------- flashing colours ----------
+	 The flashing colour is the complement on the painter's (red-yellow-blue) wheel the Golden Dawn used:
+	 red against green, blue against orange, yellow against violet. The screen's own wheel would pair
+	 red with cyan, so the hue is carried over to the RYB wheel, turned half way round, and brought back. */
+	var FLASH = false;
+	var HUE_RGB = [0, 30, 60, 120, 240, 275, 360];          // red, orange, yellow, green, blue, violet, red
+	var HUE_RYB = [0, 60, 120, 180, 240, 300, 360];
+	function remap(h, from, to) {
+		for (var k = 1; k < from.length; k++) if (h <= from[k])
+			return to[k - 1] + (h - from[k - 1]) / (from[k] - from[k - 1]) * (to[k] - to[k - 1]);
+		return h;
+	}
+	// a colour's hue on the RYB wheel (null for greys, black and white)
+	function rybHue(hex) {
+		var r = parseInt(hex.substr(1, 2), 16) / 255, g = parseInt(hex.substr(3, 2), 16) / 255, b = parseInt(hex.substr(5, 2), 16) / 255;
+		var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+		if (d < .08) return null;
+		var h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+		return remap(h * 60, HUE_RGB, HUE_RYB);
+	}
+	function hueGap(a, b) { var d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+	// The order's colour wheel: the King Scale colours of the twelve signs, as painted on the Paths.
+	// Opposite signs flash against each other (Aries scarlet / Libra emerald, Gemini orange / Sagittarius blue ...).
+	var WHEEL = ['#d42222', '#e04e10', '#f08a1e', '#ffbf3f', '#d8dc28', '#8fc22b',
+		'#0f9b5a', '#12726b', '#2a6fd6', '#3a2a8c', '#6b2fa0', '#b01050'];
+	// the flashing colour, always one of the tree's own colours: another of the six spheres if one is the
+	// complement (in the Minutum Mundum they pair off exactly), otherwise the nearest colour on the wheel
+	function flashOf(hex, spheres) {
+		var h = rybHue(hex);
+		if (h === null) return null;
+		var want = (h + 180) % 360, best = null, gap = 25;
+		spheres.forEach(function (c) {
+			var hc = rybHue(c.b);
+			if (hc !== null && hueGap(hc, want) < gap) { gap = hueGap(hc, want); best = c.b; }
+		});
+		if (best) return best;
+		gap = 360;
+		WHEEL.forEach(function (w) { var g = hueGap(rybHue(w), want); if (g < gap) { gap = g; best = w; } });
+		return best;
+	}
+	function flashInk(node, col, spheres) {
+		var f = flashOf(col.b, spheres);
+		if (!f) return;                                        // keep the ordinary black or white
+		node.setAttribute('fill', f);
+		if (col.f || col.r) {                                   // patterned grounds keep a thin halo
+			node.style.paintOrder = 'stroke';
+			node.style.stroke = inkFor(f) === '#14110f' ? 'rgba(0,0,0,.55)' : 'rgba(255,255,255,.55)';
+			node.style.strokeWidth = '2px'; node.style.strokeLinejoin = 'round';
+		} else node.style.stroke = '';
+	}
+
 	function setInk(node, col) {                 // text colour, with a halo on patterned grounds
 		var ink = inkFor(col.b);
 		node.setAttribute('fill', ink);
@@ -680,18 +844,123 @@ with the options button following Empress */
 	var quarters = svg.querySelectorAll('#mm-malkuth .mm-quarter');
 	var malkuth  = svg.querySelector('#mm-malkuth');
 	var paths    = svg.querySelectorAll('#mm-paths .mm-path');
-	var letters  = svg.querySelectorAll('#mm-letters text');
+	var letters  = svg.querySelectorAll('#mm-letters .mm-letter');
 	var names    = svg.querySelectorAll('#mm-names > g');
 
 	// remember the hand-picked text colours of the original figure for the default view
 	[].forEach.call(names,   function (n) { n.dataset.origFill = n.getAttribute('fill'); });
 	[].forEach.call(letters, function (n) { n.dataset.origFill = n.getAttribute('fill'); });
+
+	/* ---------- path labels: number, Hebrew letter, symbol and tarot trump ----------
+	 Each path gets the extra labels beside its letter. The shown ones are laid out in a short run
+	 along the path (top to bottom, or left to right on level paths), centred on the letter's place
+	 but kept clear of the spheres at either end. They take the letter's colour in every scale. */
+	var VS15 = '\uFE0E';                       // text presentation: keeps ♈ ♀ etc. from turning into emoji
+	var SPHERE_R = 54, MALKUTH_R = 58, CLEAR = 4, GAP = 3;
+	var PL = [].map.call(paths, function (line, i) {
+		var L = letters[i], d = line.dataset;
+		var mk = function (cls, txt) {
+			var t = document.createElementNS(NS, 'text');
+			t.setAttribute('class', cls); t.textContent = txt;
+			L.parentNode.insertBefore(t, L);
+			return t;
+		};
+		L.classList.add('mm-plet');
+		var x1 = +line.getAttribute('x1'), y1 = +line.getAttribute('y1'), x2 = +line.getAttribute('x2'), y2 = +line.getAttribute('y2');
+		line._o = [x1, y1, x2, y2];                // the original ends, for the size sliders
+		if (y2 < y1 || (y2 === y1 && x2 < x1)) { var tx = x1, ty = y1; x1 = x2; y1 = y2; x2 = tx; y2 = ty; }   // run downward / rightward
+		var len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+		var rEnd = function (x, y) { return (x === 230 && y === 1010) ? MALKUTH_R : SPHERE_R; };
+		return {
+			o: [x1, y1, x2, y2], r1: rEnd(x1, y1), r2: rEnd(x2, y2),
+			frac: ((+L.getAttribute('x') - x1) * ux + (+L.getAttribute('y') - y1) * uy) / len,   // the letter's place along the path
+			items: {                                 // in reading order along the path
+				pnum:   mk('mm-pnum', d.path),
+				plet:   L,
+				psym:   mk('mm-psym', Array.from(d.symbol).map(function (c) { return c === ' ' ? c : c + VS15; }).join('')),
+				ptrump: mk('mm-ptrump', d.trump)
+			},
+		};
+	});
+	function geomPL(p) {                         // where the path runs now (the size sliders move its ends)
+		var a = mapPt(p.o[0], p.o[1]), b = mapPt(p.o[2], p.o[3]);
+		var len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+		p.x1 = a[0]; p.y1 = a[1]; p.ux = (b[0] - a[0]) / len; p.uy = (b[1] - a[1]) / len;
+		p.home = p.frac * len; p.lo = p.r1 + CLEAR; p.hi = len - p.r2 - CLEAR;
+	}
+
+	/* ---------- tree size: the Width and Height sliders spread or close up the Sephiroth ----------
+	 Spheres and text keep their size; only the spacing changes, about Kether's centre (230, 90). */
+	// the tree's base spacing (what the sliders call 100%): 10% wider and 5% taller than the drawing's
+	// original coordinates
+	var BASE_W = 1.10, BASE_H = 1.05;
+	var SX = BASE_W, SY = BASE_H;
+	function mapPt(x, y) { return [230 + (x - 230) * SX, 90 + (y - 90) * SY]; }
+	[].forEach.call(circles, function (c) { c._o = [+c.getAttribute('cx'), +c.getAttribute('cy')]; });
+	function resize() {
+		[].forEach.call(circles, function (c, i) {
+			var m = mapPt(c._o[0], c._o[1]);
+			c.setAttribute('cx', m[0]); c.setAttribute('cy', m[1]);
+			names[i].setAttribute('transform', 'translate(' + (m[0] - c._o[0]).toFixed(1) + ' ' + (m[1] - c._o[1]).toFixed(1) + ')');
+		});
+		var mk = mapPt(230, 1010)[1] - 1010;       // Malkuth moves straight down or up
+		malkuth.setAttribute('transform', 'translate(0 ' + mk.toFixed(1) + ')');
+		names[9].setAttribute('transform', 'translate(0 ' + mk.toFixed(1) + ')');
+		[].forEach.call(paths, function (line) {
+			var a = mapPt(line._o[0], line._o[1]), b = mapPt(line._o[2], line._o[3]);
+			line.setAttribute('x1', a[0]); line.setAttribute('y1', a[1]);
+			line.setAttribute('x2', b[0]); line.setAttribute('y2', b[1]);
+		});
+		// the frame: the same margins as the original figure around the moved spheres
+		var half = 140 * SX + 90, bottom = 90 + 920 * SY + 58 + 22;
+		svg.setAttribute('viewBox', (230 - half).toFixed(1) + ' 14 ' + (2 * half).toFixed(1) + ' ' + (bottom - 14).toFixed(1));
+		svg.style.maxWidth = (2 * half).toFixed(0) + 'px';
+	}
+	var PL_ORDER = ['pnum', 'plet', 'psym', 'ptrump'];
+	function layoutPathLabels(show) {
+		PL.forEach(function (p) {
+			geomPL(p);
+			var on = PL_ORDER.filter(function (k) { return show[k]; });
+			PL_ORDER.forEach(function (k) { p.items[k].classList.toggle('is-off', !show[k]); });
+			if (!on.length) return;
+			// each label's extent along the path, from its box (text boxes include line spacing: trim it)
+			var ext = on.map(function (k) {
+				var b = p.items[k].getBBox();
+				return Math.abs(p.ux) * b.width + Math.abs(p.uy) * b.height * .78;
+			});
+			var span = ext.reduce(function (a, b) { return a + b; }, 0) + GAP * (on.length - 1);
+			var c = Math.min(Math.max(p.home, p.lo + span / 2), p.hi - span / 2);   // centre, kept off the spheres
+			if (p.hi - p.lo < span) c = (p.lo + p.hi) / 2;
+			var at = c - span / 2;
+			on.forEach(function (k, j) {
+				var mid = at + ext[j] / 2;
+				p.items[k].setAttribute('x', (p.x1 + p.ux * mid).toFixed(1));
+				p.items[k].setAttribute('y', (p.y1 + p.uy * mid).toFixed(1));
+				at += ext[j] + GAP;
+			});
+		});
+	}
+	// the extra labels copy the letter's colour. They can be wider than the path (XVIII on a diagonal),
+	// so they get an outline in the path's own colour: any overhang still reads against the path, not the page.
+	// On patterned paths the letter already has a light or dark halo, which they copy.
+	function inkPathLabels(i, col) {
+		var L = letters[i];
+		['pnum', 'psym', 'ptrump'].forEach(function (k) {
+			var t = PL[i].items[k];
+			t.setAttribute('fill', L.getAttribute('fill'));
+			t.style.paintOrder = 'stroke'; t.style.strokeLinejoin = 'round';
+			t.style.stroke = L.style.stroke || col.b;
+			t.style.strokeWidth = L.style.stroke ? L.style.strokeWidth : '3.5px';
+		});
+	}
 	function ink(node, col, mode) {
 		if (mode === 'mm') { node.setAttribute('fill', node.dataset.origFill); node.style.stroke = ''; }
 		else setInk(node, col);
 	}
 
+	var curMode = 'mm';
 	function apply(mode) {
+		curMode = mode;
 		var sScale = mode === 'mm' ? 'queen' : mode;
 		var pScale = mode === 'mm' ? 'king'  : mode;
 
@@ -702,15 +971,24 @@ with the options button following Empress */
 			circle.dataset.colourName = col.n;
 			circle.dataset.colourScale = SCALE_NAME[sScale];
 			ink(names[i], col, mode);
+			if (FLASH && i >= 3 && i <= 8) flashInk(names[i], col, SEPH[sScale].slice(3, 9));   // Chesed to Yesod
 		});
 
 		var m = MALKUTH[sScale];
 		var disc = { n: m[0], b: '#0b0b0b', r: '#f2d024' };
+		// a single colour or one sunburst: show Malkuth as a whole disc, not four quarters
+		var whole = m[1] === 'rays' || m[1].every(function (c) { return c.b === m[1][0].b && !c.f; });
+		var wholeDisc = malkuth.querySelector('.mm-malk-disc');
+		wholeDisc.setAttribute('display', whole ? 'inline' : 'none');
+		if (whole) wholeDisc.setAttribute('fill', m[1] === 'rays' ? sunburst(disc, 230, 1010, 58) : m[1][0].b);
+		malkuth.dataset.whole = whole ? '1' : '';
 		quarters.forEach(function (q, i) {
 			if (m[1] === 'rays') { q.setAttribute('fill', sunburst(disc, 230, 1010, 58)); return; }
 			var col = m[1][i];
 			q.setAttribute('fill', col.f ? flecks(col) : col.b);
 		});
+		// Malkuth's label sits on the lower (Earth) quarter: ink it for that quarter's colour
+		setInk(names[9], m[1] === 'rays' ? disc : m[1][2]);
 		malkuth.dataset.colourName = m[0];
 		malkuth.dataset.colourScale = SCALE_NAME[sScale];
 
@@ -723,6 +1001,7 @@ with the options button following Empress */
 			line.dataset.colourName = col.n;
 			line.dataset.colourScale = SCALE_NAME[pScale];
 			ink(letters[i], col, mode);
+			inkPathLabels(i, col);
 		});
 
 		fig.querySelectorAll('.tol-seg button').forEach(function (b) {
@@ -734,17 +1013,34 @@ with the options button following Empress */
 	fig.querySelectorAll('.tol-seg button').forEach(function (b) {
 		b.addEventListener('click', function () { apply(b.dataset.scale); });
 	});
-	// display options: English names (off), Sephiroth numbers (on), path letters (on)
+	// display options. Sephiroth: English names (off), numbers (on).
+	// Paths: number (off), Hebrew letter (on), symbol (off), tarot trump (off).
 	var opt = fig.querySelector('.tol-opt'), optBtn = opt.querySelector('.tol-opt-btn'), menu = opt.querySelector('.tol-menu');
 	var boxes = {};
 	menu.querySelectorAll('input[data-opt]').forEach(function (b) { boxes[b.dataset.opt] = b; });
 	function applyOpts() {
+		if (FLASH !== boxes.flash.checked) { FLASH = boxes.flash.checked; apply(curMode); }
 		svg.classList.toggle('mm-show-lat', boxes.lat.checked);
 		svg.classList.toggle('mm-hide-num', !boxes.num.checked);
-		svg.classList.toggle('mm-hide-let', !boxes.let.checked);
+		layoutPathLabels({ pnum: boxes.pnum.checked, plet: boxes.plet.checked, psym: boxes.psym.checked, ptrump: boxes.ptrump.checked });
 	}
+	if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyOpts);   // re-measure once fonts are in
 	menu.addEventListener('change', applyOpts);
 	applyOpts();
+
+	// size sliders
+	var sizeIn = { w: menu.querySelector('[data-size="w"]'), h: menu.querySelector('[data-size="h"]') };
+	function applySize() {
+		SX = BASE_W * sizeIn.w.value / 100; SY = BASE_H * sizeIn.h.value / 100;
+		sizeIn.w.nextElementSibling.textContent = sizeIn.w.value + '%';
+		sizeIn.h.nextElementSibling.textContent = sizeIn.h.value + '%';
+		resize();
+		apply(curMode);                            // sunburst fills are drawn about each sphere's centre
+		applyOpts();                               // re-lay the path labels on the moved paths
+	}
+	sizeIn.w.addEventListener('input', applySize);
+	sizeIn.h.addEventListener('input', applySize);
+	applySize();                                 // lay the tree out at its base spacing
 
 	function openMenu() {
 		menu.hidden = false; optBtn.setAttribute('aria-expanded', 'true');

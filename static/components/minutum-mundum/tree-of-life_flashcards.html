@@ -1,0 +1,859 @@
+<figure>
+	<style>
+	/* ---------- Flashcards: the 22 Hebrew letters and their Paths, and the 10 Sephiroth of the Tree of Life ---------- */
+	.kartis {
+		--kt-ink: #14110f;
+		--kt-dim: #6b645c;
+		--kt-line: #d8d2c8;
+		--kt-bg: #fbf9f5;
+		--kt-card: #ffffff;
+		--kt-good: #2f7d4f;
+		--kt-again: #b0442c;
+		color: var(--kt-ink);
+		font-family: Georgia, "Times New Roman", serif;
+		max-width: 560px;
+		margin: 1.5em auto;
+		-webkit-tap-highlight-color: transparent;
+	}
+	/* dark colours: follow the OS unless the site's theme toggle has set data-theme on <html>
+(data-theme="light" overrides a dark OS; data-theme="dark" overrides a light one) */
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme="light"]) .kartis {
+			--kt-ink: #ece7df;
+			--kt-dim: #9c958b;
+			--kt-line: #3a3530;
+			--kt-bg: #171513;
+			--kt-card: #1f1c19;
+			--kt-good: #5fb784;
+			--kt-again: #e07a62;
+		}
+	}
+	:root[data-theme="dark"] .kartis {
+		--kt-ink: #ece7df;
+		--kt-dim: #9c958b;
+		--kt-line: #3a3530;
+		--kt-bg: #171513;
+		--kt-card: #1f1c19;
+		--kt-good: #5fb784;
+		--kt-again: #e07a62;
+	}
+	.kartis * { box-sizing: border-box; }
+	.kartis [hidden] { display: none !important; }
+	.kartis .kt-heb {
+		font-family: "Frank Ruehl CLM", "David Libre", "Noto Serif Hebrew", "Noto Sans Hebrew", "Times New Roman", serif;
+	}
+	.kartis .kt-sym {
+		font-family: "Noto Sans Symbols", "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", "Symbola", sans-serif;
+	}
+	.kartis .kt-dim { color: var(--kt-dim); }
+
+	/* progress */
+	.kartis .kt-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 12.5px; color: var(--kt-dim); letter-spacing: .03em; }
+	.kartis .kt-prog { flex: 1; height: 4px; border-radius: 2px; background: var(--kt-line); overflow: hidden; }
+	.kartis .kt-prog span { display: block; height: 100%; width: 0; background: var(--kt-ink); transition: width .25s; }
+	.kartis .kt-count { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+	/* the card: both faces share one grid cell, so the card is as tall as the taller face */
+	.kartis .kt-card { perspective: 1400px; cursor: pointer; outline: none; display: block; }
+	.kartis .kt-card:focus-visible .kt-face { outline: 2px solid var(--kt-ink); outline-offset: 3px; }
+	.kartis .kt-inner {
+		display: grid; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.3,.7,.3,1);
+	}
+	.kartis .kt-card.is-flipped .kt-inner { transform: rotateY(180deg); }
+	.kartis .kt-card.no-anim .kt-inner { transition: none; }
+	.kartis .kt-face {
+		grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+		background: var(--kt-card); border: 1px solid var(--kt-line); border-radius: 14px;
+		box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.06);
+		min-height: 330px;
+	}
+	.kartis .kt-back { transform: rotateY(180deg); padding: 18px 20px 16px; }
+	.kartis .kt-front {
+		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+		padding: 20px; text-align: center; position: relative;
+	}
+	.kartis .kt-front .kt-big { font-size: 150px; line-height: 1; }
+	.kartis .kt-front .kt-big.kt-heb { font-size: 168px; margin-top: -10px; }
+	.kartis .kt-front .kt-big.kt-word { font-size: 52px; letter-spacing: .08em; text-transform: uppercase; }
+	.kartis .kt-front .kt-big.kt-num { font-size: 104px; }
+	.kartis .kt-front .kt-sub { font-size: 19px; letter-spacing: .04em; }
+	.kartis .kt-front .kt-ask { position: absolute; bottom: 14px; left: 0; right: 0; font-size: 12px; letter-spacing: .06em; color: var(--kt-dim); }
+	.kartis .kt-card.is-new .kt-inner { animation: kt-in .28s ease-out; }
+	@keyframes kt-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+
+	/* back of the card */
+	.kartis .kt-upper { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+	/* the header: the letter (or disc) | name, meaning, tags | final form | the word FINAL.
+	   A grid, so FINAL can share the meaning's line (row 2) and sit on its baseline in any font. */
+	.kartis .kt-head {
+		display: grid; grid-template-columns: auto minmax(0, auto) auto auto; justify-content: start;
+		column-gap: 18px; align-items: start;
+	}
+	.kartis .kt-head > .kt-glyph, .kartis .kt-head > .kt-disc { grid-column: 1; grid-row: 1 / span 3; }
+	.kartis .kt-info { display: contents; }
+	.kartis .kt-head .kt-name    { grid-column: 2; grid-row: 1; }
+	.kartis .kt-head .kt-meaning { grid-column: 2; grid-row: 2; align-self: baseline; }
+	.kartis .kt-head .kt-tags    { grid-column: 2; grid-row: 3; }
+	.kartis .kt-head > .kt-final { grid-column: 3; grid-row: 1 / span 3; }
+	.kartis .kt-flabel {
+		grid-column: 4; grid-row: 2; align-self: baseline; margin-left: -12px;
+		font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--kt-dim);
+	}
+	.kartis .kt-glyph { font-size: 76px; line-height: .9; padding-top: 4px; }
+	.kartis .kt-name { font-size: 26px; letter-spacing: .03em; line-height: 1.15; }
+	.kartis .kt-name .kt-heb { font-size: 24px; margin-left: 6px; }
+	.kartis .kt-meaning { font-size: 14.5px; color: var(--kt-dim); margin-top: 2px; }
+	.kartis .kt-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+	.kartis .kt-tag {
+		white-space: nowrap; font-size: 11.5px; letter-spacing: .05em; padding: 2px 8px; border-radius: 999px;
+		border: 1px solid var(--kt-line); color: var(--kt-dim);
+	}
+	.kartis .kt-mini { width: 124px; height: auto; display: block; margin-top: 2px; }
+	.kartis .kt-sec { margin-top: 12px; }
+	.kartis .kt-sec h4 {
+		margin: 0 0 4px; font-weight: normal; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+		color: var(--kt-dim); border-bottom: 1px solid var(--kt-line); padding-bottom: 3px;
+	}
+	.kartis .kt-rows { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; row-gap: 3px; font-size: 14px; line-height: 1.35; align-items: baseline; }
+	.kartis .kt-rows dt { color: var(--kt-dim); }
+	.kartis .kt-rows dd { margin: 0; }
+	.kartis .kt-rows .kt-sym { font-size: 15px; }
+	.kartis .kt-sw {
+		display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -1px; margin-right: 5px;
+		border: 1px solid rgba(0,0,0,.18);
+	}
+	.kartis .kt-title { font-style: italic; }
+	.kartis .kt-meanings { margin-top: 52px; }   /* two lines' extra space above Meanings */
+	.kartis .kt-lore { font-size: 13px; line-height: 1.4; color: var(--kt-ink); }
+	.kartis .kt-disc {
+		width: 64px; height: 64px; border-radius: 50%; display: grid; place-content: center; margin-top: 2px;
+		font-size: 30px; border: 2px solid var(--kt-ink); box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+	}
+	.kartis .kt-front .kt-big.kt-hword { font-size: 112px; margin-top: 0; }
+	.kartis .kt-front .kt-big.kt-phrase { font-size: 40px; line-height: 1.15; letter-spacing: .02em; padding: 0 10px; }
+	.kartis .kt-front .kt-sub.kt-heb { font-size: 30px; }
+	.kartis .kt-done .kt-missed.kt-missed-words { font-size: 20px; gap: 4px 16px; }
+	.kartis .kt-rows dd .kt-heb { font-size: 16px; }
+	.kartis .kt-rows dd .kt-he-main { font-size: 17.5px; color: var(--kt-ink); }
+	.kartis .kt-rows dd .kt-tr { font-size: 13.5px; }
+	.kartis .kt-name .kt-he-name { font-size: 32px; margin: 0 10px 0 0; }
+	.kartis .kt-name .kt-tr-name { font-size: 20px; color: var(--kt-dim); }
+	.kartis .kt-front .kt-big.kt-hphrase { font-size: 64px; line-height: 1.15; margin: 4px 0; padding: 0 10px; }
+
+	/* answer buttons */
+	.kartis .kt-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+	.kartis button {
+		font: inherit; color: inherit; background: var(--kt-bg); border: 1px solid var(--kt-line);
+		border-radius: 9px; padding: 9px 12px; cursor: pointer; letter-spacing: .03em;
+	}
+	.kartis button:hover { border-color: var(--kt-dim); }
+	.kartis button:focus-visible { outline: 2px solid var(--kt-ink); outline-offset: 2px; }
+	.kartis .kt-actions button { font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+	.kartis .kt-actions button kbd {
+		font: 11px/1 Georgia, serif; color: var(--kt-dim); border: 1px solid var(--kt-line); border-radius: 4px; padding: 2px 5px;
+	}
+	.kartis .kt-again { color: var(--kt-again); }
+	.kartis .kt-good  { color: var(--kt-good); }
+	.kartis .kt-flip  { grid-column: 1 / -1; }
+	.kartis .kt-actions [hidden] { display: none; }
+	@media (hover: none) { .kartis .kt-actions button kbd { display: none; } }
+
+	/* end of the deck */
+	.kartis .kt-done {
+		background: var(--kt-card); border: 1px solid var(--kt-line); border-radius: 14px;
+		padding: 26px 22px; text-align: center; min-height: 330px;
+		display: flex; flex-direction: column; justify-content: center; gap: 12px;
+	}
+	.kartis .kt-done[hidden] { display: none; }
+	.kartis .kt-done .kt-score { font-size: 46px; line-height: 1; }
+	.kartis .kt-done .kt-missed { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; font-size: 34px; }
+	.kartis .kt-done .kt-btns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+	/* settings: a gear in the top bar opens a small popup */
+	.kartis .kt-opt { position: relative; display: inline-flex; }
+	.kartis .kt-gear { padding: 4px; border-radius: 7px; display: inline-flex; color: var(--kt-dim); background: var(--kt-bg); }
+	.kartis .kt-gear:hover, .kartis .kt-gear[aria-expanded="true"] { color: var(--kt-ink); border-color: var(--kt-ink); }
+	.kartis .kt-gear svg { width: 16px; height: 16px; display: block; }
+	.kartis .kt-menu {
+		position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: 282px; max-width: calc(100vw - 24px);
+		padding: 8px 10px 10px; border: 1px solid var(--kt-line); border-radius: 10px; background: var(--kt-card);
+		box-shadow: 0 8px 24px rgba(0,0,0,.18); color: var(--kt-ink); font-size: 12.5px;
+	}
+	.kartis .kt-mhead { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--kt-dim); margin: 4px 0 5px; }
+	.kartis .kt-chips + .kt-mhead, .kartis .kt-check + .kt-mhead { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--kt-line); }
+	.kartis .kt-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+	.kartis .kt-chips button { padding: 4px 9px; font-size: 12.5px; border-radius: 7px; color: var(--kt-dim); }
+	.kartis .kt-chips button[aria-pressed="true"] { background: var(--kt-ink); border-color: var(--kt-ink); color: var(--kt-bg); }
+	.kartis .kt-restart { width: 100%; margin-top: 12px; font-size: 12.5px; padding: 6px 10px; }
+	.kartis .kt-debug .kt-mhead { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--kt-line); }
+	.kartis .kt-dbg { display: grid; grid-template-columns: 74px 1fr 44px; align-items: center; gap: 8px; padding: 3px 0; font-size: 12.5px; color: var(--kt-ink); }
+	.kartis .kt-dbg input { width: 100%; margin: 0; accent-color: var(--kt-ink); cursor: pointer; }
+	.kartis .kt-dbg output { font-size: 11px; text-align: right; color: var(--kt-dim); font-variant-numeric: tabular-nums; }
+	.kartis.kt-no-en .kt-en { display: none; }
+	.kartis:not(.kt-is-seph) .kt-seph-only { display: none; }
+	.kartis .kt-sbadge .kt-heb { font-size: 24px; }
+	/* the English checkbox, in the cards' own colours */
+	.kartis .kt-check { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 12.5px; color: var(--kt-dim); cursor: pointer; user-select: none; }
+	.kartis .kt-check:hover, .kartis .kt-check:has(input:checked) { color: var(--kt-ink); }
+	.kartis .kt-check input {
+		appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 auto; width: 15px; height: 15px;
+		border: 1px solid var(--kt-line); border-radius: 4px; background: var(--kt-bg); cursor: pointer;
+		display: grid; place-content: center; transition: background .1s, border-color .1s;
+	}
+	.kartis .kt-check:hover input { border-color: currentColor; }
+	.kartis .kt-check input::after {
+		content: ""; width: 7px; height: 4px; margin-top: -2px;
+		border: solid var(--kt-bg); border-width: 0 0 1.6px 1.6px; transform: rotate(-45deg); opacity: 0;
+	}
+	.kartis .kt-check input:checked { background: var(--kt-ink); border-color: var(--kt-ink); }
+	.kartis .kt-check input:checked::after { opacity: 1; }
+	.kartis .kt-check input:focus-visible { outline: 2px solid var(--kt-ink); outline-offset: 2px; }
+	/* the Colour row: scale names in a right-aligned muted column, then the swatch and colour name */
+	.kartis .kt-colours { display: grid; grid-template-columns: max-content 1fr; column-gap: 10px; row-gap: 2px; align-items: baseline; }
+	.kartis .kt-scale { text-align: right; }
+	.kartis .kt-rows dd.kt-colour-dd { grid-column: 1 / -1; padding-left: 14px; margin-top: 2px; }
+
+	@media (max-width: 420px) {
+		.kartis .kt-front .kt-big.kt-heb { font-size: 140px; }
+		.kartis .kt-glyph { font-size: 60px; }
+		/* narrow screens: the tags get the full width under the final letter, so they don't squeeze */
+		.kartis .kt-head { column-gap: 12px; grid-template-columns: auto auto auto 1fr; }   /* spare width goes after FINAL */
+		.kartis .kt-head > .kt-final { grid-row: 1 / span 2; }
+		.kartis .kt-head .kt-tags { grid-column: 2 / -1; }
+		.kartis .kt-flabel { margin-left: -6px; }
+		.kartis .kt-name { font-size: 22px; }
+		.kartis .kt-back { padding: 16px 14px 14px; }
+		.kartis .kt-rows { font-size: 13.5px; column-gap: 10px; }
+		.kartis .kt-mini { width: 91px; }
+		.kartis .kt-disc { width: 52px; height: 52px; font-size: 24px; }
+		.kartis .kt-front .kt-big.kt-hword { font-size: 84px; }
+		.kartis .kt-front .kt-big.kt-phrase { font-size: 32px; }
+		.kartis .kt-front .kt-big.kt-hphrase { font-size: 46px; }
+		.kartis .kt-name .kt-he-name { font-size: 27px; }
+		.kartis .kt-name .kt-tr-name { font-size: 17px; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.kartis .kt-inner, .kartis .kt-prog span { transition: none; }
+		.kartis .kt-card.is-new .kt-inner { animation: none; }
+	}
+	</style>
+
+	<figure class="kartis" aria-label="Flashcards: Hebrew letters and the Sephiroth">
+		<div class="kt-top">
+			<div class="kt-prog" aria-hidden="true"><span></span></div>
+			<div class="kt-count" aria-live="polite"></div>
+			<span class="kt-opt">
+				<button type="button" class="kt-gear" aria-haspopup="true" aria-expanded="false" aria-controls="kt-menu" title="Settings" aria-label="Settings">
+					<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M 13.35 6.34 L 15.27 6.61 L 15.27 9.39 L 13.35 9.66 L 12.96 10.60 L 14.12 12.16 L 12.16 14.12 L 10.60 12.96 L 9.66 13.35 L 9.39 15.27 L 6.61 15.27 L 6.34 13.35 L 5.40 12.96 L 3.84 14.12 L 1.88 12.16 L 3.04 10.60 L 2.65 9.66 L 0.73 9.39 L 0.73 6.61 L 2.65 6.34 L 3.04 5.40 L 1.88 3.84 L 3.84 1.88 L 5.40 3.04 L 6.34 2.65 L 6.61 0.73 L 9.39 0.73 L 9.66 2.65 L 10.60 3.04 L 12.16 1.88 L 14.12 3.84 L 12.96 5.40 Z M 10.4 8 A 2.4 2.4 0 1 0 5.6 8 A 2.4 2.4 0 1 0 10.4 8 Z"/></svg>
+				</button>
+				<div class="kt-menu" id="kt-menu" role="group" aria-label="Settings" hidden>
+					<div class="kt-mhead">Cards</div>
+					<div class="kt-chips" role="group" aria-label="Which cards">
+						<button type="button" data-type="letters" aria-pressed="true">Letters 22</button>
+						<button type="button" data-type="seph" aria-pressed="false">Sephiroth 10</button>
+					</div>
+					<div class="kt-mhead">Front</div>
+					<div class="kt-chips kt-fronts" role="group" aria-label="What the front of the card shows"></div>
+					<label class="kt-check kt-seph-only"><input type="checkbox" class="kt-english" checked>English</label>
+					<div class="kt-mhead">Deck</div>
+					<div class="kt-chips kt-decks" role="group" aria-label="Which cards are in the deck"></div>
+					<div class="kt-mhead">Colours</div>
+					<div class="kt-chips kt-scales" role="group" aria-label="Which colour scales the card shows"></div>
+					<div class="kt-debug" hidden>
+						<div class="kt-mhead">DEBUG</div>
+						<label class="kt-dbg">Tree width<input type="range" data-dbg="w" min="50" max="240" step="1"><output></output></label>
+						<label class="kt-dbg">Tree height<input type="range" data-dbg="h" min="100" max="480" step="1"><output></output></label>
+					</div>
+					<button type="button" class="kt-restart">New shuffle</button>
+				</div>
+			</span>
+		</div>
+
+		<div class="kt-card" tabindex="0" role="button" aria-label="Card: press to turn over">
+			<div class="kt-inner">
+				<div class="kt-face kt-front"></div>
+				<div class="kt-face kt-back" aria-live="polite"></div>
+			</div>
+		</div>
+
+		<div class="kt-done" hidden></div>
+
+		<div class="kt-actions">
+			<button type="button" class="kt-flip">Turn over <kbd>Space</kbd></button>
+			<button type="button" class="kt-again" hidden>↺ Again <kbd>1</kbd></button>
+			<button type="button" class="kt-good" hidden>✓ Got it <kbd>2</kbd></button>
+		</div>
+
+	</figure>
+
+	<script>
+	(function () {
+		var root = (document.currentScript && document.currentScript.previousElementSibling &&
+			document.currentScript.previousElementSibling.classList.contains('kartis'))
+			? document.currentScript.previousElementSibling : document.querySelector('.kartis');
+		var VS15 = '︎';                       // text presentation: keeps ♈ ♀ etc. from turning into emoji
+		function sym(s) { return Array.from(s).map(function (c) { return c + VS15; }).join(''); }
+
+		/* ---------- the letters ----------
+		 glyph, name, name in Hebrew, meaning, value, final form [glyph, value], sound, class, symbol, attribution,
+		 path, from, to, trump, trump title, esoteric title (Book T), King colour [name, css], Queen colour [name, css],
+		 direction (Sepher Yetzirah), intelligence (the 32 Paths of Wisdom, Westcott) */
+		var SKY = '#7cbfe8';
+		var DATA = [
+			['א','Aleph','אלף','Ox',1,null,'broad A','Mother','🜁','Air',11,'Kether','Chokmah','0','The Fool','The Spirit of Aethyr',
+				['Bright pale yellow','#f6f2a6'],['Sky blue',SKY],'Above ↔ Below (axis)','Scintillating Intelligence'],
+			['ב','Beth','בית','House',2,null,'B, Bh','Double','☿','Mercury',12,'Kether','Binah','I','The Magician','The Magus of Power',
+				['Yellow','#f2d024'],['Purple','#6a2c8c'],'Above','Intelligence of Transparency'],
+			['ג','Gimel','גימל','Camel',3,null,'G, Gh','Double','☽','Moon',13,'Kether','Tiphareth','II','The High Priestess','The Priestess of the Silver Star',
+				['Blue','#2a6fd6'],['Silver','#c3c7cc'],'Below','Uniting Intelligence'],
+			['ד','Daleth','דלת','Door',4,null,'D, Dh','Double','♀','Venus',14,'Chokmah','Binah','III','The Empress','The Daughter of the Mighty Ones',
+				['Emerald green','#0f9b5a'],['Sky blue',SKY],'East','Illuminating Intelligence'],
+			['ה','Heh','הא','Window',5,null,'H','Simple','♈','Aries',15,'Chokmah','Tiphareth','IV','The Emperor','Sun of the Morning, Chief among the Mighty',
+				['Scarlet','#d42222'],['Red','#c8201e'],'North-East','Constituting Intelligence'],
+			['ו','Vav','וו','Nail, peg',6,null,'U, V, OO','Simple','♉','Taurus',16,'Chokmah','Chesed','V','The Hierophant','The Magus of the Eternal',
+				['Red orange','#e04e10'],['Deep indigo','#2a1f6b'],'South-East','Triumphal or Eternal Intelligence'],
+			['ז','Zayin','זין','Sword, weapon',7,null,'Z','Simple','♊','Gemini',17,'Binah','Tiphareth','VI','The Lovers','The Children of the Voice; the Oracle of the Mighty Gods',
+				['Orange','#f08a1e'],['Pale mauve','#c9a9d2'],'East-Above','Disposing Intelligence'],
+			['ח','Cheth','חית','Fence, enclosure',8,null,'Ch (guttural)','Simple','♋','Cancer',18,'Binah','Geburah','VII','The Chariot','The Child of the Powers of the Waters; the Lord of the Triumph of Light',
+				['Amber','#ffbf3f'],['Maroon','#6e1424'],'East-Below','Intelligence of the House of Influence'],
+			['ט','Teth','טית','Serpent',9,null,'T','Simple','♌','Leo',19,'Chesed','Geburah','VIII','Strength','The Daughter of the Flaming Sword; the Leader of the Lion',
+				['Greenish yellow','#d8dc28'],['Deep purple','#4a1a6b'],'North-Above','Intelligence of all the Activities of the Spiritual Beings'],
+			['י','Yod','יוד','Hand',10,null,'I, J, Y','Simple','♍','Virgo',20,'Chesed','Tiphareth','IX','The Hermit','The Prophet of the Eternal; the Magus of the Voice of Power',
+				['Yellowish green','#8fc22b'],['Slate grey','#6b7480'],'North-Below','Intelligence of Will'],
+			['כ','Kaph','כף','Palm of the hand',20,['ך',500],'K, Kh','Double','♃','Jupiter',21,'Chesed','Netzach','X','Wheel of Fortune','The Lord of the Forces of Life',
+				['Violet','#6b2fa0'],['Blue','#1e52c8'],'West','Intelligence of Conciliation and Reward'],
+			['ל','Lamed','למד','Ox-goad',30,null,'L','Simple','♎','Libra',22,'Geburah','Tiphareth','XI','Justice','The Daughter of the Lords of Truth; the Ruler of the Balance',
+				['Emerald green','#0f9b5a'],['Blue','#1e52c8'],'South-West (Case: North-West)','Faithful Intelligence'],
+			['מ','Mem','מים','Water',40,['ם',600],'M','Mother','🜄','Water',23,'Geburah','Hod','XII','The Hanged Man','The Spirit of the Mighty Waters',
+				['Deep blue','#10328c'],['Sea green','#2e8b7a'],'East ↔ West (axis)','Stable Intelligence'],
+			['נ','Nun','נון','Fish',50,['ן',700],'N','Simple','♏','Scorpio',24,'Tiphareth','Netzach','XIII','Death','The Child of the Great Transformers; the Lord of the Gates of Death',
+				['Green blue','#12726b'],['Dull brown','#6b5236'],'North-West (Case: South-West)','Imaginative Intelligence'],
+			['ס','Samekh','סמך','Prop, support',60,null,'S','Simple','♐','Sagittarius',25,'Tiphareth','Yesod','XIV','Temperance','The Daughter of the Reconcilers; the Bringer-forth of Life',
+				['Blue','#2a6fd6'],['Yellow','#f2d024'],'West-Above','Intelligence of Probation or Temptation'],
+			['ע','Ayin','עין','Eye',70,null,'O, Ngh, Au','Simple','♑','Capricorn',26,'Tiphareth','Hod','XV','The Devil','The Lord of the Gates of Matter; the Child of the Forces of Time',
+				['Indigo','#3a2a8c'],['Black','#0b0b0b'],'West-Below','Renovating Intelligence'],
+			['פ','Peh','פה','Mouth',80,['ף',800],'P, Ph','Double','♂','Mars',27,'Netzach','Hod','XVI','The Tower','The Lord of the Hosts of the Mighty',
+				['Scarlet','#d42222'],['Red','#c8201e'],'North','Exciting Intelligence'],
+			['צ','Tzaddi','צדי','Fish-hook',90,['ץ',900],'Tz','Simple','♒','Aquarius',28,'Netzach','Yesod','XVII','The Star','The Daughter of the Firmament; the Dweller between the Waters',
+				['Violet','#6b2fa0'],['Sky blue',SKY],'South-Above','Natural Intelligence'],
+			['ק','Qoph','קוף','Back of the head',100,null,'Q, Qh','Simple','♓','Pisces',29,'Netzach','Malkuth','XVIII','The Moon','The Ruler of Flux and Reflux; the Child of the Sons of the Mighty',
+				['Crimson','#b01050'],['Buff, flecked silver-white','radial-gradient(#f4f4f4 0.8px, transparent 1.3px) 0 0 / 4px 4px, #d9c08c'],'South-Below','Corporeal Intelligence'],
+			['ר','Resh','ריש','Head',200,null,'R','Double','☉','Sun',30,'Hod','Yesod','XIX','The Sun','The Lord of the Fire of the World',
+				['Orange','#f08a1e'],['Gold yellow','#e6b422'],'South','Collecting Intelligence'],
+			['ש','Shin','שין','Tooth',300,null,'Sh, S','Mother','🜂','Fire',31,'Hod','Malkuth','XX','Judgement','The Spirit of the Primal Fire',
+				['Glowing orange scarlet','#ff4a0f'],['Vermilion','#e34234'],'North ↔ South (axis)','Perpetual Intelligence'],
+			['ת','Tav','תו','Cross, mark',400,null,'T, Th','Double','♄','Saturn',32,'Yesod','Malkuth','XXI','The Universe','The Great One of the Night of Time',
+				['Indigo','#3a2a8c'],['Black','#0b0b0b'],'Centre: the Palace of Holiness','Administrative Intelligence']
+		];
+		var CARDS = DATA.map(function (a, i) {
+			return { i: i, glyph: a[0], name: a[1], nameHe: a[2], meaning: a[3], value: a[4], final: a[5], sound: a[6],
+				cls: a[7], sym: a[8], attr: a[9], path: a[10], from: a[11], to: a[12], trump: a[13], trumpName: a[14],
+				title: a[15], king: a[16], queen: a[17], dir: a[18], intel: a[19] };
+		});
+		var CLASS_NOTE = { Mother: 'Mother letter · element', Double: 'Double letter · planet', Simple: 'Simple letter · sign' };
+
+		/* Golden Dawn teaching on the letters, beyond the meaning of the name. Only what the Order taught:
+		 each letter's part in the Name YHVH and the Pentagrammaton YHShVH, the three Mother letters as
+		 Westcott's Sepher Yetzirah gives them (the Order's text), and the second attributions of Shin
+		 (Spirit) and Tav (Earth). Letters with nothing further show no Meanings section.
+		 Each entry: [[label, text], ...] */
+		var GD = {
+			'א': [['Yetzirah', 'Air, “of a spiritual type”: the tongue of the balance between mute Water and hissing Fire · “twenty-one letters, all from one, the Aleph”']],
+			'מ': [['Yetzirah', 'Water, the mute letter: the lower scale of the balance, with Fire above and Air between']],
+			'ש': [['Yetzirah', 'Fire, the hissing letter: the upper scale of the balance, with Water below and Air between'],
+				['Also', 'Spirit: the Shin descending into the midst of YHVH makes YHShVH, the Pentagrammaton']],
+			'י': [['YHVH', 'The Yod of the Name: Fire, the Father, Chokmah; the world of Atziluth; the Wands and the Kings']],
+			'ה': [['YHVH', 'The first Heh: Water, the Mother, Binah; the world of Briah; the Cups and the Queens · the final Heh: Earth, the Daughter, Malkuth; the world of Assiah; the Pentacles and the Princesses']],
+			'ו': [['YHVH', 'The Vav of the Name: Air, the Son, the six Sephiroth around Tiphareth; the world of Yetzirah; the Swords and the Princes']],
+			'ת': [['Also', 'Earth, beside Saturn: the 32nd Path also bears the element of Earth']]
+		};
+		/* ---------- colour scales: King and Queen are in the data above; Emperor and Empress here,
+		 the same as the Hebrew letters page and the Tree of Life. Flecked and rayed colours are drawn
+		 as dots and sunbursts; where 777 gives "X or Y" both swatches are shown. ---------- */
+		var GOLD = '#f2c230';
+		function fleck(base) {
+			var dots = [].slice.call(arguments, 1), pos = ['0 0', '3px 3px', '0 3px', '3px 0'];
+			return dots.map(function (f, k) { return 'radial-gradient(' + f + ' 1px, transparent 1.6px) ' + pos[k] + ' / 6px 6px, '; }).join('') + base;
+		}
+		function rays(base, r) { return 'repeating-conic-gradient(from 0deg at 50% 50%, ' + r + ' 0deg 3deg, ' + base + ' 3deg 36deg)'; }
+		var L_EMPEROR = [
+			['Blue emerald green','#1aa38a'], ['Grey','#8c8c8c'], ['Cold pale blue','#b8d4e8'], ['Early spring green','#9fd46a'],
+			['Brilliant flame','#ff5a1f'], ['Deep warm olive','#5f5a1e'], ['New yellow leather','#d2a54f'], ['Rich bright russet','#a8461f'],
+			['Grey','#8c8c8c'], ['Green grey','#7f8b78'], ['Rich purple','#5b1f86'], ['Deep blue-green','#0f5c5c'],
+			['Deep olive-green','#45531c'], ['Very dark brown','#3a2616'], ['Green','#2e9e3e'], ['Blue black','#12162e'],
+			['Venetian red','#c80815'], ['Bluish mauve','#9a86c2'], ['Light translucent pinkish brown','#c9a395'], ['Rich amber','#e08a00'],
+			['Scarlet, flecked gold', fleck('#d42222', GOLD)], ['Blue black','#12162e']
+		];
+		var L_EMPRESS = [
+			['Emerald flecked gold', fleck('#0f9b5a', GOLD)],
+			['Indigo rayed violet', rays('#3a2a8c', '#8a4fc4')],
+			['Silver rayed sky-blue', rays('#c3c7cc', '#7cbfe8')],
+			['Bright rose or cerise, rayed pale green', rays('#f2577f', '#b6e3a8'), rays('#de3163', '#b6e3a8')],
+			['Glowing red','#e8231a'], ['Rich brown','#6b3a1e'], ['Reddish grey inclined to mauve','#9c8088'], ['Dark greenish brown','#4a4326'],
+			['Reddish amber','#d6741c'], ['Plum colour','#7a2d55'],
+			['Bright blue rayed yellow', rays('#1f6fe0', '#f2d024')],
+			['Pale green','#a8d8a0'],
+			['White flecked purple', fleck('#f6f4f0', '#6a2c8c')],
+			['Livid indigo brown (like a black beetle)','#2b2433'], ['Dark vivid blue','#1a2fa8'], ['Cold dark grey near black','#26282b'],
+			['Bright red, rayed azure or emerald', rays('#e3241b', '#3a8fe0'), rays('#e3241b', '#0f9b5a')],
+			['White tinged purple','#ece4f2'], ['Stone colour','#9e9585'],
+			['Amber rayed red', rays('#ffbf3f', '#d42222')],
+			['Vermilion flecked crimson and emerald', fleck('#e34234', '#b01050', '#0f9b5a')],
+			['Black rayed blue', rays('#0b0b0b', '#2a6fd6')]
+		];
+		// the student's own readings, shown in their own row after the Golden Dawn teaching
+		var PERSONAL = { 'א': 'the Divine Silence', 'ב': 'Body: the house of Spirit', 'ג': 'Messenger', 'ו': 'Connector',
+			'י': 'the Divine Seed / Spark', 'ל': 'Learning, Rising' };
+		CARDS.forEach(function (c, i) {
+			c.kind = 'letter'; c.gd = (GD[c.glyph] || []).concat(PERSONAL[c.glyph] ? [['Personal', PERSONAL[c.glyph]]] : []);
+			c.scales = { king: c.king, queen: c.queen, emperor: L_EMPEROR[i], empress: L_EMPRESS[i] };
+		});
+
+		/* ---------- the Sephiroth ----------
+		 number, name, Hebrew, meaning, God-Name [en, he], Archangel [en, he], Choir [en, he, meaning],
+		 planetary sphere [en, he, English, symbol], Intelligence (the 32 Paths of Wisdom, Westcott), pillar, triad,
+		 tarot, part of the soul, magical image (777), King colour [name, css], Queen colour [name, css].
+		 The names, angels, choirs, spheres and colours are the same as the Tree of Life figure's. */
+		var MALKUTH_Q = 'conic-gradient(from -45deg, #b2a429 0 25%, #8a4a2e 0 50%, #0b0b0b 0 75%, #5c6e38 0)';
+		var SDATA = [
+			[1, 'Kether', 'כתר', 'The Crown', ['Eheieh', 'אהיה'], ['Metatron', 'מטטרון'], ['Chayoth ha-Qadesh', 'חיות הקדש', 'Holy Living Creatures'],
+				['Rashith ha-Gilgalim', 'ראשית הגלגלים', 'Primum Mobile', ''], 'Admirable or Hidden Intelligence', 'Middle Pillar', 'Supernal triad',
+				'the four Aces', 'Yechidah', 'An ancient bearded king, seen in profile', ['Brilliance', '#ffffff'], ['White brilliance', '#ffffff']],
+			[2, 'Chokmah', 'חכמה', 'Wisdom', ['Yah', 'יה'], ['Ratziel', 'רציאל'], ['Auphanim', 'אופנים', 'Wheels'],
+				['Masloth', 'מסלות', 'Sphere of the Zodiac', ''], 'Illuminating Intelligence', 'Pillar of Mercy', 'Supernal triad',
+				'the four Twos · the Kings', 'Chiah', 'A bearded male figure', ['Soft pure blue', '#6fa8dc'], ['Grey', '#9a9a9a']],
+			[3, 'Binah', 'בינה', 'Understanding', ['YHVH Elohim', 'יהוה אלהים'], ['Tzaphqiel', 'צפקיאל'], ['Aralim', 'אראלים', 'Thrones'],
+				['Shabbathai', 'שבתאי', 'Saturn', '♄'], 'Sanctifying Intelligence', 'Pillar of Severity', 'Supernal triad',
+				'the four Threes · the Queens', 'Neshamah', 'A mature woman, a matron', ['Crimson', '#b01030'], ['Black', '#0b0b0b']],
+			[4, 'Chesed', 'חסד', 'Mercy', ['El', 'אל'], ['Tzadqiel', 'צדקיאל'], ['Chashmalim', 'חשמלים', 'Brilliant Ones'],
+				['Tzedeq', 'צדק', 'Jupiter', '♃'], 'Cohesive or Receptacular Intelligence', 'Pillar of Mercy', 'Ethical triad',
+				'the four Fours', 'Ruach', 'A mighty crowned and throned king', ['Deep violet', '#4b1f7a'], ['Blue', '#1e52c8']],
+			[5, 'Geburah', 'גבורה', 'Severity', ['Elohim Gibor', 'אלהים גבור'], ['Khamael', 'כמאל'], ['Seraphim', 'שרפים', 'Fiery Serpents'],
+				['Madim', 'מאדים', 'Mars', '♂'], 'Radical Intelligence', 'Pillar of Severity', 'Ethical triad',
+				'the four Fives', 'Ruach', 'A mighty warrior in his chariot', ['Orange', '#e8811c'], ['Scarlet red', '#c81e1e']],
+			[6, 'Tiphareth', 'תפארת', 'Beauty', ['YHVH Eloah va-Daath', 'יהוה אלוה ודעת'], ['Raphael', 'רפאל'], ['Malachim', 'מלכים', 'Kings'],
+				['Shemesh', 'שמש', 'Sun', '☉'], 'Intelligence of the Mediating Influence', 'Middle Pillar', 'Ethical triad',
+				'the four Sixes · the Princes', 'Ruach', 'A majestic king; a child; a sacrificed god', ['Clear rose pink', '#f4a7b9'], ['Yellow (gold)', '#f2d024']],
+			[7, 'Netzach', 'נצח', 'Victory', ['YHVH Tzabaoth', 'יהוה צבאות'], ['Haniel', 'הניאל'], ['Elohim', 'אלהים', 'Gods'],
+				['Nogah', 'נוגה', 'Venus', '♀'], 'Occult Intelligence', 'Pillar of Mercy', 'Astral triad',
+				'the four Sevens', 'Ruach', 'A beautiful naked woman', ['Amber', '#ffbf3f'], ['Emerald', '#0f9b5a']],
+			[8, 'Hod', 'הוד', 'Splendour', ['Elohim Tzabaoth', 'אלהים צבאות'], ['Michael', 'מיכאל'], ['Beni Elohim', 'בני אלהים', 'Sons of the Gods'],
+				['Kokab', 'כוכב', 'Mercury', '☿'], 'Absolute or Perfect Intelligence', 'Pillar of Severity', 'Astral triad',
+				'the four Eights', 'Ruach', 'A hermaphrodite', ['Violet purple', '#7b3fa0'], ['Orange', '#e8811c']],
+			[9, 'Yesod', 'יסוד', 'Foundation', ['Shaddai El Chai', 'שדי אל חי'], ['Gabriel', 'גבריאל'], ['Kerubim', 'כרובים', 'the Strong'],
+				['Levanah', 'לבנה', 'Moon', '☽'], 'Pure Intelligence', 'Middle Pillar', 'Astral triad',
+				'the four Nines', 'Nephesh', 'A beautiful naked man, very strong', ['Indigo', '#3a2a8c'], ['Violet', '#6b2fa0']],
+			[10, 'Malkuth', 'מלכות', 'The Kingdom', ['Adonai ha-Aretz', 'אדני הארץ'], ['Sandalphon', 'סנדלפון'], ['Ashim', 'אשים', 'Souls of Fire'],
+				['Cholem Yesodoth', 'חלם יסודות', 'Sphere of the Elements', ''], 'Resplendent Intelligence', 'Middle Pillar', '',
+				'the four Tens · the Princesses', 'G’uph', 'A young woman, crowned and throned', ['Yellow', '#f2d024'], ['Citrine, olive, russet and black', MALKUTH_Q]]
+		];
+		var S_EMPEROR = [
+			['White brilliance','#ffffff'], ['Blue pearl grey, like mother-of-pearl','#b9c4cf'], ['Dark brown','#4a2e1c'],
+			['Deep purple','#4a1a6b'], ['Bright scarlet','#e8201e'], ['Rich salmon','#f08a6e'],
+			['Bright yellow green','#9acd32'], ['Red-russet','#a33f22'], ['Very dark purple','#2e0f40'],
+			['Citrine, olive, russet and black, flecked gold', fleck(MALKUTH_Q, GOLD)]
+		];
+		var S_EMPRESS = [
+			['White flecked gold', fleck('#fbfbfb', GOLD)], ['White flecked red, blue and yellow', fleck('#fbfbfb', '#d42222', '#2a6fd6', '#f2d024')],
+			['Grey flecked pink', fleck('#8c8c8c', '#f4a7b9')], ['Deep azure flecked yellow', fleck('#1f4fa8', '#f2d024')],
+			['Red flecked black', fleck('#c81e1e', '#0b0b0b')], ['Gold amber','#e6a817'],
+			['Olive flecked gold', fleck('#5c6e38', GOLD)], ['Yellowish brown flecked white', fleck('#a07a2c', '#ffffff')],
+			['Citrine flecked azure', fleck('#b2a429', '#3a8fe0')], ['Black rayed yellow', rays('#0b0b0b', '#f2d024')]
+		];
+		var SCARDS = SDATA.map(function (a, i) {
+			return { kind: 'seph', i: 100 + i, n: a[0], name: a[1], nameHe: a[2], meaning: a[3], god: a[4], angel: a[5], choir: a[6],
+				sphere: a[7], intel: a[8], pillar: a[9], triad: a[10], tarot: a[11], soul: a[12], image: a[13], king: a[14], queen: a[15],
+				scales: { king: a[14], queen: a[15], emperor: S_EMPEROR[i], empress: S_EMPRESS[i] } };
+		});
+
+		/* ---------- the mini Tree of Life on the back: the card's Path in its King Scale colour,
+		 or the card's Sephirah in its Queen Scale colour ---------- */
+		// WIDEN spreads the side pillars and TALLER spreads the Sephiroth downward (both in drawing units), so the
+		// graphic grows without the spheres getting bigger. About 4.8 units make a pixel at the card's size;
+		// the CSS width of .kt-mini grows to match (84px at first, +20 wide twice, +20 wide and +50 tall since).
+		var WIDEN = 191, TALLER = 98, SEPH;        // 124 x 240 px at the card's full size
+		var miniPx = null;                           // DEBUG: [width, height] in pixels, when the hidden sliders set them
+		function layoutSeph() {
+			var SIDE = 140 + WIDEN / 2, DOWN = 1 + TALLER / 920;
+			var y = function (v) { return Math.round(90 + (v - 90) * DOWN); };
+			SEPH = { Kether: [230, y(90), 1], Chokmah: [230 + SIDE, y(210), 2], Binah: [230 - SIDE, y(210), 3], Chesed: [230 + SIDE, y(450), 4],
+				Geburah: [230 - SIDE, y(450), 5], Tiphareth: [230, y(570), 6], Netzach: [230 + SIDE, y(690), 7], Hod: [230 - SIDE, y(690), 8],
+				Yesod: [230, y(810), 9], Malkuth: [230, y(1010), 10] };
+		}
+		layoutSeph();
+		function inkOn(hex) {                        // black or white text, whichever reads on a colour
+			if (!/^#[0-9a-f]{6}$/i.test(hex)) return '#f7f4ee';
+			var v = [1, 3, 5].map(function (k) { var x = parseInt(hex.substr(k, 2), 16) / 255; return x <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); });
+			return .2126 * v[0] + .7152 * v[1] + .0722 * v[2] > .32 ? '#14110f' : '#f7f4ee';
+		}
+		function miniTree(c) {
+			var seph = c.kind === 'seph';
+			var label = seph ? c.name + ' on the Tree of Life' : 'Path ' + c.path + ' from ' + c.from + ' to ' + c.to;
+			var s = '<svg class="kt-mini" viewBox="' + (30 - WIDEN / 2) + ' 30 ' + (400 + WIDEN) + ' ' + (1046 + TALLER) + '"' +
+				(miniPx ? ' style="width:' + miniPx[0] + 'px"' : '') + ' role="img" aria-label="' + label + '">';
+			CARDS.forEach(function (o) {                // every path, faint
+				var a = SEPH[o.from], b = SEPH[o.to];
+				s += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="var(--kt-line)" stroke-width="12"/>';
+			});
+			if (!seph) {                                // this card's path, outlined so a pale colour still shows
+				var a = SEPH[c.from], b = SEPH[c.to];
+				s += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="var(--kt-ink)" stroke-width="34" stroke-linecap="round"/>' +
+					'<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + c.king[1] + '" stroke-width="26" stroke-linecap="round"/>';
+			}
+			Object.keys(SEPH).forEach(function (k) {
+				var p = SEPH[k], r = k === 'Malkuth' ? 58 : 54;
+				var on = seph ? k === c.name : (k === c.from || k === c.to);
+				var fill = 'var(--kt-card)', ink = on ? 'var(--kt-ink)' : 'var(--kt-dim)';
+				if (seph && on) {
+					if (k === 'Malkuth') {                  // the four quarters: citrine, russet, black, olive
+						var Q = ['#b2a429', '#8a4a2e', '#0b0b0b', '#5c6e38'], d = r * Math.SQRT1_2;
+						var pts = [[-d, -d], [d, -d], [d, d], [-d, d]];
+						for (var q = 0; q < 4; q++) {
+							var u = pts[q], v = pts[(q + 1) % 4];
+							s += '<path d="M ' + p[0] + ' ' + p[1] + ' L ' + (p[0] + u[0]) + ' ' + (p[1] + u[1]) + ' A ' + r + ' ' + r + ' 0 0 1 ' +
+								(p[0] + v[0]) + ' ' + (p[1] + v[1]) + ' Z" fill="' + Q[q] + '"/>';
+						}
+						fill = 'none'; ink = '#f7f4ee';
+					} else { fill = c.queen[1]; ink = inkOn(c.queen[1]); }
+				}
+				s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + r + '" fill="' + fill + '" stroke="' +
+					(on ? 'var(--kt-ink)' : 'var(--kt-line)') + '" stroke-width="' + (on ? 10 : 7) + '"/>' +
+					'<text x="' + p[0] + '" y="' + (p[1] + 16) + '" text-anchor="middle" font-size="46" fill="' + ink + '">' + p[2] + '</text>';
+			});
+			return s + '</svg>';
+		}
+
+		/* ---------- the two kinds of card ---------- */
+		function row(label, html) { return '<dt>' + label + '</dt><dd>' + html + '</dd>'; }
+		// a Hebrew name with its transliteration: [transliteration, Hebrew, ...]. The Hebrew leads, in full colour
+		// and at least as large; the transliteration follows, smaller and muted.
+		function heFirst(n) { return '<span class="kt-heb kt-he-main" lang="he">' + n[1] + '</span><span class="kt-en"> <span class="kt-dim kt-tr">' + n[0] + '</span></span>'; }
+		function heFront(n) { return '<div class="kt-big kt-heb kt-hphrase" lang="he">' + n[1] + '</div><div class="kt-sub kt-dim kt-en">' + n[0] + '</div>'; }
+		var SCALES = [['king', 'King'], ['queen', 'Queen'], ['emperor', 'Emperor'], ['empress', 'Empress']];
+		var shownScales = { letters: { king: true }, seph: { queen: true } };   // what the Colour row shows, per deck
+		function swatches(c) {                     // the chosen scales' colours, or '' when none is chosen
+			var on = shownScales[c.kind === 'seph' ? 'seph' : 'letters'];
+			var sw = function (css) { return '<span class="kt-sw" style="background:' + css + '"></span>'; };
+			var rows = SCALES.filter(function (sc) { return on[sc[0]]; }).map(function (sc) {
+				var col = c.scales[sc[0]];
+				return '<span class="kt-dim kt-scale">' + sc[1] + '</span>' + '<span class="kt-colour">' + sw(col[1]) + (col[2] ? sw(col[2]) : '') + col[0] + '</span>';
+			});
+			return rows.length ? '<span class="kt-colours">' + rows.join('') + '</span>' : '';
+		}
+		function colourRow(c) { var h = swatches(c); return h ? '<dt>Colour</dt><dd class="kt-colour-dd">' + h + '</dd>' : ''; }
+		function cardBack(c, glyphHtml, nameLine, meaning, tag, upperRows, lowerTitle, lowerRows, middle) {
+			return '' +
+				'<div class="kt-upper">' +
+				'<div>' +
+				'<div class="kt-head">' +
+				glyphHtml +
+				'<div class="kt-info">' +
+				'<div class="kt-name">' + nameLine + '</div>' +
+				'<div class="kt-meaning">' + meaning + '</div>' +
+				'<div class="kt-tags">' + [].concat(tag).map(function (t) { return '<span class="kt-tag">' + t + '</span>'; }).join('') + '</div>' +
+				'</div>' +
+				// a letter's final form, as large as the letter, to the right of the name, meaning and class;
+				// the word FINAL to its right, on the meaning's line
+				(c.kind === 'letter' && c.final ? '<div class="kt-final kt-glyph kt-heb" lang="he">' + c.final[0] + '</div><div class="kt-flabel">final</div>' : '') +
+				'</div>' +
+				'<div class="kt-sec"><h4>' + upperRows[0] + '</h4><dl class="kt-rows">' + upperRows[1] + '</dl></div>' +
+				'</div>' +
+				miniTree(c) +
+				'</div>' +
+				'<div class="kt-sec"><h4>' + lowerTitle + '</h4><dl class="kt-rows">' + lowerRows + '</dl></div>' +
+				(middle || '');
+		}
+
+		var TYPES = {
+			letters: {
+				cards: CARDS,
+				fronts: [['letter', 'Letter'], ['name', 'Name'], ['attr', 'Attribution'], ['path', 'Path'], ['trump', 'Trump']],
+				decks: [['all', 'All 22'], ['Mother', 'Mothers 3'], ['Double', 'Doubles 7'], ['Simple', 'Simples 12']],
+				inDeck: function (c, d) { return d === 'all' || c.cls === d; },
+				ask: 'Which letter is this?',
+				front: function (c, mode) {
+					if (mode === 'name')  return '<div class="kt-big kt-word">' + c.name + '</div>';
+					if (mode === 'attr')  return '<div class="kt-big kt-sym">' + sym(c.sym) + '</div><div class="kt-sub">' + c.attr + '</div>';
+					if (mode === 'path')  return '<div class="kt-sub kt-dim">Path</div><div class="kt-big kt-num">' + c.path + '</div><div class="kt-sub kt-dim">' + c.from + ' – ' + c.to + '</div>';
+					if (mode === 'trump') return '<div class="kt-big kt-num">' + c.trump + '</div><div class="kt-sub">' + c.trumpName + '</div>';
+					return '<div class="kt-big kt-heb" lang="he">' + c.glyph + '</div>';
+				},
+				back: function (c) {
+					var value = c.value + (c.final ? ' <span class="kt-dim">· final</span> <span class="kt-heb" lang="he">' + c.final[0] + '</span> ' + c.final[1] : '');
+					return cardBack(c,
+						'<div class="kt-glyph kt-heb" lang="he">' + c.glyph + '</div>',
+						c.name + '<span class="kt-heb" lang="he">' + c.nameHe + '</span>', c.meaning, CLASS_NOTE[c.cls],
+						['Letter',
+							row('Attribution', '<span class="kt-sym">' + sym(c.sym) + '</span> ' + c.attr) +
+								row('Value', value) +
+								row('Sound', c.sound) +
+								row('Direction', c.dir)],
+						'Path on the Tree',
+						row('Path', c.path + ' <span class="kt-dim">· ' + c.intel + '</span>') +
+							row('Joins', c.from + ' – ' + c.to) +
+							row('Tarot', c.trump + ' · ' + c.trumpName) +
+							row('Title', '<span class="kt-title">' + c.title + '</span>') +
+							colourRow(c),
+						// Golden Dawn teaching on the letter, full width under the tree (only where there is some)
+						c.gd.length ? '<div class="kt-sec kt-meanings"><h4>Meanings</h4><dl class="kt-rows">' +
+							c.gd.map(function (m) { return row(m[0], '<span class="kt-lore">' + m[1] + '</span>'); }).join('') +
+							'</dl></div>' : '');
+				},
+				badge: function (c) { return '<span class="kt-heb" lang="he" title="' + c.name + '">' + c.glyph + '</span>'; }
+			},
+			seph: {
+				cards: SCARDS,
+				fronts: [['number', 'Number'], ['name', 'Name'], ['hebrew', 'Hebrew'], ['god', 'God-Name'], ['angel', 'Archangel'],
+					['choir', 'Choir'], ['planet', 'Planet'], ['meaning', 'Meaning']],
+				decks: [['all', 'All 10'], ['Supernal triad', 'Supernals 3'], ['Ethical triad', 'Ethical 3'], ['Astral triad', 'Astral 3'],
+					['Middle Pillar', 'Middle Pillar 4'], ['Pillar of Mercy', 'Mercy 3'], ['Pillar of Severity', 'Severity 3']],
+				inDeck: function (c, d) { return d === 'all' || c.triad === d || c.pillar === d; },
+				ask: 'Which Sephirah is this?',
+				front: function (c, mode) {
+					if (mode === 'name')    return '<div class="kt-big kt-word">' + c.name + '</div>';
+					if (mode === 'hebrew')  return '<div class="kt-big kt-heb kt-hword" lang="he">' + c.nameHe + '</div>';
+					// Hebrew first and largest; the transliteration under it, smaller and muted
+					if (mode === 'god')     return '<div class="kt-sub kt-dim">God-Name</div>' + heFront(c.god);
+					if (mode === 'angel')   return '<div class="kt-sub kt-dim">Archangel</div>' + heFront(c.angel);
+					if (mode === 'choir')   return '<div class="kt-sub kt-dim">Choir of Angels</div>' + heFront(c.choir);
+					if (mode === 'planet')  return (c.sphere[3] ? '<div class="kt-big kt-sym">' + sym(c.sphere[3]) + '</div>' : '') +
+						'<div class="kt-sub">' + c.sphere[2] + '</div><div class="kt-sub kt-dim">' + c.sphere[0] + '</div>';
+					if (mode === 'meaning') return '<div class="kt-big kt-phrase">' + c.meaning + '</div>';
+					return '<div class="kt-big kt-num">' + c.n + '</div>';
+				},
+				back: function (c) {
+					var disc = '<div class="kt-disc" style="background:' + c.queen[1] + ';color:' + (c.n === 10 ? '#f7f4ee;text-shadow:0 0 4px #000,0 0 2px #000' : inkOn(c.queen[1])) + '">' + c.n + '</div>';
+					return cardBack(c, disc,
+						'<span class="kt-heb kt-he-name" lang="he">' + c.nameHe + '</span><span class="kt-tr-name kt-en">' + c.name + '</span>',
+						c.meaning, c.triad ? [c.pillar, c.triad] : [c.pillar],
+						['Names',
+							row('God-Name', heFirst(c.god)) +
+								row('Archangel', heFirst(c.angel)) +
+								row('Choir', heFirst(c.choir) + ' <span class="kt-dim kt-tr">· ' + c.choir[2] + '</span>') +
+								row('Sphere', heFirst(c.sphere) + ' <span class="kt-dim kt-tr">· ' +
+									(c.sphere[3] ? '<span class="kt-sym">' + sym(c.sphere[3]) + '</span> ' : '') + c.sphere[2] + '</span>')],
+						'Correspondences',
+						row('Path', c.n + ' <span class="kt-dim">· ' + c.intel + '</span>') +
+							row('Tarot', c.tarot.charAt(0).toUpperCase() + c.tarot.slice(1)) +
+							row('Soul', c.soul) +
+							row('Image', '<span class="kt-title">' + c.image + '</span>') +
+							colourRow(c));
+				},
+				badge: function (c) { return '<span class="kt-sbadge"><span class="kt-heb" lang="he">' + c.nameHe + '</span><span class="kt-en"> ' + c.name + '</span></span>'; }
+			}
+		};
+		var type = 'letters', T = TYPES.letters;
+		var frontOf = { letters: 'letter', seph: 'number' }, deckOf = { letters: 'all', seph: 'all' };
+
+		function front(c, mode) {
+			return T.front(c, mode) + '<div class="kt-ask">' + T.ask + '</div>';
+		}
+		function back(c) { return T.back(c); }
+
+		/* ---------- the deck ---------- */
+		var card = root.querySelector('.kt-card'), elFront = root.querySelector('.kt-front'), elBack = root.querySelector('.kt-back');
+		var done = root.querySelector('.kt-done'), bar = root.querySelector('.kt-prog span'), count = root.querySelector('.kt-count');
+		var bFlip = root.querySelector('.kt-flip'), bAgain = root.querySelector('.kt-again'), bGood = root.querySelector('.kt-good');
+		var deck = [], current = null, total = 0, cleared = 0, missed = {}, flipped = false, cardMode = 'letter';
+
+		function shuffle(a) {
+			for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; }
+			return a;
+		}
+		function start(cards) {
+			deck = shuffle(cards.slice()); total = deck.length; cleared = 0; missed = {};
+			done.hidden = true; card.hidden = false;
+			root.querySelector('.kt-actions').hidden = false;
+			next();
+		}
+		function startFromSettings() {
+			start(T.cards.filter(function (c) { return T.inDeck(c, deckOf[type]); }));
+		}
+		function setFlipped(on) {
+			flipped = on;
+			card.classList.toggle('is-flipped', on);
+			bFlip.hidden = on; bAgain.hidden = !on; bGood.hidden = !on;
+			card.setAttribute('aria-label', on ? 'Card, answer side: press to turn back' : 'Card: press to turn over');
+		}
+		function next() {
+			if (!deck.length) return finish();
+			current = deck.shift();
+			var fm = frontOf[type];
+			cardMode = fm === 'mix' ? T.fronts[Math.floor(Math.random() * T.fronts.length)][0] : fm;
+			// turn the card face-up again without animating, so the next answer never shows during the turn
+			card.classList.add('no-anim');
+			setFlipped(false);
+			elFront.innerHTML = front(current, cardMode);
+			elBack.innerHTML = back(current);
+			void card.offsetWidth;
+			card.classList.remove('no-anim');
+			card.classList.remove('is-new'); void card.offsetWidth; card.classList.add('is-new');
+			progress();
+		}
+		function progress() {
+			var left = deck.length + (current ? 1 : 0);
+			bar.style.width = (total ? cleared / total * 100 : 0) + '%';
+			var again = Object.keys(missed).length;
+			count.textContent = cleared + ' / ' + total + ' learned' + (again ? ' · ' + again + ' to review' : '') + ' · ' + left + ' in deck';
+		}
+		function answer(good) {
+			if (!flipped || !current) return;
+			if (good) {
+				cleared++;
+			} else {
+				missed[current.i] = true;
+				// back into the deck, a few cards on (or at the end of a short deck)
+				var at = Math.min(deck.length, 2 + Math.floor(Math.random() * Math.max(1, deck.length - 1)));
+				deck.splice(at, 0, current);
+			}
+			current = null;
+			next();
+		}
+		function finish() {
+			current = null; progress();
+			card.hidden = true; root.querySelector('.kt-actions').hidden = true;
+			var miss = T.cards.filter(function (c) { return missed[c.i]; });
+			var first = total - miss.length;
+			done.innerHTML =
+				'<div class="kt-score">' + first + ' <span class="kt-dim">/ ' + total + '</span></div>' +
+					'<div>right the first time' + (miss.length ? '' : ' — every card.') + '</div>' +
+					(miss.length ? '<div class="kt-dim">These needed another look:</div><div class="kt-missed' + (type === 'seph' ? ' kt-missed-words' : '') + '">' +
+						miss.map(T.badge).join('') + '</div>' : '') +
+					'<div class="kt-btns">' +
+					(miss.length ? '<button type="button" data-redo="missed">Study these ' + miss.length + '</button>' : '') +
+					'<button type="button" data-redo="all">New shuffle</button>' +
+					'</div>';
+			done.hidden = false;
+			done.querySelectorAll('[data-redo]').forEach(function (b) {
+				b.addEventListener('click', function () { b.dataset.redo === 'missed' ? start(miss) : startFromSettings(); focusCard(); });
+			});
+			var first_btn = done.querySelector('button'); if (first_btn) first_btn.focus();
+		}
+		function focusCard() { try { card.focus({ preventScroll: true }); } catch (e) { card.focus(); } }
+
+		/* ---------- controls ---------- */
+		card.addEventListener('click', function () { setFlipped(!flipped); });
+		bFlip.addEventListener('click', function () { setFlipped(true); focusCard(); });
+		bAgain.addEventListener('click', function () { answer(false); focusCard(); });
+		bGood.addEventListener('click', function () { answer(true); focusCard(); });
+		// Keys work whenever the cards are on screen, without clicking them first, as long as nothing else
+		// wants the key: not while typing, not on another control, not inside the settings popup.
+		function onScreen() {
+			if (card.hidden) return false;
+			var r = card.getBoundingClientRect();
+			var seen = Math.min(r.bottom, innerHeight) - Math.max(r.top, 0);
+			return seen > Math.min(r.height, innerHeight) * .5;
+		}
+		document.addEventListener('keydown', function (e) {
+			if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+			var a = document.activeElement;
+			if (a && a !== document.body && a !== card && !(a.closest('.kartis') === root && !a.closest('.kt-opt, .kt-done'))) return;
+			if (a && a.isContentEditable) return;
+			if (!onScreen()) return;
+			if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setFlipped(!flipped); }
+			else if (flipped && (e.key === '1' || e.key === 'ArrowLeft'  || e.key === 'h')) { e.preventDefault(); answer(false); }
+			else if (flipped && (e.key === '2' || e.key === 'ArrowRight' || e.key === 'l')) { e.preventDefault(); answer(true); }
+		});
+		// after a mouse or touch click on a control, hand the keys back to the card
+		// (a keyboard press on a control keeps focus where it is)
+		root.addEventListener('click', function (e) {
+			if (e.detail > 0 && e.target.closest('button') && !e.target.closest('.kt-gear, .kt-done')) focusCard();
+		});
+
+		// settings popup: the gear opens it; a click or tap anywhere else, or Escape, closes it
+		var opt = root.querySelector('.kt-opt'), gear = opt.querySelector('.kt-gear'), menu = opt.querySelector('.kt-menu');
+		function openMenu() { menu.hidden = false; gear.setAttribute('aria-expanded', 'true'); }
+		function closeMenu() { menu.hidden = true; gear.setAttribute('aria-expanded', 'false'); }
+		var held = null, wasHeld = false;
+		gear.addEventListener('click', function () {
+			if (wasHeld) { wasHeld = false; return; }  // the click that ends a long press doesn't close the popup again
+			menu.hidden ? openMenu() : closeMenu();
+		});
+
+		/* ---------- DEBUG: hold the gear for 3 seconds to show sliders for the mini tree's size.
+		 They start at the tree's current size in pixels. Changing them spreads or closes up the Sephiroth
+		 (the spheres keep their size), the same way WIDEN and TALLER do. ---------- */
+		var dbg = opt.querySelector('.kt-debug'), dbgW = dbg.querySelector('[data-dbg="w"]'), dbgH = dbg.querySelector('[data-dbg="h"]');
+		var unitPx = null;                           // pixels per drawing unit, fixed when the sliders first appear
+		function currentMini() {
+			var m = root.querySelector('.kt-back .kt-mini');
+			var w = m && m.getBoundingClientRect().width;
+			if (!w) w = innerWidth <= 420 ? 91 : 124;   // no card showing: the stylesheet's sizes
+			return [w, w * (1046 + TALLER) / (400 + WIDEN)];
+		}
+		function showDebug() {
+			if (!unitPx) {
+				var now = currentMini(); unitPx = now[0] / (400 + WIDEN);
+				dbgW.value = Math.round(now[0]); dbgH.value = Math.round(now[1]);
+			}
+			dbg.hidden = false; dbgOut();
+		}
+		function dbgOut() { dbgW.nextElementSibling.textContent = dbgW.value + 'px'; dbgH.nextElementSibling.textContent = dbgH.value + 'px'; }
+		function dbgApply() {
+			WIDEN = Math.max(0, dbgW.value / unitPx - 400);
+			TALLER = Math.max(-500, dbgH.value / unitPx - 1046);
+			miniPx = [+dbgW.value, +dbgH.value];
+			layoutSeph(); dbgOut();
+			if (current) elBack.innerHTML = back(current);   // redraw the answer side in place
+		}
+		dbgW.addEventListener('input', dbgApply);
+		dbgH.addEventListener('input', dbgApply);
+		gear.addEventListener('pointerdown', function () {
+			clearTimeout(held);
+			held = setTimeout(function () { wasHeld = true; showDebug(); openMenu(); }, 3000);
+		});
+		['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { gear.addEventListener(ev, function () { clearTimeout(held); }); });
+		gear.addEventListener('contextmenu', function (e) { e.preventDefault(); });   // no long-press menu on phones
+		document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !opt.contains(e.target)) closeMenu(); });
+		opt.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { closeMenu(); gear.focus(); } });
+
+		// the chips in the popup: Cards (fixed), and Front and Deck (drawn for the kind of card chosen)
+		var frontsBox = root.querySelector('.kt-fronts'), decksBox = root.querySelector('.kt-decks'), scalesBox = root.querySelector('.kt-scales');
+		function chips(box, list, current, onPick) {
+			box.innerHTML = list.map(function (o) {
+				return '<button type="button" data-v="' + o[0] + '" aria-pressed="' + (o[0] === current) + '">' + o[1] + '</button>';
+			}).join('');
+			box.querySelectorAll('button').forEach(function (b) {
+				b.addEventListener('click', function () {
+					box.querySelectorAll('button').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+					onPick(b.dataset.v);
+				});
+			});
+		}
+		function drawChips() {
+			chips(frontsBox, T.fronts.concat([['mix', 'Mixed']]), frontOf[type], function (v) {
+				frontOf[type] = v;                        // a new front: show this card again from the new side
+				if (current) { deck.unshift(current); current = null; next(); }
+			});
+			chips(decksBox, T.decks, deckOf[type], function (v) { deckOf[type] = v; startFromSettings(); });
+			// Colours: any number of scales can be on; it only changes what the back of the card lists
+			scalesBox.innerHTML = SCALES.map(function (sc) {
+				return '<button type="button" data-v="' + sc[0] + '" aria-pressed="' + !!shownScales[type][sc[0]] + '">' + sc[1] + '</button>';
+			}).join('');
+			scalesBox.querySelectorAll('button').forEach(function (b) {
+				b.addEventListener('click', function () {
+					var on = shownScales[type];
+					on[b.dataset.v] = !on[b.dataset.v];
+					b.setAttribute('aria-pressed', String(!!on[b.dataset.v]));
+					if (current) elBack.innerHTML = back(current);   // redraw the answer side in place
+				});
+			});
+		}
+		root.querySelectorAll('[data-type]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				root.querySelectorAll('[data-type]').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+				type = b.dataset.type; T = TYPES[type];
+				root.classList.toggle('kt-is-seph', type === 'seph');
+				drawChips(); startFromSettings();
+			});
+		});
+		drawChips();
+		root.querySelector('.kt-restart').addEventListener('click', function () { startFromSettings(); closeMenu(); });
+		// Sephiroth: English names beside the Hebrew can be hidden, to practise reading the Hebrew itself
+		root.querySelector('.kt-english').addEventListener('change', function (e) { root.classList.toggle('kt-no-en', !e.target.checked); });
+
+		startFromSettings();
+	})();
+	</script>
+</figure>
+

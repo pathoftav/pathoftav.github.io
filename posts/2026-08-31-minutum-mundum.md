@@ -20,6 +20,13 @@
 <br><br><br><br><br><br>
 
 
+## Study
+
+<include source="tree-of-life_flashcards.html">
+
+
+<br><br><br><br><br><br>
+
 
 ## Paths
 
